@@ -313,36 +313,105 @@ func _draw_curtains() -> void:
 		var px := Rect2(r.position * T, r.size * T)
 		var mirror: bool = chapter == 5 or (chapter == 7 and str(def.meta.get("mirror", "")) == "1")
 		if mirror:
-			# Mirror glass: cool silver with drifting reflections.
-			draw_rect(px, Color("2a4a5a"))
-			for c in g.cells:
-				var cx: int = c % def.w
-				var cy: int = c / def.w
-				var k := 0.5 + 0.5 * sin(time * 1.5 + (cx + cy) * 0.5)
-				draw_rect(Rect2(cx * T, cy * T, T, T), Color("5f8fa8").lerp(Color("bfe9ff"), k * 0.35))
-			var sweep := fposmod(time * 40.0, px.size.x + px.size.y)
-			for i in int(px.size.y):
-				var sx := px.position.x + sweep - i
-				if sx >= px.position.x and sx < px.end.x:
-					draw_rect(Rect2(int(sx), px.position.y + i, 2, 1), Color(1, 1, 1, 0.5))
-			draw_rect(px, Color("cfe6e6") if not passable else Color.WHITE, false, 1.0)
+			_draw_mirror(px, passable)
 			continue
-		draw_rect(px, Color("4a0a1c"))
-		for c in g.cells:
-			var cx: int = c % def.w
-			var cy: int = c / def.w
-			var sway := int(round(sin(time * 2.0 + cx * 0.6) * 1.0))
-			_tile(14, 5, Vector2(cx * T + sway, cy * T), Color(1, 1, 1, 1))
-		# stars
-		var n := int(r.size.x * r.size.y * 0.6)
-		for i in n:
-			var sx := px.position.x + fposmod(i * 37.0 + time * (6 + i % 5), px.size.x)
-			var sy := px.position.y + fposmod(i * 53.0 + sin(time + i) * 3.0, px.size.y)
-			var a := 0.5 + 0.5 * sin(time * 3.0 + i)
-			draw_rect(Rect2(int(sx), int(sy), 1, 1), Color(1.0, 0.85, 0.4, a))
-		# gold trim
-		var trim := Color("e8b84a") if not passable else Color("fff0b0")
-		draw_rect(px, trim, false, 1.0)
+		_draw_velvet(px, passable)
+
+
+## Mirror glass: cool gradient, Mira's live reflection (mirrored about the
+## glass centre), two travelling sheens and an ornate silver frame.
+func _draw_mirror(px: Rect2, passable: bool) -> void:
+	var top := Color("8ab8cc") if not passable else Color("c8ecff")
+	var bot := Color("2a4a62") if not passable else Color("4a7a96")
+	draw_polygon(PackedVector2Array([px.position, Vector2(px.end.x, px.position.y), px.end, Vector2(px.position.x, px.end.y)]),
+		PackedColorArray([top, top.lerp(bot, 0.4), bot, bot.lerp(top, 0.3)]))
+	var pv: PlayerView = level.player_view if level and "player_view" in level else null
+	if pv and pv.visible_player and world:
+		var feet: Vector2 = pv._feet()
+		var mx := px.get_center().x
+		var dst := Rect2(Vector2(roundf(2.0 * mx - feet.x) - 12.0, roundf(feet.y) - 24.0), Vector2(24, 24))
+		var clip := dst.intersection(px)
+		if clip.has_area():
+			var flip := pv._facing() > 0
+			var sx0 := clip.position.x - dst.position.x
+			if flip:
+				sx0 = 24.0 - (sx0 + clip.size.x)
+			var src := Rect2(pv.last_frame * 24 + sx0, clip.position.y - dst.position.y, clip.size.x, clip.size.y)
+			var d := clip
+			if flip:
+				d = Rect2(clip.position.x + clip.size.x, clip.position.y, -clip.size.x, clip.size.y)
+			draw_texture_rect_region(Art.player_menu(), d, src, Color(0.75, 0.92, 1.0, 0.55))
+	# travelling sheens
+	for k in 2:
+		var span := px.size.x + px.size.y
+		var sweep := fposmod(time * (26.0 + k * 11.0) + k * span * 0.5, span + 20.0) - 10.0
+		var bw := 3 if k == 0 else 1
+		for i in int(px.size.y):
+			var sx := px.position.x + sweep - i
+			if sx >= px.position.x and sx + bw <= px.end.x:
+				draw_rect(Rect2(int(sx), px.position.y + i, bw, 1), Color(1, 1, 1, 0.35 if k == 0 else 0.5))
+	# frame: dark outline, silver bevel, corner studs
+	var r := Rect2(px.position.round(), px.size.round())
+	UIKit.frame(self, r, Color("e8f4f8") if not passable else Color.WHITE)
+	UIKit.frame(self, r.grow(1), Color("1a2a30"))
+	draw_rect(Rect2(r.position.x + 1, r.end.y - 2, r.size.x - 2, 1), Color("6a8a96"))
+	for c in [r.position, Vector2(r.end.x - 2, r.position.y), Vector2(r.position.x, r.end.y - 2), r.end - Vector2(2, 2)]:
+		draw_rect(Rect2(c, Vector2(2, 2)), Color("ffffff"))
+
+
+## Theatre curtain: animated velvet folds, scalloped valance, gold rope trim,
+## fringe and drifting gold dust (brighter while Mira can dash through).
+func _draw_velvet(px: Rect2, passable: bool) -> void:
+	var ramp := [Color("2e0410"), Color("4e0a1e"), Color("761228"), Color("a01e36"), Color("cc3a50"), Color("ee7080")]
+	var x0 := int(px.position.x)
+	var y0 := int(px.position.y)
+	var w := int(px.size.x)
+	var h := int(px.size.y)
+	var lift := 1 if passable else 0
+	for x in w:
+		var y := 0
+		while y < h:
+			var seg := mini(4, h - y)
+			var ph := (x + sin(time * 1.6 + y * 0.09 + x * 0.05) * 2.2) * TAU / 11.0
+			var f := sin(ph)
+			var idx := 2 + int(round(f * 1.6)) + lift
+			if f < -0.92:
+				idx = 0 + lift
+			# deeper toward the bottom, lit near the top
+			if y < 6:
+				idx += 1
+			elif y > h - 8:
+				idx -= 1
+			draw_rect(Rect2(x0 + x, y0 + y, 1, seg), ramp[clampi(idx, 0, 5)])
+			y += seg
+	# drifting gold dust
+	var n := int(w * h / 40.0)
+	var dust_a := 1.0 if passable else 0.55
+	for i in n:
+		var sx := fposmod(i * 37.0 + sin(time * 0.7 + i) * 4.0, float(w))
+		var sy := fposmod(i * 53.0 - time * (4.0 + i % 4), float(h))
+		var tw := 0.5 + 0.5 * sin(time * 4.0 + i * 1.3)
+		draw_rect(Rect2(x0 + int(sx), y0 + int(sy), 1, 1), Color(1.0, 0.86, 0.45, tw * dust_a))
+	# scalloped valance across the top
+	var gold := Color("f2c14e") if not passable else Color("fff2b8")
+	var gold_dk := Color("9a6420")
+	for x in w:
+		var sc := int(round(2.0 + 2.0 * absf(sin((x + 0.5) * PI / 8.0))))
+		draw_rect(Rect2(x0 + x, y0, 1, sc + 1), ramp[1])
+		draw_rect(Rect2(x0 + x, y0 + sc + 1, 1, 1), gold if (x + int(time * 6.0)) % 4 != 0 else gold_dk)
+	# side ropes and bottom fringe
+	for y in h:
+		var rc := gold if ((y + int(time * 4.0)) / 2) % 2 == 0 else gold_dk
+		draw_rect(Rect2(x0, y0 + y, 1, 1), rc)
+		draw_rect(Rect2(x0 + w - 1, y0 + y, 1, 1), rc)
+	for x in w:
+		draw_rect(Rect2(x0 + x, y0 + h - 1, 1, 1), gold_dk)
+		if x % 2 == 0:
+			draw_rect(Rect2(x0 + x, y0 + h - 2, 1, 1), gold)
+	# tassels at the top corners
+	for cx in [x0 + 1, x0 + w - 3]:
+		draw_rect(Rect2(cx, y0 + 4, 2, 4), gold)
+		draw_rect(Rect2(cx, y0 + 8, 2, 1), gold_dk)
 
 
 func _draw_groups() -> void:
@@ -541,12 +610,14 @@ func _draw_entities() -> void:
 				var style: String = def.meta.get("end_style", "flag")
 				var pos := Vector2(e.cx * T + 4, e.cy * T)
 				if style == "fire":
-					_obj("fire%d" % (int(time * 10.0) % 2), pos)
+					UIKit.campfire(self, pos + Vector2(0, 8), time)
 					if level and level.effects and randf() < 0.25:
-						level.effects.embers(pos + Vector2(0, -2))
+						level.effects.embers(pos + Vector2(0, -4))
 				elif style == "none":
 					pass
 				else:
+					if chapter == 7 and def.exits.is_empty():
+						_draw_prayer_flags(pos + Vector2(-2, -12))
 					_draw_flag(pos + Vector2(-2, 8))
 			"npc":
 				_draw_npc(e)
@@ -663,6 +734,26 @@ func _draw_entities() -> void:
 
 
 ## Procedural waving pennant on a pole (base at `base`).
+## Strings of fluttering prayer flags from the summit pole down both slopes.
+func _draw_prayer_flags(top: Vector2) -> void:
+	var cols := [Color("d8344f"), Color("f2c14e"), Color("4fae5a"), Color("4f8ad8"), Color("f4efe6")]
+	for side in [-1.0, 1.0]:
+		var end := top + Vector2(side * 70.0, 36.0)
+		var n := 28
+		var prev := top
+		for i in range(1, n + 1):
+			var u := float(i) / n
+			var p := top.lerp(end, u) + Vector2(0, sin(u * PI) * 9.0)
+			draw_line(prev.round(), p.round(), Color("3a2a30"), 1.0)
+			prev = p
+			if i % 2 == 0 and i < n:
+				var fc: Color = cols[(i / 2) % cols.size()]
+				var flap := sin(time * 5.0 + u * 9.0 + side) * 1.2
+				var fp := p.round()
+				draw_colored_polygon(PackedVector2Array([fp, fp + Vector2(3, 0), fp + Vector2(3 + flap * 0.5, 4), fp + Vector2(flap * 0.5, 4)]), fc)
+				draw_rect(Rect2(fp.x, fp.y + 3, 3, 1), fc.darkened(0.3))
+
+
 func _draw_flag(base: Vector2) -> void:
 	var top := base + Vector2(0, -20)
 	draw_rect(Rect2(base.x - 1, top.y - 1, 2, 21), Color("1d1428"))

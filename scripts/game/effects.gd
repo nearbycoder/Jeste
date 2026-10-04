@@ -66,6 +66,15 @@ func debris(rect: Rect2, col: Color, n: int = 16) -> void:
 		_add("chunk", p, v, randf_range(0.6, 1.0), c, float(randi_range(1, 3)), 320.0, 0.4)
 
 
+## Celebration: paper confetti that bursts upward and flutters down.
+func confetti(pos: Vector2, n: int = 60) -> void:
+	var cols := [Color("ff5a6e"), Color("ffd25a"), Color("5ad2ff"), Color("8aff6e"), Color("ff8ae0"), Color("ffffff")]
+	for i in n:
+		var a := randf_range(-PI * 0.95, -PI * 0.05)
+		var v := Vector2.RIGHT.rotated(a) * randf_range(60, 170)
+		_add("confetti", pos + Vector2(randf_range(-4, 4), randf_range(-4, 4)), v, randf_range(1.6, 2.6), cols[i % cols.size()], randf_range(1.0, 2.0), 140.0, 2.2)
+
+
 func embers(pos: Vector2, n: int = 1) -> void:
 	for i in n:
 		_add("star", pos + Vector2(randf_range(-4, 4), 0), Vector2(randf_range(-8, 8), randf_range(-30, -15)), randf_range(0.8, 1.4), Color("ffb03a"), 1.0, -5.0, 0.6)
@@ -143,6 +152,12 @@ func _draw() -> void:
 					draw_rect(Rect2(pos.x, pos.y - 1, 1, 3), Color(c.r, c.g, c.b, a * 0.8))
 			"drop":
 				draw_rect(Rect2(pos.x, pos.y, 1, 2), Color(c.r, c.g, c.b, k))
+			"confetti":
+				# flutter: width flips as the paper spins
+				var spin := sin(time * 14.0 + pos.x * 0.7 + p.size * 5.0)
+				var w := 2.0 if absf(spin) > 0.4 else 1.0
+				var cc := c if spin > 0.0 else c.darkened(0.3)
+				draw_rect(Rect2(pos.x + sin(time * 5.0 + pos.y * 0.1) * 1.0, pos.y, w, 1), Color(cc.r, cc.g, cc.b, minf(1.0, k * 3.0)))
 			"chunk":
 				var sz: float = p.size
 				draw_rect(Rect2(pos.x, pos.y, sz, sz), Color("1d1428"))

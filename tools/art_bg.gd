@@ -288,6 +288,82 @@ static func jester_peaks(img: Image, p1: Vector2, p2: Vector2, slope: float, pal
 			img.set_pixel(x, y, dither_mix(col, haze_col, hz, x, y, 8))
 
 
+## Gothic stained-glass window: equilateral pointed arch, twin lancets under a
+## rose window, diamond lead lattice, jewel glass that dims toward the sill.
+static func gothic_window(img: Image, cx: int, top: int, bottom: int, w: int, pal: Array, seed: int) -> void:
+	var half := w / 2.0
+	var spring := top + w * 0.866
+	var stone_lt := c("2a4a50")
+	var stone := c("16282c")
+	var lead := c("0c1214")
+	var inside_arch := func(x: float, y: float, cxx: float, hw: float, tp: float) -> bool:
+		var sp := tp + hw * 2.0 * 0.866
+		if y >= sp:
+			return absf(x - cxx) <= hw
+		if y < tp:
+			return false
+		return Vector2(x - (cxx + hw), y - sp).length() <= hw * 2.0 and Vector2(x - (cxx - hw), y - sp).length() <= hw * 2.0
+	var rose_c := Vector2(cx, top + w * 0.62)
+	var rose_r := w * 0.27
+	var lan_top := rose_c.y + rose_r - 2.0
+	for y in range(top - 3, bottom + 3):
+		for x in range(int(cx - half) - 3, int(cx + half) + 4):
+			var px := posmod(x, W)
+			var fx := x + 0.5
+			var fy := y + 0.5
+			var outer: bool = inside_arch.call(fx, fy, float(cx), half + 3.0, float(top) - 3.0 * 1.15) and y < bottom + 3
+			if not outer:
+				continue
+			var inner: bool = inside_arch.call(fx, fy, float(cx), half, float(top)) and y < bottom
+			if not inner:
+				# carved stone frame, lit on the left
+				img.set_pixel(px, y, stone_lt if fx < cx else stone)
+				continue
+			var col: Color
+			var dr := Vector2(fx, fy).distance_to(rose_c)
+			var in_l: bool = inside_arch.call(fx, fy, cx - half / 2.0 - 0.5, half / 2.0 - 1.5, lan_top)
+			var in_r: bool = inside_arch.call(fx, fy, cx + half / 2.0 + 0.5, half / 2.0 - 1.5, lan_top)
+			if dr <= rose_r:
+				# rose window: 12 petals and two rings of lead
+				var ang := atan2(fy - rose_c.y, fx - rose_c.x)
+				var sector := int(floor((ang + PI) / TAU * 12.0))
+				var ring := 0 if dr < rose_r * 0.35 else (1 if dr < rose_r * 0.72 else 2)
+				var edge := absf(fmod((ang + PI) / TAU * 12.0, 1.0) - 0.5) > 0.42 and ring > 0
+				if edge or absf(dr - rose_r * 0.35) < 0.7 or absf(dr - rose_r * 0.72) < 0.7 or dr > rose_r - 1.0:
+					col = lead
+				else:
+					col = pal[(sector * (ring + 1) + ring * 3 + seed) % pal.size()]
+					if ring == 0:
+						col = c("f8e070")
+					col = col.lightened(0.12)
+			elif in_l or in_r:
+				if (x + y) % 6 == 0 or (x - y + 600) % 6 == 0:
+					col = lead
+				else:
+					var cell := _h((x + y) / 6 + (x - y + 600) / 6 * 7, int(in_r), seed)
+					col = pal[cell % pal.size()]
+					# a brighter medallion in each lancet
+					var my := lan_top + (bottom - lan_top) * 0.42
+					var md := Vector2(fx - (cx - half / 2.0 if in_l else cx + half / 2.0), (fy - my) * 0.7).length()
+					if md < half * 0.32:
+						col = col.lightened(0.25)
+					if absf(md - half * 0.32) < 0.6:
+						col = lead
+				# light falls from above: glass dims toward the sill
+				var dim := clampf((fy - lan_top) / float(bottom - lan_top), 0.0, 1.0) * 0.45
+				if col != lead:
+					col = dither_mix(col, c("0a1a1e"), dim, x, y, 6)
+			else:
+				col = stone if fx < cx else stone.darkened(0.2)
+				if absf(fx - cx) < 1.2:
+					col = stone_lt
+			img.set_pixel(px, y, col)
+	# sill
+	for x in range(int(cx - half) - 4, int(cx + half) + 5):
+		img.set_pixel(posmod(x, W), bottom + 3, stone_lt)
+		img.set_pixel(posmod(x, W), bottom + 4, stone)
+
+
 static func build(chapter: int) -> Dictionary:
 	var sky := Image.create(320, 180, false, Image.FORMAT_RGBA8)
 	var far := Image.create(W, H, false, Image.FORMAT_RGBA8)
@@ -422,21 +498,10 @@ static func build(chapter: int) -> Dictionary:
 			range_layer(near, 176, 26, 9, 46, c("3a5c34"), c("2a4628"), -1, Color.WHITE, c("3a5c34"), 0.0)
 		5:  # mirror cathedral interior
 			gradient(sky, [[0.0, c("040b0e")], [1.0, c("142e34")]])
-			var glass := [c("2f6f8a"), c("8a2f5a"), c("c9a23a"), c("3a8a5a"), c("5a3a9a")]
+			var glass := [c("2f6f9a"), c("9a2f5a"), c("d9a83a"), c("3a8a5a"), c("6a3aaa"), c("c84a3a")]
 			for k in 5:
 				var cx := k * 128 + 64
-				var ww := 44
-				var top := 22
-				for y in range(top, 152):
-					for xx in range(-ww / 2, ww / 2 + 1):
-						var inside := y > top + ww / 2 or (xx * xx + (y - top - ww / 2) * (y - top - ww / 2) <= (ww / 2) * (ww / 2))
-						if not inside:
-							continue
-						var g: Color = glass[_h((cx + xx) / 5, y / 7, 51) % glass.size()]
-						g = g.lerp(c("0a1a1e"), 0.35 + float(y - top) / 300.0)
-						if (xx + ww / 2) % 11 == 0 or y % 14 == 0:
-							g = c("0a1618")
-						far.set_pixel(posmod(cx + xx, W), y, g)
+				gothic_window(far, cx, 18, 156, 46, glass, 50 + k)
 				# light shaft from the window
 				for y in range(60, H):
 					for xx in range(-14, 15):
@@ -446,16 +511,26 @@ static func build(chapter: int) -> Dictionary:
 							var pp := posmod(sx, W)
 							var base := far.get_pixel(pp, y)
 							far.set_pixel(pp, y, Color(base.r + a, base.g + a, base.b + a * 0.8, maxf(base.a, a * 2.0)))
+			# fluted gothic columns with capitals and bases
+			var colr := [c("050d10"), c("0a1a1e"), c("12282e"), c("1c3a42"), c("2a5058")]
 			for k in 8:
 				var px := k * 80 + 28
 				for y in H:
-					for xx in 16:
-						var shade := c("081316") if xx < 4 else (c("0c1a1e") if xx < 12 else c("061012"))
-						mid.set_pixel(posmod(px + xx, W), y, shade)
-				for yy in 6:
-					for xx in 24:
-						mid.set_pixel(posmod(px - 4 + xx, W), yy, c("081316"))
-						mid.set_pixel(posmod(px - 4 + xx, W), H - 1 - yy, c("081316"))
+					var cap := y < 12 or y > H - 10
+					var wdt := 18 if cap else 14
+					var x0 := px - (2 if cap else 0)
+					for xx in wdt:
+						var t := float(xx) / (wdt - 1)
+						var idx := 1 + int(round(sin(t * PI) * 2.0 - t * 0.8))
+						if not cap and xx % 4 == 2:
+							idx -= 1
+						if cap and (y == 11 or y == H - 10 or y % 4 == 0):
+							idx = 0 if y % 4 == 0 else 4
+						idx = clampi(idx + (1 if xx == 2 else 0), 0, 4)
+						mid.set_pixel(posmod(x0 + xx, W), y, colr[idx])
+					# soft shadow cast on the right
+					if not cap:
+						mid.set_pixel(posmod(px + 14, W), y, Color(0, 0, 0, 0.35))
 		6:  # undertow caves
 			gradient(sky, [[0.0, c("010409")], [0.7, c("061a2c")], [1.0, c("0b2e46")]])
 			for i in 90:

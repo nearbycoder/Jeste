@@ -589,6 +589,10 @@ func _on_end() -> void:
 	if fast:
 		return
 	Sfx.play("complete")
+	effects.confetti(_pc() + Vector2(0, -12), 70)
+	hud.flash = 0.5
+	_shake(0.15)
+	Game.rumble(0.5, 0.3)
 	var end_scene := str(chapter.meta.get("end_scene", ""))
 	if end_scene != "" and Story.has(end_scene):
 		after_dialogue = "results"
