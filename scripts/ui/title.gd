@@ -163,7 +163,7 @@ func _draw() -> void:
 	draw_rect(Rect2(226, 151, 60, 2), Color("4f9a3a"))
 	var frame := Art.frame_index("idle0")
 	draw_set_transform(base, 0, Vector2(-1, 1))
-	draw_texture_rect_region(Art.player(), Rect2(-8, -16, 16, 16), Rect2(frame * 16, 0, 16, 16), Color.WHITE)
+	draw_texture_rect_region(Art.player_menu(), Rect2(-8, -16, 16, 16), Rect2(frame * 16, 0, 16, 16), Color.WHITE)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	for i in 3:
 		var t := juggle_t * 2.2 + i * TAU / 3.0

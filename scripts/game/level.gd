@@ -38,6 +38,8 @@ var trans: Dictionary = {}
 var after_dialogue := ""
 var events_log: Array = []      # test mode: collected ids, deaths, exits
 var finished := false
+var pending_script := ""
+var script_delay := 0.0
 var replay := PackedByteArray()  # optional scripted input (demo / screenshots)
 var replay_pos := 0
 
@@ -180,6 +182,11 @@ func run_script(id: String) -> void:
 		dialogue.skip_all()
 		return
 	mode = "dialogue"
+	if hud.title_text != "" and hud.title_t < hud.title_dur:
+		# Let the chapter title card finish before the cutscene starts.
+		pending_script = id
+		script_delay = hud.title_dur - hud.title_t
+		return
 	dialogue.play(id)
 
 
@@ -570,7 +577,11 @@ func _process(delta: float) -> void:
 	if fast:
 		return
 	if not paused:
-		chapter_time += 0.0
+		if pending_script != "":
+			script_delay -= delta
+			if script_delay <= 0.0:
+				dialogue.play(pending_script)
+				pending_script = ""
 		match mode:
 			"dead":
 				timer += delta

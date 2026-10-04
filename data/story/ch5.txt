@@ -28,7 +28,7 @@ mira:determined: (Okay. Okay. One, two, three. Breathe. Keep them in the air.)
 
 @ch5_belfry
 narrator:normal: The cathedral's belfry. The great bell is cracked and silent. But tucked into a crack in the stone, a small golden bell gleams.
-mira:normal: Four bells now, Nana. It's like you're leaving me a trail.
+mira:normal: Five bells now, Nana. It's like you're leaving me a trail.
 mira:sad: Were you ever scared? Up here? You never looked scared.
 
 @ch5_confront

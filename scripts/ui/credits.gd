@@ -74,7 +74,7 @@ func _draw() -> void:
 				PixelText.draw_centered(self, 160, y, txt, Color.WHITE, Color(0, 0, 0, 0.8))
 	# Mira juggling
 	var base := Vector2(40, 170)
-	draw_texture_rect_region(Art.player(), Rect2(base.x - 8, base.y - 16, 16, 16), Rect2(Art.frame_index("idle0") * 16, 0, 16, 16))
+	draw_texture_rect_region(Art.player_menu(), Rect2(base.x - 8, base.y - 16, 16, 16), Rect2(Art.frame_index("idle0") * 16, 0, 16, 16))
 	for i in 3:
 		var t := time * 2.2 + i * TAU / 3.0
 		var p := base + Vector2(cos(t) * 7.0, -18.0 - absf(sin(t)) * 14.0)

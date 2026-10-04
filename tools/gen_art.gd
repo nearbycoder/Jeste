@@ -33,6 +33,7 @@ func _init() -> void:
 	# Player + the Grin (palette swap)
 	var mira := Sprites.mira_frames()
 	_save(_sheet(mira, 16, 16), "res://assets/sprites/player.png")
+	_save(_sheet(mira, 16, 16, {"c": "e03a5a", "C": "9c2440"}), "res://assets/sprites/player_menu.png")
 	var grin_pal := {"s": "e8e4f0", "d": "b8b0c8", "h": "1a1026", "c": "3a1f5a", "C": "24133a",
 		"y": "d8344f", "w": "2a1a3a", "W": "1a1026", "t": "5a2a7a", "T": "3a1a52", "p": "d8344f",
 		"P": "8f1f35", "l": "120a1a", "b": "2a1a3a", "m": "ff3a5a", "e": "ff3a5a"}

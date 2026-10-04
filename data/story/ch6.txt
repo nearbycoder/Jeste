@@ -26,7 +26,7 @@ mira:determined: I need to find her. The Grin. I need to talk to her.
 bellamy:smile: Go on, then. The drums down here bounce you right up. Odile loved them.
 
 @ch6_grotto
-narrator:normal: A grotto of glowing moss. In the stillness, a bell rings softly - the fifth of Nana's bells.
+narrator:normal: A grotto of glowing moss. In the stillness, a bell rings softly - the sixth of Nana's bells.
 mira:normal: Bellamy said she climbed here. Fifty years ago. Maybe she hid these for me to find.
 mira:happy: Ha. That's exactly the kind of thing she'd do.
 

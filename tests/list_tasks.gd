@@ -62,6 +62,21 @@ func _init() -> void:
 			for e in r.exits:
 				if not _edge_open(r, e):
 					result.errors.append("%s: exit %s has no opening on the border" % [rid, e.side])
+		# Every referenced cutscene must exist.
+		var refs: Array = []
+		if ch.meta.has("end_scene"):
+			refs.append(str(ch.meta.end_scene))
+		for rid in ch.order:
+			var r: RoomDef = ch.rooms[rid]
+			if r.meta.has("enter"):
+				refs.append(str(r.meta.enter))
+			for tok in str(r.meta.get("triggers", "")).split(" ", false):
+				refs.append(tok.split(":")[1])
+				if not r.triggers.has(tok.split(":")[0]):
+					result.errors.append("%s: trigger %s has no zone in the map" % [rid, tok])
+		for sid in refs:
+			if not Story.has(sid):
+				result.errors.append("chapter %d: missing cutscene '%s'" % [n, sid])
 		result.chapters[str(n)] = g
 		for rid in entries:
 			var r: RoomDef = ch.rooms.get(rid)

@@ -13,7 +13,7 @@ mira:grin: Ha! Two dashes. Nana, I hope you're watching. This is going to be a g
 mira:happy: ...And if I drop the ball? That's okay too.
 
 @ch7_nest
-narrator:normal: An eagle's nest, high above the gale. Woven into the twigs: the last of Nana's bells, and a scrap of paper in faded ink.
+narrator:normal: An eagle's nest, high above the gale. Woven into the twigs: the seventh and last of Nana's bells, and a scrap of paper in faded ink.
 nana:normal: "Little Mira. If you're reading this, you climbed all the way up here. Of course you did. You never quit."
 nana:normal: "Here is the only trick I never taught you: it is alright to stop smiling. The people who love you will still be in the audience."
 mira:tears: ...Nana.

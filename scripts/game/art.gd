@@ -56,6 +56,10 @@ static func player() -> Texture2D:
 	return tex("res://assets/sprites/player.png")
 
 
+static func player_menu() -> Texture2D:
+	return tex("res://assets/sprites/player_menu.png")
+
+
 static func grin() -> Texture2D:
 	return tex("res://assets/sprites/grin.png")
 

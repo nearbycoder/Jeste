@@ -278,9 +278,9 @@ static func build(chapter: int) -> Dictionary:
 				var mx := (i * 53) % 640
 				var my := 30 + (i * 37) % 100
 				disc(far, mx, my, 7, c("5a2a7a"))
-				far.set_pixel(mx - 3, my - 1, c("12061f")); far.set_pixel(mx + 3, my - 1, c("12061f"))
+				far.set_pixel(posmod(mx - 3, W), my - 1, c("12061f")); far.set_pixel(posmod(mx + 3, W), my - 1, c("12061f"))
 				for dx in range(-3, 4):
-					far.set_pixel(mx + dx, my + 3 - (1 if absi(dx) < 2 else 0) * (1 if i % 2 == 0 else -1), c("12061f"))
+					far.set_pixel(posmod(mx + dx, W), my + 3 - (1 if absi(dx) < 2 else 0) * (1 if i % 2 == 0 else -1), c("12061f"))
 			mountains(near, 150, [6, 4, 2], 23, c("2a0d3a"))
 			for x in W:
 				var drop := int(18 + 10 * sin(x * 0.07) + 6 * sin(x * 0.19))
