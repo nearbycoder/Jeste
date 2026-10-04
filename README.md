@@ -1,85 +1,237 @@
-# JESTE
+<p align="center">
+  <img src="docs/media/teaser.gif" alt="Gameplay loop: Mira launches from circus balloons at the summit, bounces off pinball bumpers, outruns her reflection through velvet curtains, rides a gondola and flies past stained glass" width="100%">
+</p>
 
-*A mountain that laughs back.*
+<h1 align="center">JESTE</h1>
 
-A Celeste-inspired precision platformer made in **Godot 4** with hand-made pixel art.
-Every room, collectible and chapter is **proven completable by an automated test-suite**
-that drives the real game physics.
+<p align="center">
+  <b><i>A mountain that laughs back.</i></b><br>
+  An original pixel-art precision platformer about a young jester climbing a mountain that shows you whatever you hide behind your smile.
+</p>
 
-![title](docs/title.png)
+<p align="center">
+  <img src="https://img.shields.io/badge/engine-Godot%204.7-478cbf?logo=godotengine&logoColor=white" alt="Engine: Godot 4.7">
+  <img src="https://img.shields.io/badge/platform-Linux-f2c14e?logo=linux&logoColor=black" alt="Platform: Linux">
+  <img src="https://img.shields.io/badge/language-GDScript-355570" alt="Language: GDScript">
+  <img src="https://img.shields.io/badge/version-0.1.0-d8344f" alt="Version 0.1.0">
+  <img src="https://img.shields.io/badge/every%20room-proven%20beatable-6fbf73" alt="Every room proven beatable">
+</p>
 
-## The story
+<p align="center">
+  <a href="https://github.com/nearbycoder/Jeste/releases/latest"><b>Download for Linux</b></a> ·
+  <a href="docs/media/jeste_trailer.mp4"><b>Watch the trailer</b></a> ·
+  <a href="#build-from-source"><b>Build from source</b></a>
+</p>
 
-Mira Vale grew up as a jester in the traveling *Lark & Lantern* troupe, trained by her
-grandmother **Nana Odile**, the greatest clown who ever lived. Nana always promised
-they'd climb **Mount Jeste** together, the mountain whose wind is said to laugh.
+## Trailer
 
-Nana died last winter. Mira never cried. She kept performing and smiling until one night
-on stage she froze and dropped every ball, and the crowd laughed *at* her.
+<p align="center">
+  <a href="docs/media/jeste_trailer.mp4">
+    <img src="docs/media/trailer_poster.png" alt="Play the Jeste feature trailer (1:48)" width="100%">
+  </a>
+  <br><sub>Click to play the 1:48 feature trailer (MP4, 1080p60). Every frame is the real game, played by the project's automated solver.</sub>
+</p>
 
-So Mira goes to climb Jeste alone. The mountain, as old Bellamy the bell-ringer warns her,
-is a trickster: *"It shows you whatever you hide behind your smile."*
+## About
 
-| Chapter | Place | Mechanic | Story beat |
-|---|---|---|---|
-| Prologue | The Foot of Jeste | run, jump, climb, wall jump, **dash** | Mira meets Bellamy; a magpie teaches her to dash |
-| 1 | Lantern Town | jack-in-the-box springs, crumbling boards, dash gems | An empty town from her childhood tour; she meets Tobi, an anxious painter |
-| 2 | The Hollow Stage | velvet curtains you dash through, **chase** | A dream: her reflection steps out of a mirror. **The Grin**: the mask that never stops smiling |
-| 3 | The Grand Carnival | keys & gates, comedy/tragedy mask blocks, cracked walls | Ringmaster Oddo, a ghost who never ends his show because he fears the quiet after it |
-| 4 | Whistling Ridge | wind, cable gondolas | Stuck on a gondola, Mira has a panic attack; Tobi teaches her the "juggler's breath" |
-| 5 | Mirror Cathedral | circus balloons, mirror panes | The Grin traps Tobi; Mira tries to destroy her and falls into the dark |
-| 6 | Undertow | pinball bumpers, twin gems, chase | Bellamy reveals he climbed with Nana; Mira reconciles with the Grin, and they become one |
-| 7 | The Summit | **two dashes**, every mechanic | Sunrise at the top. Mira finally cries and laughs at the same time, and the mountain laughs *with* her |
-| Epilogue | The Show | - | A new act: "Three Balls and a Bell" |
+Mira Vale grew up as a jester in the travelling *Lark & Lantern* troupe, trained by her
+grandmother **Nana Odile**, the greatest clown who ever lived. Nana always promised they
+would climb **Mount Jeste** together, the mountain whose wind is said to laugh.
 
-The collectibles are part of the story: **61 Sunberries** (4 of them winged - collect them without dashing!), **7 Jester Bells** (Nana's
-lost bells, hidden in secret rooms behind fake or cracked walls, each with a message) and a
-**Golden Sunberry** in chapters 1-7 for deathless runs.
+Nana died last winter. Mira never cried. She kept smiling and performing, until one night
+on stage she froze, dropped every ball, and the crowd laughed *at* her. So she goes to climb
+Jeste alone. The old bell-ringer at the foot of the mountain has a warning for her:
 
-## Controls
+> *"Jeste's a trickster. They say it shows you whatever you hide behind your smile."*
 
-| Action | Keyboard | Gamepad |
+Jeste is a tight, forgiving climb in the tradition of modern precision platformers. It runs
+on an eight-way dash and runs through nine chapters, each built around one new idea. Deaths
+cost about a second. The challenge is optional, the secrets are worth it, and an assist mode
+is always one menu away.
+
+## How to play
+
+| Action | Keyboard (rebindable) | Gamepad |
 |---|---|---|
-| Move / aim | Arrows or WASD | D-pad / left stick |
-| Jump | C, Space, J | A |
-| Dash | X, K, Shift | X / B |
-| Grab / climb | Z, V, L | Shoulders / triggers |
-| Pause | Esc, Enter, P | Start |
+| Move / aim | Arrow keys or WASD | D-pad or left stick |
+| Jump | C, Space or J | A |
+| Dash (8 directions) | X, K or Shift | X or B |
+| Grab / climb | Z, V or L | Shoulders or triggers |
+| Pause | Esc, Enter or P | Start |
 
-Pause → **Assist** offers a slower game speed, infinite stamina and invincibility.
+- **Hold jump** to jump higher. **Jump off a wall** to kick away from it.
+- **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
+- **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
+- **Options → Controls** rebinds every key, swapping on conflicts. On-screen prompts follow whichever device you used last.
+- **Pause → Assist** offers slower game speed (50–100%), infinite stamina and invincibility. Your progress counts the same.
 
-## Running
+## Features
 
-Open the folder in Godot 4.6+ (the project was built and tested with 4.7.2) and press Play, or:
+### Movement that feels right
+
+<img src="docs/media/screenshot_dash.png" alt="Mira chains a dash through three green dash gems over a spike pit in Lantern Town" width="100%">
+
+A deterministic 60 Hz simulation with coyote time, jump buffering, variable jump height,
+half-gravity at the apex, wall slides, wall jumps, stamina climbing, climb-hops and
+8-way dashes. Under that sit the advanced techniques: **supers, hypers, wavedashes and
+wall-bounces**, plus dash corner correction and momentum lift-boosts from moving platforms.
+
+### Nine chapters, one new idea each
+
+<img src="docs/media/screenshot_curtains.png" alt="Mira glides through red velvet curtains on the Hollow Stage, a dream theatre inside the mountain" width="100%">
+
+| | Chapter | New mechanic |
+|---|---|---|
+| Prologue | **The Foot of Jeste** | Run, jump, climb, wall-jump, and finally the dash |
+| 1 | **Lantern Town** | Jack-in-the-box springs, crumbling boards, dash gems |
+| 2 | **The Hollow Stage** | Velvet curtains you dash through, and a chase |
+| 3 | **The Grand Carnival** | Keys and gates, comedy/tragedy mask blocks that swap on every dash, cracked walls |
+| 4 | **Whistling Ridge** | Gusting wind (walls shelter you) and cable gondolas |
+| 5 | **Mirror Cathedral** | Circus balloons that catch and launch you, mirror panes |
+| 6 | **Undertow** | Pinball bumpers, twin gems (two dashes), another chase |
+| 7 | **The Summit** | Two dashes and every mechanic, remixed |
+| Epilogue | **The Show** | A curtain call |
+
+### The chase
+
+<img src="docs/media/screenshot_chase.png" alt="The Grin, Mira's mirror-image, chases her through the Hollow Stage, replaying her every move" width="100%">
+
+In chase rooms, **the Grin** (Mira's own reflection) follows a fraction of a second
+behind, replaying every move you made. Stop to think and it catches you.
+
+### Collectibles and secrets
+
+- **61 Sunberries**, including 4 **winged** ones that fly away the moment you dash.
+- **7 Jester Bells**: Nana's lost bells, hidden in secret rooms behind fake and cracked walls. Each one comes with a message.
+- **7 Golden Sunberries**: grab one at the start of a chapter and carry it to the end without dying.
+
+### A story with heart
+
+<img src="docs/media/screenshot_story.png" alt="Old Bellamy warns Mira that Jeste is a trickster in a cutscene with animated portraits" width="100%">
+
+Fully scripted cutscenes with animated, blinking, talking portraits and per-character
+voice blips. You meet Old Bellamy the bell-ringer, Tobi the anxious painter, Ringmaster
+Oddo (a ghost who never ends his show), and the Grin.
+
+### Juice everywhere
+
+Squash and stretch, dash afterimages and ribbon trails, freeze frames, directional screen
+shake, a look-ahead camera, gamepad rumble, and a jester cap with two physics-simulated
+tails and jingle bells. The world is painted pixel by pixel from the collision map, with
+parallax backdrops, a glow pass, bloom and per-chapter colour grading.
+
+### Front end
+
+A title screen with a campfire and a juggling Mira. Chapter select shows living
+postcards rendered from each chapter's real opening room. Results screens show berries,
+deaths, time, bells and golden runs. Options cover volume, fullscreen, screen shake, rumble, an
+optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
+and *Continue* returns you to the last room you entered.
+
+## Content overview
+
+- **9 chapters** (prologue, seven chapters and an epilogue) with **69 rooms**, 7 of them secret.
+- **13 music tracks** built on one recurring theme, plus 7 ambience beds and 36 layered sound effects.
+- **6 other speaking characters** besides Mira, each with a portrait and a voice of their own.
+- A full clear (every berry, every bell) is short for an expert. The automated route takes under four minutes. Golden runs and blind first climbs take much longer.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="docs/media/screenshot_title.png" alt="Title screen: the JESTE logo over Mount Jeste, with Mira juggling by a campfire"></td>
+    <td><img src="docs/media/screenshot_chapter_select.png" alt="Chapter select with a living postcard of Whistling Ridge and collectible stats"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/screenshot_cathedral.png" alt="Mirror Cathedral: Mira passes through a mirror pane between stained-glass windows"></td>
+    <td><img src="docs/media/screenshot_gondola.png" alt="Whistling Ridge: Mira rides a cable gondola across a windy gap"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/screenshot_undertow.png" alt="Undertow: glowing pinball bumpers in a dark cave above a spike floor"></td>
+    <td><img src="docs/media/screenshot_summit.png" alt="The Summit at 2400 m: Mira dashes out of a velvet curtain above the clouds"></td>
+  </tr>
+</table>
+
+## Play it
+
+Download **`Jeste-v0.1.0-linux-x86_64.zip`** from the
+[latest release](https://github.com/nearbycoder/Jeste/releases/latest), unzip it and run
+`./Jeste.x86_64`. It's a single 64-bit binary and needs a Vulkan-capable GPU. Saves and
+settings are stored in `~/.local/share/godot/app_userdata/Jeste/`.
+
+Windows, macOS and web builds aren't published yet. You can export them yourself from source.
+
+## Build from source
+
+**Requirements:** [Godot 4.6+](https://godotengine.org/download) (built and tested with
+**4.7.2**) and Python 3. `ffmpeg` is only needed to regenerate audio or the trailer, and
+NumPy only to regenerate audio.
 
 ```sh
-godot --path .
+git clone https://github.com/nearbycoder/Jeste.git && cd Jeste
+godot --path .                      # play (or open the folder in the Godot editor and press F5)
 ```
 
-## Movement (Celeste-faithful)
+**Run the verification suite.** It needs no display and takes about 30 seconds with cached solutions:
 
-The simulation in `scripts/sim/world.gd` follows Celeste's published player controller:
-coyote time, jump buffering, variable jump height, half-gravity at the apex, wall slides,
-wall jumps, climbing with stamina, climb-hops, 8-way dashes with end-of-dash speed,
-**supers, hypers/wavedashes, wall-bounces**, dash corner correction, upward corner
-correction, lift-boosts from moving platforms, and wind sheltering.
-
-## Architecture
-
-```
-scripts/sim/      deterministic simulation (no nodes): World, RoomDef, LevelDB, Solver
-scripts/game/     Level controller, renderers, effects, HUD, dialogue, save/settings, audio
-scripts/ui/       title, chapter select, credits, bitmap font
-data/levels/      ASCII level files, one per chapter (legend below)
-data/story/       cutscene scripts
-tools/            asset generators (pixel art, backgrounds, font, audio) + debug renderers
-tests/            automated verification suite
+```sh
+python3 tests/run_tests.py                      # all chapters: lint, solve, prove, play end-to-end, menu flow
+python3 tests/run_tests.py --chapters 1 3 --resolve   # re-solve chosen chapters from scratch
 ```
 
-The game, the solver and the tests all run **the same `World` code**. Rendering only
-reads from it, so an input recording that clears a room in a test clears it in the game.
+Results are written to `tests/REPORT.md`.
 
-### Level file legend
+**Regenerate the assets.** All 56 PNGs and all audio are produced by code. Re-running the art
+generator reproduces the committed images byte for byte.
+
+```sh
+godot --headless --path . --script res://tools/gen_art.gd    # sprites, tiles, backgrounds, font
+python3 -m venv .venv && .venv/bin/pip install numpy
+.venv/bin/python tools/gen_audio.py                          # all music, ambience and sfx (needs ffmpeg)
+.venv/bin/python tools/gen_audio.py ch3 sfx                  # or just some of them
+```
+
+**Export a Linux build.** Install the 4.7.2 export templates first (*Editor → Manage Export Templates*):
+
+```sh
+mkdir -p build/linux
+godot --headless --path . --export-release "Linux" build/linux/Jeste.x86_64
+```
+
+**Rebuild the trailer, teaser, poster and screenshots.** This needs a display, because Godot's Movie Maker renders the footage:
+
+```sh
+python3 tools/trailer/make_trailer.py               # all stages; work files go to build/trailer/
+python3 tools/trailer/make_trailer.py trailer qc    # re-cut without re-recording
+```
+
+**Debug renderers.** These need a display:
+
+```sh
+godot --path . --rendering-method mobile res://tools/overview.tscn -- 3 /tmp/ch3.png   # every room of a chapter
+godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/solutions/3_3-03_s0_collect.json /tmp/s.png
+godot --path . --rendering-method mobile res://tools/demo.tscn                         # self-playing demo reel
+```
+
+## Project structure
+
+```
+scenes/            main (title), chapter select, level, credits
+scripts/sim/       deterministic simulation (no nodes): World, RoomDef, LevelDB, Solver
+scripts/game/      level controller, renderers, terrain painter, effects, lighting, post-fx,
+                   HUD, dialogue, audio, save / settings / input
+scripts/ui/        title, chapter select, credits, UI kit, bitmap font renderer
+data/levels/       one ASCII level file per chapter (legend below)
+data/story/        cutscene scripts
+assets/            generated art (PNG) and audio (Ogg / WAV), see tools/
+tools/             art + audio generators, debug renderers, demo reel
+tools/trailer/     trailer pipeline: shot recorder, cards, caption plates, ffmpeg assembly
+tests/             verification suite, cached solver solutions, proven routes
+docs/media/        trailer, teaser, poster and screenshots used by this README
+```
+
+<details>
+<summary>Level file legend</summary>
 
 ```
 #  solid ground        %  alternate solid    ,  background wall   &  fake wall (secret)
@@ -94,125 +246,57 @@ f l c t s x j a u m q r   decorations
 ```
 
 Room headers set `exits` (e.g. `right:1-02 top[3-8]:1-03b`), `wind`, `dashes`, `chase`,
-`npc`, `triggers`, `enter`, `title`, ...
+`npc`, `triggers`, `enter`, `title` and more.
+</details>
 
-## Animation & visual polish
+## Tech highlights
 
-- **Rigged pixel characters** (`tools/art_doll.gd`): Mira, the Grin, Bellamy, Tobi and Oddo are
-  "paper dolls": hand-drawn heads and torsos plus procedurally drawn limbs, posed per frame
-  from a joint table and auto-outlined. Each character has 34 frames of 24x24 animation:
-  breathing idle with blinks, an 8-frame run synced to distance travelled, skid, rise/apex/fall,
-  landing squash, horizontal/up/down dash poses, a 4-frame climb cycle, wall slide, duck, sit
-  and talk.
-- **Mira's jester cap** has two verlet-simulated tails with jingle bells. They react to
-  momentum, wind and dashes, and change colour with your dashes (red / blue / pink), flashing
-  white when a dash is restored.
-- **Juice**: damped-spring squash & stretch, gradient dash afterimages and a ribbon trail,
-  speed streaks, footstep and skid dust, wall-slide dust, landing rings, shockwaves, sparkles,
-  debris, freeze frames, directional screen shake and a camera that looks ahead.
-- **Lighting**: an additive glow pass with pixel-stepped falloff for Mira, gems, berries,
-  bells, lanterns, torches, mushrooms and campfires, plus a per-chapter vignette.
-- **Living world**: grass that sways and parts around Mira; spinning gems; springs, balloons and
-  bumpers with squash and stretch; procedural cloth flags; campfire embers; crumbling boards
-  that shed debris; mask blocks that flash as they swap. NPCs breathe, blink, face Mira and
-  animate while they talk.
-- **Cutscenes**: portraits blink and move their mouths while typing; letters pop in; angry
-  lines shake; Mira faces whoever she is speaking with.
-- **Painted world** (`scripts/game/terrain_art.gd`, `tools/art_bg.gd`): terrain is painted per
-  pixel from the collision map (bevel, ambient occlusion, material detail, grass/snow/crystal
-  caps, icicles and vines). Interior walls get pillars, beams, windows that open onto the
-  backdrop, velvet curtains, bunting, crystals or ice cracks depending on the chapter.
-  Parallax backdrops are painted with lit mountain faces, gullies, haze, clouds and set
-  pieces such as Mount Jeste, the carnival and gothic stained glass. Bloom and per-chapter
-  colour grading (`post_fx.gd`) finish the frame.
-- **Set pieces**: velvet theatre curtains that ripple, mirrors that reflect Mira as she moves,
-  prayer flags on the summit, procedural campfires and confetti when a chapter is cleared.
+- **One simulation, three users.** `scripts/sim/world.gd` is a node-free, fixed-step
+  simulation of a room. The game renders it, the solver searches it and the tests replay it,
+  so an input recording that clears a room in a test clears it in the game.
+- **Every room is proven beatable.** `scripts/sim/solver.gd` runs a weighted A\* search over
+  input macro-actions (run, jump, hold, 8-way dash, climb…). It simulates every candidate
+  with the real physics, using a gravity-aware heuristic and TSP-ordered collectibles,
+  across parallel headless Godot workers. The suite then proves that every chapter's end is
+  reachable and that every collectible can be taken on a route that still finishes. It
+  plays each chapter end-to-end through the real `Level` scene with zero deaths, which also
+  proves every golden run. It also scores each route's tolerance to 1-frame timing slips.
+- **Procedural art.** Characters are rigged "paper dolls": hand-drawn ASCII heads and
+  torsos with procedurally posed limbs, 34 animation frames each. Terrain is painted per
+  pixel from the collision map on worker threads, with bevel, ambient occlusion, material
+  detail and snow, grass or crystal caps. Backdrops are layered noise landscapes with set
+  pieces.
+- **Synthesized audio.** `tools/synth.py` is a small NumPy synthesizer: e-piano, FM bells,
+  pads, choir, organ, calliope, drums and a convolution reverb. `tools/gen_audio.py`
+  composes 13 tracks on one theme as seamless 32-bar loops, loudness-normalised.
+- **Reproducible trailer.** `tools/trailer/` drives the real game through Movie Maker with
+  the proven routes, renders captions in the game's pixel font, and assembles everything
+  with ffmpeg. That covers transitions on the music grid, a ducked music bed and EBU R128
+  loudness.
 
-## Front end
+## Credits and tooling
 
-The title screen has a beveled block-letter logo with a gloss sweep and a jester cap whose bells
-jingle, plus a campfire vignette. Chapter select shows a "living postcard" for each chapter (a
-parallax backdrop with the painted opening room), collectible stats, a wax seal on cleared
-chapters and a trail of chapter markers. Pause, options, assist and results screens share the
-same UI kit (`scripts/ui/ui_kit.gd`): framed panels, animated menu rows, sliders, toggles and
-keycap prompts. Options cover music/sound volume, fullscreen, screen shake, gamepad rumble and
-the speedrun timer.
+- **Game, code, art, music and writing:** [nearbycoder](https://github.com/nearbycoder),
+  built with [Claude Code](https://claude.com/claude-code) as an AI pair programmer.
+- **Engine:** [Godot Engine](https://godotengine.org) 4.7 (MIT).
+- **Tools:** Python, NumPy and FFmpeg for audio synthesis and trailer assembly.
+- **Movement tuning:** the controller constants follow a player controller published under
+  the MIT license. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **No third-party art, fonts, music or samples.** Every pixel and every sound is generated
+  by code in this repository.
 
-## Audio
+## Status and known issues
 
-All sound is synthesized offline by `tools/gen_audio.py` on top of `tools/synth.py`, which
-needs numpy:
+Jeste **v0.1.0** is a complete, playable game, from the prologue through the epilogue
+and credits. It is a first release, so expect rough edges.
 
-- **Instruments**: electric piano, piano, plucks, music box, FM bells/celesta, detuned-saw
-  pads and strings, a formant choir, drawbar organ, calliope, flute, a soft filtered pulse,
-  bass, sub bass and tuba, plus synthesized kick, snare, brushes, hats, shaker, toms, clap and
-  cymbal.
-- **Mixing**: stereo panning, a convolution reverb with generated impulse responses, a
-  soft-knee bus and loudness normalisation to about -16 dBFS.
-- **Music**: 13 tracks built on one recurring "Jeste" theme. Gameplay tracks are 32-bar loops
-  whose second half varies the instrumentation. Note tails and reverb wrap around so the
-  loops are seamless. Tracks are encoded as Ogg Vorbis.
-- **Ambience**: wind, crickets, cave drips, cathedral room tone, dream shimmer and carnival
-  murmur loops, played under the music.
-- **Sound effects**: layered and filtered, with short reverb tails. They include footsteps,
-  wall-slide, climb and respawn sounds. Gamepads rumble on dashes, springs, impacts,
-  collectibles and deaths.
-
-## Automated verification
-
-```sh
-python3 tests/run_tests.py            # all chapters
-python3 tests/run_tests.py --chapters 1 3 --resolve
-```
-
-1. **Task listing** (`tests/list_tasks.gd`) builds each chapter's room graph and checks
-   the levels for problems such as missing spawns, spawns inside walls, or exits with no opening.
-2. **Solving** (`scripts/sim/solver.gd`): a weighted-A* search over input macro-actions
-   (run, jump, hold, 8-way dash, climb...) that simulates every candidate with the real
-   physics. It uses a gravity-aware distance heuristic and a TSP ordering of collectibles.
-   It runs in parallel Godot workers, and solutions are cached in `tests/solutions/`
-   and re-verified on every run.
-3. **Proof**: for every chapter, the end must be reachable from the start, and every
-   collectible must be collectible on a route that can still reach the end.
-4. **End-to-end**: each chapter is played through the real `Level` scene by chaining
-   the proven room solutions along a shortest route that collects everything. The run
-   must collect every collectible into the save data with **zero deaths**, which also
-   proves every Golden Sunberry run.
-5. **Menu flow** (`tests/ui_flow.tscn`): simulated input drives the title, options, chapter
-   select, a level, pause, assist and options menus, return to map, results and credits.
-   Each screen must be reached without script errors.
-
-Results are written to `tests/REPORT.md`.
-
-Useful debug tools (they need a display and use the Vulkan renderer for read-back):
-
-```sh
-godot --path . --rendering-method mobile res://tools/overview.tscn -- 3 /tmp/ch3.png       # all rooms of a chapter
-godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/solutions/3_3-03_s0_collect.json /tmp/s.png
-```
-
-### Regenerating assets
-
-```sh
-godot --headless --path . --script res://tools/gen_art.gd   # sprites, tiles, backgrounds, font
-python3 -m venv /tmp/jvenv && /tmp/jvenv/bin/pip install numpy
-/tmp/jvenv/bin/python tools/gen_audio.py                     # sfx, music, ambience (needs ffmpeg)
-/tmp/jvenv/bin/python tools/gen_audio.py ch3 sfx             # or just some of them
-```
-
-### Recording a gameplay video
-
-`tools/demo.tscn` plays the title screen, a tour of the chapter select, chapter highlights
-through the real game and the credits' curtain call. The gameplay is driven by the proven
-routes in `tests/routes.json` (written by `run_tests.py`), and cutscenes auto-advance at
-reading pace. Record it losslessly with Godot's Movie Maker
-and encode with ffmpeg:
-
-```sh
-mkdir -p /tmp/jeste_movie
-godot --path . --rendering-method mobile --resolution 320x180 \
-      --write-movie /tmp/jeste_movie/f.png --fixed-fps 60 res://tools/demo.tscn
-ffmpeg -framerate 60 -i /tmp/jeste_movie/f%08d.png -i /tmp/jeste_movie/f.wav \
-       -vf "scale=1920:1080:flags=neighbor,format=yuv420p" -c:v libx264 -crf 18 \
-       -tune animation -c:a aac -b:a 192k -shortest docs/jeste_gameplay.mp4
-```
+- **Linux only** for now. Other platforms should export cleanly but haven't been tested.
+- **Gamepad support** (bindings, prompts, rumble) was exercised with simulated input, not on
+  a range of physical controllers.
+- **Difficulty was tuned against a bot.** Every room is proven possible, but human-feel
+  playtesting has been light, so some rooms may feel tighter than intended. Assist mode is
+  there for that.
+- **Display:** integer scaling of a 320×180 canvas. Odd window sizes letterbox, and there is no
+  resolution picker beyond fullscreen.
+- **No license has been chosen yet.** Until a `LICENSE` file is added, all rights are
+  reserved by the author.
