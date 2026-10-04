@@ -65,10 +65,17 @@ func _ready() -> void:
 		if start_room == chapter.start:
 			hud.show_title(chapter.name, Game.CHAPTER_TITLES[chapter_n] if chapter_n < Game.CHAPTER_TITLES.size() else "")
 		Sfx.play_music(chapter.music)
+		Sfx.play_ambience(AMBIENCE.get(chapter_n, ""))
 		hud.wipe = 1.0
 		hud.wipe_target = 0.0
 		hud.wipe_dir = -1.0
 	_on_room_enter()
+
+
+const AMBIENCE := {
+	0: "amb_meadow", 1: "amb_night", 2: "amb_dream", 3: "amb_carnival", 4: "amb_wind",
+	5: "amb_hall", 6: "amb_cave", 7: "amb_wind", 8: "amb_meadow",
+}
 
 
 func _build_nodes() -> void:
@@ -510,6 +517,7 @@ func _respawn() -> void:
 		return
 	mode = "respawn"
 	timer = 0.0
+	Sfx.play("respawn", 1.0, -4.0)
 	player_view.visible_player = false
 	effects.respawn(_pc(), player_view.CAP_DASH)
 	cam_center = _cam_target()

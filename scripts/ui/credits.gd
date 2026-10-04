@@ -39,6 +39,7 @@ func _ready() -> void:
 	post.setup(8)
 	backdrop.setup(8)
 	Sfx.play_music("credits")
+	Sfx.play_ambience("")
 
 
 func _process(delta: float) -> void:

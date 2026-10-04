@@ -48,6 +48,7 @@ var prev_state := 0
 var prev_dashes := 1
 var step_phase := 0
 var slide_timer := 0.0
+var slide_snd := false
 
 # tails: arrays of positions / previous positions
 var tails: Array = []
@@ -286,7 +287,10 @@ func _update_player(delta: float) -> void:
 	if grounded:
 		run_dist += absf(world.vx) * delta
 	if world.state == World.ST_CLIMB:
+		var before := int(climb_dist / 6.0)
 		climb_dist += absf(world.vy) * delta
+		if int(climb_dist / 6.0) != before and visible_player:
+			Sfx.play("climb", randf_range(0.9, 1.15), -11.0)
 	land_timer = maxf(land_timer - delta, 0.0)
 	if not grounded:
 		air_time += delta
@@ -327,6 +331,7 @@ func _update_player(delta: float) -> void:
 		var phase := int(run_dist / 3.2) % 8
 		if (phase == 0 or phase == 4) and phase != step_phase:
 			effects.puff(_feet() + Vector2(-_facing() * 2, 0), Vector2(-signf(world.vx) * 18.0, -6.0), Color("e8e0d8"), 1)
+			Sfx.play("step%d" % (randi() % 4), randf_range(0.92, 1.08), -9.0)
 		step_phase = phase
 	# skid dust
 	if effects and frame_name == "skid" and int(anim_time * 60.0) % 3 == 0:
@@ -337,6 +342,9 @@ func _update_player(delta: float) -> void:
 		if effects and slide_timer <= 0.0:
 			slide_timer = 0.06
 			effects.puff(_feet() + Vector2(_facing() * 5, -6), Vector2(0, -12), Color("d8d0c8"), 1)
+			slide_snd = not slide_snd
+			if slide_snd:
+				Sfx.play("slide", randf_range(0.9, 1.1), -13.0)
 	# tired: flash red while climbing out of stamina
 	if world.state == World.ST_CLIMB and world.stamina < World.CLIMB_TIRED:
 		flash = 0.45 if int(anim_time * 12.0) % 2 == 0 else 0.0

@@ -38,6 +38,7 @@ func _ready() -> void:
 	post.setup(sel)
 	marker_x = _marker_pos(sel).x
 	Sfx.play_music("map")
+	Sfx.play_ambience("")
 
 
 func _unlocked(n: int) -> bool:

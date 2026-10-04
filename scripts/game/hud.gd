@@ -167,6 +167,7 @@ func handle_menu_input(ev: InputEvent) -> bool:
 					Sfx.refresh_volume()
 				"Sound Volume":
 					Game.settings.sfx = clampf(snappedf(float(Game.settings.sfx) + 0.1 * dir, 0.1), 0.0, 1.0)
+					Sfx.refresh_volume()
 				"Screen Shake":
 					Game.settings.screen_shake = not Game.settings.screen_shake
 				"Rumble":

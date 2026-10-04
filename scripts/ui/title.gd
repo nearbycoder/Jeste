@@ -73,6 +73,7 @@ void fragment() {
 	logo_node.draw.connect(_draw_logo)
 	add_child(logo_node)
 	Sfx.play_music("title")
+	Sfx.play_ambience("amb_meadow")
 
 
 func _make_ledge() -> Texture2D:
@@ -213,6 +214,7 @@ func _change_option(d: int, confirm: bool) -> void:
 			Sfx.refresh_volume()
 		"Sound Volume":
 			Game.settings.sfx = clampf(snappedf(float(Game.settings.sfx) + 0.1 * d, 0.1), 0.0, 1.0)
+			Sfx.refresh_volume()
 		"Fullscreen":
 			Game.settings.fullscreen = not Game.settings.fullscreen
 			Game.apply_settings()

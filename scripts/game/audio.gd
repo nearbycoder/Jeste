@@ -14,6 +14,10 @@ var _cache: Dictionary = {}
 var _music_a: AudioStreamPlayer
 var _music_b: AudioStreamPlayer
 var _current_music := ""
+var _amb_a: AudioStreamPlayer
+var _amb_b: AudioStreamPlayer
+var _current_amb := ""
+const AMB_DB := -9.0
 var _fade := 0.0
 var _muted := false
 
@@ -21,7 +25,7 @@ var _muted := false
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_muted = DisplayServer.get_name() == "headless"
-	for i in 12:
+	for i in 24:
 		var p := AudioStreamPlayer.new()
 		add_child(p)
 		_pool.append(p)
@@ -29,13 +33,17 @@ func _ready() -> void:
 	_music_b = AudioStreamPlayer.new()
 	add_child(_music_a)
 	add_child(_music_b)
+	_amb_a = AudioStreamPlayer.new()
+	_amb_b = AudioStreamPlayer.new()
+	add_child(_amb_a)
+	add_child(_amb_b)
 
 
 func _exit_tree() -> void:
 	for p in _pool:
 		p.stop()
 		p.stream = null
-	for p in [_music_a, _music_b]:
+	for p in [_music_a, _music_b, _amb_a, _amb_b]:
 		p.stop()
 		p.stream = null
 	_cache.clear()
@@ -79,18 +87,27 @@ func play_voice(who: String) -> void:
 	play("blip", pitch * randf_range(0.92, 1.08), -6.0)
 
 
-func play_music(name: String) -> void:
-	if _muted or name == _current_music:
-		return
-	_current_music = name
-	var s := _stream(MUSIC_DIR + name + ".wav")
-	var old := _music_a if _music_a.playing else _music_b
-	var nxt := _music_b if old == _music_a else _music_a
-	if s is AudioStreamWAV:
+func _music_stream(name: String) -> AudioStream:
+	var s := _stream(MUSIC_DIR + name + ".ogg")
+	if s == null:
+		s = _stream(MUSIC_DIR + name + ".wav")
+	if s is AudioStreamOggVorbis:
+		(s as AudioStreamOggVorbis).loop = true
+	elif s is AudioStreamWAV:
 		var w := s as AudioStreamWAV
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_begin = 0
 		w.loop_end = int(w.get_length() * w.mix_rate)
+	return s
+
+
+func play_music(name: String) -> void:
+	if _muted or name == _current_music:
+		return
+	_current_music = name
+	var s := _music_stream(name)
+	var old := _music_a if _music_a.playing else _music_b
+	var nxt := _music_b if old == _music_a else _music_a
 	if old.playing:
 		var tw := create_tween()
 		tw.tween_property(old, "volume_db", -60.0, 1.2)
@@ -101,6 +118,32 @@ func play_music(name: String) -> void:
 		nxt.play()
 		var tw2 := create_tween()
 		tw2.tween_property(nxt, "volume_db", _music_db(), 1.0)
+
+
+## Looping background ambience (wind, crickets, drips...), cross-faded.
+func play_ambience(name: String) -> void:
+	if _muted or name == _current_amb:
+		return
+	_current_amb = name
+	var old := _amb_a if _amb_a.playing else _amb_b
+	var nxt := _amb_b if old == _amb_a else _amb_a
+	if old.playing:
+		var tw := create_tween()
+		tw.tween_property(old, "volume_db", -60.0, 1.5)
+		tw.tween_callback(old.stop)
+	if name == "":
+		return
+	var s := _music_stream(name)
+	if s:
+		nxt.stream = s
+		nxt.volume_db = -60.0
+		nxt.play()
+		var tw2 := create_tween()
+		tw2.tween_property(nxt, "volume_db", _amb_db(), 2.0)
+
+
+func _amb_db() -> float:
+	return linear_to_db(maxf(float(Game.settings.get("sfx", 0.8)), 0.0001)) + AMB_DB
 
 
 func stop_music(fade: float = 1.0) -> void:
@@ -116,3 +159,6 @@ func refresh_volume() -> void:
 	for p in [_music_a, _music_b]:
 		if p.playing:
 			p.volume_db = _music_db()
+	for p in [_amb_a, _amb_b]:
+		if p.playing:
+			p.volume_db = _amb_db()
