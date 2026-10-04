@@ -161,9 +161,9 @@ func _draw() -> void:
 	var base := Vector2(250, 150)
 	draw_rect(Rect2(226, 151, 60, 30), Color("1f1418"))
 	draw_rect(Rect2(226, 151, 60, 2), Color("4f9a3a"))
-	var frame := Art.frame_index("idle0")
+	var frame := Art.frame_index("talk%d" % (int(juggle_t * 4.4) % 2))
 	draw_set_transform(base, 0, Vector2(-1, 1))
-	draw_texture_rect_region(Art.player_menu(), Rect2(-8, -16, 16, 16), Rect2(frame * 16, 0, 16, 16), Color.WHITE)
+	draw_texture_rect_region(Art.player_menu(), Rect2(-12, -24, 24, 24), Rect2(frame * 24, 0, 24, 24), Color.WHITE)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	for i in 3:
 		var t := juggle_t * 2.2 + i * TAU / 3.0

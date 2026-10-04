@@ -18,7 +18,7 @@ var box_open := 0.0
 var blip_timer := 0
 var wrapped := PackedStringArray()
 const CPS := 45.0
-const BOX := Rect2(8, 6, 304, 50)
+const BOX := Rect2(8, 11, 304, 48)
 
 
 func play(id: String) -> void:
@@ -112,45 +112,78 @@ func _draw() -> void:
 		return
 	var who: String = cur.who
 	var r := BOX
-	var h := r.size.y * ease(box_open, 0.5)
-	var rr := Rect2(r.position.x, r.position.y + (r.size.y - h) / 2.0, r.size.x, h)
-	draw_rect(rr, Color(0.05, 0.03, 0.09, 0.94))
-	draw_rect(rr, Color("f2c14e"), false, 1.0)
-	if box_open < 1.0:
+	# slide down from above with a small overshoot
+	var k := ease(box_open, 0.4)
+	var over := sin(k * PI) * 3.0 * (1.0 - k * 0.5)
+	r.position.y = lerpf(-r.size.y - 4.0, r.position.y, k) + (over if box_open < 1.0 else 0.0)
+	var a := clampf(box_open * 1.5, 0.0, 1.0)
+	# shadow, body, double gold frame
+	draw_rect(Rect2(r.position + Vector2(2, 2), r.size), Color(0, 0, 0, 0.35 * a))
+	draw_rect(r, Color(0.05, 0.03, 0.09, 0.94 * a))
+	draw_rect(r, Color(0.95, 0.76, 0.3, a), false, 1.0)
+	draw_rect(r.grow(-2), Color(1, 1, 1, 0.07 * a), false, 1.0)
+	for c in [r.position, Vector2(r.end.x - 3, r.position.y), Vector2(r.position.x, r.end.y - 3), r.end - Vector2(3, 3)]:
+		draw_rect(Rect2(c, Vector2(3, 3)), Color(0.95, 0.76, 0.3, a))
+	if box_open < 0.9:
 		return
 	var left_side := who == "mira" or who == "nana"
 	var has_port := Art.has_portrait(who)
 	var text_x := r.position.x + 8
+	var typing := shown < _total_chars()
 	if has_port:
 		var expr: String = cur.expr
-		var pr := Art.portrait_rect(who, expr)
+		var blink := fmod(time + (0.7 if left_side else 0.0), 3.3) < 0.13
+		var talk := typing and int(time * 11.0) % 2 == 0
+		var variant := (1 if blink else 0) + (2 if talk else 0)
+		var pr := Art.portrait_rect(who, expr, variant)
 		var px := r.position.x + 6 if left_side else r.end.x - 38
-		var bob := roundf(sin(time * 3.0) * 0.5)
-		draw_rect(Rect2(px - 1, r.position.y + 8, 34, 34), Color(0.12, 0.08, 0.18))
+		var bob := roundf(sin(time * 2.2) * 0.6) + (-1.0 if talk else 0.0)
+		var frame_r := Rect2(px - 1, r.position.y + 8, 34, 34)
+		draw_rect(frame_r, Color(0.14, 0.09, 0.2))
+		draw_rect(frame_r, Color(0.95, 0.76, 0.3, 0.6), false, 1.0)
 		_draw_portrait(Rect2(px, r.position.y + 9 + bob, 32, 32), pr, who)
 		if left_side:
 			text_x = px + 40
 	var name: String = Story.NAMES.get(who, who.capitalize())
 	if name != "":
-		var nx := text_x
-		PixelText.draw(self, Vector2(nx, r.position.y + 4), name, Color("f2c14e"))
+		# name plate
+		var nw := PixelText.width(name) + 8
+		var plate := Rect2(text_x - 3, r.position.y - 4, nw, 11)
+		draw_rect(plate, Color(0.95, 0.76, 0.3))
+		draw_rect(plate.grow(-1), Color(0.18, 0.1, 0.2))
+		PixelText.draw(self, Vector2(text_x + 1, r.position.y - 3), name, Color("f2c14e"))
 	var remaining := int(shown)
-	var y := r.position.y + (15 if name != "" else 8)
+	var y := r.position.y + (12 if name != "" else 8)
 	var col := Color.WHITE if who != "sign" else Color("d0e8ff")
 	if who == "grin":
 		col = Color("ffb0c0")
+	elif who == "narrator":
+		col = Color("e8dcc8")
+	var shaky: bool = cur.expr in ["angry", "frantic", "scared"]
+	var drawn := 0
 	for line in wrapped:
 		if remaining <= 0:
 			break
-		var shake := Vector2.ZERO
-		if cur.expr in ["angry", "frantic", "scared"]:
-			shake = Vector2(randi_range(0, 1) * 0.0, 0)
-		PixelText.draw(self, Vector2(text_x, y) + shake, line, col, Color(0, 0, 0, 0.7), remaining)
+		var n := mini(remaining, line.length())
+		var x := text_x
+		for i in n:
+			var ch := line[i]
+			var off := Vector2.ZERO
+			var idx := drawn + i
+			# newest letters pop up into place
+			var age := shown - idx
+			if age < 3.0:
+				off.y = -roundf((3.0 - age) * 0.5)
+			if shaky and ch != " ":
+				off += Vector2(randi_range(-1, 1) * 0.5, randi_range(-1, 1) * 0.5).round()
+			PixelText.draw(self, Vector2(x, y) + off, ch, col, Color(0, 0, 0, 0.7))
+			x += PixelText.char_width(ch) + 1
+		drawn += line.length()
 		remaining -= line.length()
 		y += PixelText.LINE_H
-	if shown >= _total_chars():
+	if not typing:
 		var bob2 := int(time * 4.0) % 2
-		draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 10, r.end.y - 8 + bob2), Vector2(r.end.x - 4, r.end.y - 8 + bob2), Vector2(r.end.x - 7, r.end.y - 5 + bob2)]), Color("f2c14e"))
+		draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 11, r.end.y - 9 + bob2), Vector2(r.end.x - 5, r.end.y - 9 + bob2), Vector2(r.end.x - 8, r.end.y - 6 + bob2)]), Color("f2c14e"))
 
 
 func _exit_tree() -> void:

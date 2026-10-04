@@ -27,6 +27,7 @@ func _ready() -> void:
 	add_child(level)
 
 func _process(_d: float) -> void:
+	RenderingServer.force_draw(false)
 	frames += 1
 	if level.mode == "dialogue":
 		level.dialogue.skip_all()

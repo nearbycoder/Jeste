@@ -25,7 +25,13 @@ var berry_fly := {}        # berry index -> Vector2 position (flying away)
 var key_follow := {}       # key index -> Vector2
 var golden_follow := Vector2.ZERO
 var decor: Array = []      # [char, Vector2i]
+var grass: PackedVector2Array = PackedVector2Array()  # blade roots
 var npc_hidden := {}
+var mask_flash := 0.0
+var _prev_group := PackedInt32Array()
+var _prev_gem := PackedInt32Array()
+var _prev_balloon := PackedInt32Array()
+var _prev_mask := 0
 var npc_face := {}
 
 
@@ -36,11 +42,25 @@ func build(p_def: RoomDef, p_world: World, p_tileset: String, p_chapter: int) ->
 	chapter = p_chapter
 	tiles_img = Art.tileset_image(tileset)
 	spring_anim.clear()
+	_prev_group = PackedInt32Array()
+	_prev_gem = PackedInt32Array()
+	_prev_balloon = PackedInt32Array()
 	berry_follow.clear()
 	berry_fly.clear()
 	key_follow.clear()
 	_bake()
 	decor.clear()
+	grass = PackedVector2Array()
+	if tileset in ["meadow", "ridge", "village"]:
+		for gy in range(1, def.h):
+			for gx in def.w:
+				var t := def.cells[gy * def.w + gx]
+				var above := def.cells[(gy - 1) * def.w + gx]
+				if (t == RoomDef.SOLID) and (above == RoomDef.EMPTY or above == RoomDef.BGWALL):
+					for k in 3:
+						var h := (gx * 7 + gy * 3 + k * 5) % 7
+						if h < 4:
+							grass.append(Vector2(gx * T + 1 + k * 3 + (h % 2), gy * T))
 	for cy in def.h:
 		var row: String = def.rows[cy]
 		for cx in def.w:
@@ -139,12 +159,58 @@ func _bake() -> void:
 
 func _process(delta: float) -> void:
 	time += delta
+	mask_flash = maxf(mask_flash - delta * 4.0, 0.0)
+	_react_to_state()
 	for k in spring_anim.keys():
 		spring_anim[k] -= 1
 		if spring_anim[k] <= 0:
 			spring_anim.erase(k)
 	_update_followers(delta)
 	queue_redraw()
+
+
+## Spawns particles when entity state changes (purely visual).
+func _react_to_state() -> void:
+	if world == null or def == null or world.room != def or level == null or level.effects == null:
+		_prev_group = PackedInt32Array()
+		return
+	var fx: Effects = level.effects
+	if _prev_group.size() == world.group_s.size():
+		for gi in world.group_s.size():
+			var g: Dictionary = def.groups[gi]
+			var r: Rect2i = g.rect
+			var px := Rect2(r.position * T, r.size * T)
+			if g.kind == RoomDef.CRUMBLE:
+				if _prev_group[gi] == 1 and world.group_s[gi] == 2:
+					fx.debris(px, Color("a07850"), 10 * r.size.x)
+				elif _prev_group[gi] == 2 and world.group_s[gi] == 0:
+					for k in r.size.x:
+						fx.puff(px.position + Vector2(k * 8 + 4, 4), Vector2(0, -8), Color(1, 1, 1, 0.6), 1)
+			elif g.kind == RoomDef.CRACKED and _prev_group[gi] == 0 and world.group_s[gi] == 1:
+				fx.debris(px, Color("8a7a6a"), 6 * r.size.x * r.size.y)
+	if _prev_gem.size() == world.gem_t.size():
+		for i in world.gem_t.size():
+			var c := Vector2(world.gem_x[i], world.gem_y[i])
+			var col := Color("ff7ab8") if world.gem_twin[i] == 1 else Color("8aff6e")
+			if _prev_gem[i] == 0 and world.gem_t[i] > 0:
+				fx.burst(c, col, 12, 70.0, 0.4)
+			elif _prev_gem[i] > 0 and world.gem_t[i] == 0:
+				fx.ring(c, col, 10.0, 0.3)
+				fx.sparkle(c, col, 5)
+	if _prev_balloon.size() == world.balloon_t.size():
+		for i in world.balloon_t.size():
+			if _prev_balloon[i] == 1 and world.balloon_t[i] > 1:
+				var c := Vector2(world.balloon_x[i], world.balloon_y[i])
+				fx.burst(c, Color("ff5a6e"), 10, 80.0, 0.3)
+				fx.ring(c, Color("ffb0b8"), 14.0, 0.25)
+			elif _prev_balloon[i] > 0 and world.balloon_t[i] == 0:
+				fx.ring(Vector2(world.balloon_x[i], world.balloon_y[i]), Color("ff8a9a"), 8.0, 0.25)
+	if world.has_mask and world.mask_active != _prev_mask:
+		mask_flash = 1.0
+	_prev_group = world.group_s.duplicate()
+	_prev_gem = world.gem_t.duplicate()
+	_prev_balloon = world.balloon_t.duplicate()
+	_prev_mask = world.mask_active
 
 
 func notify_spring() -> void:
@@ -352,6 +418,8 @@ func _draw_masks() -> void:
 		var col := 10 if t == RoomDef.MASK_A else 12
 		if active and not ghost:
 			_tile(col, 5, Vector2(cx * T, cy * T))
+			if mask_flash > 0.0:
+				draw_rect(Rect2(cx * T, cy * T, T, T), Color(1, 1, 1, 0.6 * mask_flash))
 		else:
 			_tile(col + 1, 5, Vector2(cx * T, cy * T), Color(1, 1, 1, 0.8 if active else 0.55))
 
@@ -416,7 +484,31 @@ func _draw_decor_back() -> void:
 					draw_rect(Rect2(p.x + 1 + (k % 2) * 3, p.y + 1 + (k / 2) * 3, 3, 3), cols[(k + p.x / 8 + p.y / 8) % 4])
 
 
+func _draw_grass() -> void:
+	if grass.is_empty():
+		return
+	var pc := world.player_center()
+	var feet_y := world.y + World.PH
+	var wind := world.wind_x * 0.02
+	var col_a := Color("6fbf4a") if tileset != "ridge" else Color("8fcf55")
+	var col_b := Color("a8e46c") if tileset != "ridge" else Color("c8f084")
+	for i in grass.size():
+		var g := grass[i]
+		var h := 2.0 + float(int(g.x * 13.0 + g.y) % 3)
+		var sway := sin(time * 2.2 + g.x * 0.35) * 0.7 + wind
+		var dx := g.x - pc.x
+		if absf(dx) < 7.0 and absf(feet_y - g.y) < 3.0:
+			sway += signf(dx) * (7.0 - absf(dx)) * 0.4
+		var root := g + Vector2(0, 1)
+		var steps := int(h) + 1
+		for k in steps:
+			var u := float(k) / steps
+			var p := root + Vector2(sway * u * u, -h * u - 1.0)
+			draw_rect(Rect2(roundf(p.x), roundf(p.y), 1, 1), col_a if k < steps - 1 else col_b)
+
+
 func _draw_decor_front() -> void:
+	_draw_grass()
 	for d in decor:
 		var c: String = d[0]
 		var p: Vector2i = d[1] * T
@@ -474,12 +566,13 @@ func _draw_entities() -> void:
 				var style: String = def.meta.get("end_style", "flag")
 				var pos := Vector2(e.cx * T + 4, e.cy * T)
 				if style == "fire":
-					_obj("fire%d" % (int(time * 8.0) % 2), pos)
-					draw_circle(pos, 14, Color(1.0, 0.6, 0.2, 0.08 + 0.03 * sin(time * 9.0)))
+					_obj("fire%d" % (int(time * 10.0) % 2), pos)
+					if level and level.effects and randf() < 0.25:
+						level.effects.embers(pos + Vector2(0, -2))
 				elif style == "none":
 					pass
 				else:
-					_obj("flag%d" % (int(time * 3.0) % 2), pos + Vector2(2, -4))
+					_draw_flag(pos + Vector2(-2, 8))
 			"npc":
 				_draw_npc(e)
 	# springs
@@ -487,9 +580,13 @@ func _draw_entities() -> void:
 		var name := "spring1" if spring_anim.has(i) else "spring0"
 		var sx := world.spring_x[i]
 		var sy := world.spring_y[i]
+		var k: float = spring_anim.get(i, 0) / 14.0
+		var st := 1.0 + sin(k * PI * 2.0) * 0.25 * k
 		match world.spring_dir[i]:
 			0:
-				_obj(name, Vector2(sx + 4, sy))
+				draw_set_transform(Vector2(sx + 4, sy + 8), 0, Vector2(2.0 - st, st))
+				draw_texture_rect_region(Art.objects(), Rect2(-8, -16, 16, 16), Art.obj_rect(name))
+				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 			1:
 				draw_set_transform(Vector2(sx, sy + 4), PI / 2.0, Vector2.ONE)
 				draw_texture_rect_region(Art.objects(), Rect2(-8, -12, 16, 16), Art.obj_rect(name))
@@ -502,9 +599,16 @@ func _draw_entities() -> void:
 	for i in world.gem_x.size():
 		var c := Vector2(world.gem_x[i], world.gem_y[i])
 		if world.gem_t[i] == 0:
-			var nm := ("twin%d" if world.gem_twin[i] == 1 else "gem%d") % f2
-			draw_circle(c, 7, Color(0.6, 1.0, 0.6, 0.08) if world.gem_twin[i] == 0 else Color(1.0, 0.5, 0.8, 0.08))
-			_obj(nm, c + Vector2(0, bob - 1))
+			var nm := ("twin%d" if world.gem_twin[i] == 1 else "gem%d") % 0
+			var spin := absf(cos(time * 2.2 + i))
+			var sxs := maxf(spin, 0.35)
+			draw_set_transform(c + Vector2(0, bob - 1), 0, Vector2(sxs, 1))
+			draw_texture_rect_region(Art.objects(), Rect2(-8, -8, 16, 16), Art.obj_rect(nm), Color(1, 1, 1).lerp(Color(1.3, 1.3, 1.3), 1.0 - spin))
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+			if fmod(time + i * 0.7, 2.0) < 0.12:
+				var gp := c + Vector2(-2, -4 + bob)
+				draw_rect(Rect2(gp.x - 1, gp.y, 3, 1), Color(1, 1, 1, 0.9))
+				draw_rect(Rect2(gp.x, gp.y - 1, 1, 3), Color(1, 1, 1, 0.9))
 		else:
 			_obj("gem_empty", c, Color(1, 1, 1, 0.5))
 	# balloons
@@ -516,7 +620,10 @@ func _draw_entities() -> void:
 			draw_texture_rect_region(Art.objects(), Rect2(-8, -9, 16, 16), Art.obj_rect("balloon0"))
 			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 		elif world.balloon_t[i] == 0:
-			_obj("balloon%d" % f2, c + Vector2(0, bob - 1))
+			var sw := sin(time * 1.7 + i) * 0.12
+			draw_set_transform(c + Vector2(0, bob - 1 + 6), sw, Vector2.ONE)
+			draw_texture_rect_region(Art.objects(), Rect2(-8, -14, 16, 16), Art.obj_rect("balloon0"))
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 		else:
 			draw_arc(c + Vector2(0, -1), 5, 0, TAU, 12, Color(1, 0.4, 0.5, 0.35), 1.0)
 	# bumpers
@@ -524,6 +631,8 @@ func _draw_entities() -> void:
 		var c := Vector2(world.bumper_x[i], world.bumper_y[i])
 		var hit := world.bumper_t[i] > 0
 		var s := 1.0 + (0.25 * world.bumper_t[i] / World.F_BUMPER_COOLDOWN if hit else 0.04 * sin(time * 4.0))
+		var pr := fmod(time * 0.8 + i * 0.3, 1.0)
+		draw_arc(c, 8.0 + pr * 6.0, 0, TAU, 20, Color(0.6, 0.8, 1.0, 0.35 * (1.0 - pr)), 1.0)
 		draw_set_transform(c, 0, Vector2(s, s))
 		draw_texture_rect_region(Art.objects(), Rect2(-8, -8, 16, 16), Art.obj_rect("bumper1" if hit else "bumper0"))
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
@@ -578,39 +687,91 @@ func _draw_entities() -> void:
 				_obj(nm, fp)
 
 
+## Procedural waving pennant on a pole (base at `base`).
+func _draw_flag(base: Vector2) -> void:
+	var top := base + Vector2(0, -20)
+	draw_rect(Rect2(base.x - 1, top.y - 1, 2, 21), Color("1d1428"))
+	draw_rect(Rect2(base.x, top.y, 1, 20), Color("9aa3b8"))
+	draw_circle(top + Vector2(0.5, -1), 1.5, Color("f2c14e"))
+	var pts := PackedVector2Array()
+	var pts2 := PackedVector2Array()
+	var n := 10
+	for i in n + 1:
+		var u := float(i) / n
+		var wave := sin(time * 6.0 - u * 5.0) * 1.6 * u
+		pts.append(top + Vector2(1 + u * 13.0, 1 + wave + u * 2.0))
+	for i in range(n, -1, -1):
+		var u := float(i) / n
+		var wave := sin(time * 6.0 - u * 5.0) * 1.6 * u
+		pts.append(top + Vector2(1 + u * 13.0, 8 - u * 3.0 + wave))
+	draw_colored_polygon(pts, Color("d8344f"))
+	# stripe + highlight
+	for i in n:
+		var u := float(i) / n
+		var wave := sin(time * 6.0 - u * 5.0) * 1.6 * u
+		var y0 := 1 + wave + u * 2.0
+		var y1 := 8 - u * 3.0 + wave
+		var x := top.x + 1 + u * 13.0
+		draw_rect(Rect2(x, top.y + (y0 + y1) * 0.5 - 0.5, 1.4, 1), Color("f2c14e"))
+		if sin(time * 6.0 - u * 5.0) > 0.6:
+			draw_rect(Rect2(x, top.y + y0, 1.4, 1), Color(1, 1, 1, 0.35))
+
+
 func _draw_npc(e: Dictionary) -> void:
 	var name: String = e.get("name", "")
 	if npc_hidden.has(name):
 		return
-	var tex: Texture2D
-	var fw := 16
-	var fh := 16
-	var frames := 2
-	match name:
-		"bellamy":
-			tex = Art.tex("res://assets/sprites/npc_bellamy.png"); fh = 24
-		"tobi":
-			tex = Art.tex("res://assets/sprites/npc_tobi.png")
-		"oddo":
-			tex = Art.tex("res://assets/sprites/npc_oddo.png"); fh = 24; frames = 1
-		"magpie":
-			tex = Art.tex("res://assets/sprites/magpie.png"); fw = 8; fh = 8; frames = 3
-		"grin":
-			tex = Art.grin()
-		_:
-			return
-	var fi := int(time * 2.0) % frames
-	if name == "grin":
-		fi = Art.frame_index("idle0") if int(time * 2.0) % 2 == 0 else Art.frame_index("idle1")
 	var feet := Vector2(e.cx * T + 4, e.cy * T + 8)
 	var face_left := world.player_center().x < feet.x
 	if npc_face.has(name):
 		face_left = npc_face[name] < 0
-	var dst := Rect2(feet.x - fw / 2.0, feet.y - fh, fw, fh)
-	var mod := Color(1, 1, 1, 0.75 + 0.15 * sin(time * 2.0)) if name == "oddo" else Color.WHITE
-	if name == "oddo":
-		dst.position.y += sin(time * 1.5) * 2.0 - 2.0
+	var talking: bool = level != null and level.has_method("speaker") and level.speaker() == name
+	if name == "magpie":
+		var tex := Art.tex("res://assets/sprites/magpie.png")
+		var hop := absf(sin(time * 3.0)) * 2.0 if int(time) % 3 == 0 else 0.0
+		var fi := int(time * 8.0) % 3 if (talking or hop > 0.0) else 0
+		var dst := Rect2(feet.x - 4, feet.y - 8 - hop, 8, 8)
+		if face_left:
+			draw_set_transform(Vector2(feet.x * 2.0, 0), 0, Vector2(-1, 1))
+		draw_texture_rect_region(tex, dst, Rect2(fi * 8, 0, 8, 8))
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		return
+	var tex: Texture2D
+	var frames: Array = Art.index().get("npc_frames", ["idle0"])
+	var fname := "idle%d" % [0, 0, 1, 2, 3, 3, 3, 2, 1, 0, 4, 0][int((time + e.cx * 0.37) * 5.0) % 12]
+	if talking:
+		fname = "talk%d" % (int(time * 7.0) % 2)
+	var fi := maxi(frames.find(fname), 0)
+	var mod := Color.WHITE
+	var off := Vector2.ZERO
+	match name:
+		"bellamy":
+			tex = Art.tex("res://assets/sprites/npc_bellamy.png")
+		"tobi":
+			tex = Art.tex("res://assets/sprites/npc_tobi.png")
+			if def.meta.get("end_style", "") == "fire":
+				fi = maxi(frames.find("sit"), 0)
+		"oddo":
+			tex = Art.tex("res://assets/sprites/npc_oddo.png")
+			mod = Color(1, 1, 1, 0.72 + 0.15 * sin(time * 2.0))
+			off = Vector2(0, sin(time * 1.5) * 2.0 - 3.0)
+		"grin":
+			tex = Art.grin()
+			var gframes: Array = Art.index().get("mira_frames", [])
+			fi = maxi(gframes.find(fname if not talking else ("idle%d" % (int(time * 7.0) % 2))), 0)
+			mod = Color(1, 1, 1, 0.92)
+			off = Vector2(randi_range(-1, 1) if randf() < 0.04 else 0, 0)
+		_:
+			return
+	# soft contact shadow
+	draw_rect(Rect2(feet.x - 4, feet.y - 1, 8, 1), Color(0, 0, 0, 0.25))
+	var dst := Rect2(feet.x - 12 + off.x, feet.y - 24 + off.y, 24, 24)
 	if face_left:
 		draw_set_transform(Vector2(feet.x * 2.0, 0), 0, Vector2(-1, 1))
-	draw_texture_rect_region(tex, dst, Rect2(fi * fw, 0, fw, fh), mod)
+	draw_texture_rect_region(tex, dst, Rect2(fi * 24, 0, 24, 24), mod)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	if talking:
+		# little speech marks above the head
+		var bob := int(time * 6.0) % 2
+		draw_rect(Rect2(feet.x + (-6 if face_left else 5), feet.y - 23 - bob, 1, 2), Color(1, 1, 1, 0.8))
+		draw_rect(Rect2(feet.x + (-8 if face_left else 7), feet.y - 22 - bob, 1, 2), Color(1, 1, 1, 0.6))

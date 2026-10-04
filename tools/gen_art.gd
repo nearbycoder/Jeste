@@ -6,6 +6,7 @@ const Tiles = preload("res://tools/art_tiles.gd")
 const Sprites = preload("res://tools/art_sprites.gd")
 const Bg = preload("res://tools/art_bg.gd")
 const FontGen = preload("res://tools/art_font.gd")
+const Doll = preload("res://tools/art_doll.gd")
 
 
 func _save(img: Image, path: String) -> void:
@@ -30,20 +31,43 @@ func _init() -> void:
 	for name in Tiles.SETS.keys():
 		_save(Tiles.build(name), "res://assets/tiles/%s.png" % name)
 
-	# Player + the Grin (palette swap)
-	var mira := Sprites.mira_frames()
-	_save(_sheet(mira, 16, 16), "res://assets/sprites/player.png")
-	_save(_sheet(mira, 16, 16, {"c": "e03a5a", "C": "9c2440"}), "res://assets/sprites/player_menu.png")
-	var grin_pal := {"s": "e8e4f0", "d": "b8b0c8", "h": "1a1026", "c": "3a1f5a", "C": "24133a",
-		"y": "d8344f", "w": "2a1a3a", "W": "1a1026", "t": "5a2a7a", "T": "3a1a52", "p": "d8344f",
-		"P": "8f1f35", "l": "120a1a", "b": "2a1a3a", "m": "ff3a5a", "e": "ff3a5a"}
-	_save(_sheet(mira, 16, 16, grin_pal), "res://assets/sprites/grin.png")
-	index["mira_frames"] = Sprites.MIRA_FRAMES
-
-	# NPCs
-	_save(_sheet(Sprites.BELLAMY, 16, 24), "res://assets/sprites/npc_bellamy.png")
-	_save(_sheet(Sprites.TOBI, 16, 16), "res://assets/sprites/npc_tobi.png")
-	_save(_sheet(Sprites.ODDO, 16, 24), "res://assets/sprites/npc_oddo.png")
+	# Player, the Grin and NPCs: rigged paper-doll characters (24x24 frames)
+	var poses := Doll.poses()
+	var mira = Doll.mira()
+	var order: Array = Doll.FRAME_ORDER
+	var heads: Array = []
+	var sheets := {"player": {}, "player_menu": {"c": "e03a5a", "C": "9c2440", "a": "ff8a9a"}, "grin": Doll.grin_palette()}
+	for sheet_name in sheets:
+		var base_pal: Dictionary = mira.pal.duplicate()
+		for k in sheets[sheet_name]:
+			base_pal[k] = sheets[sheet_name][k]
+		mira.pal = base_pal
+		var img := Image.create(24 * order.size(), 24, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0, 0, 0, 0))
+		for i in order.size():
+			var r: Dictionary = Doll.render(mira, poses[order[i]])
+			img.blit_rect(r.image, Rect2i(0, 0, 24, 24), Vector2i(i * 24, 0))
+			if sheet_name == "player":
+				heads.append([r.head.x, r.head.y])
+		_save(img, "res://assets/sprites/%s.png" % sheet_name)
+		mira = Doll.mira()
+	index["mira_frames"] = order
+	index["mira_heads"] = heads
+	index["frame_size"] = 24
+	var npc_order := ["idle0", "idle1", "idle2", "idle3", "idle4", "idle5", "talk0", "talk1", "sit", "look"]
+	index["npc_frames"] = npc_order
+	for npc in ["bellamy", "tobi", "oddo"]:
+		var ch
+		match npc:
+			"bellamy": ch = Doll.bellamy()
+			"tobi": ch = Doll.tobi()
+			"oddo": ch = Doll.oddo()
+		var img := Image.create(24 * npc_order.size(), 24, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0, 0, 0, 0))
+		for i in npc_order.size():
+			var r: Dictionary = Doll.render(ch, poses[npc_order[i]])
+			img.blit_rect(r.image, Rect2i(0, 0, 24, 24), Vector2i(i * 24, 0))
+		_save(img, "res://assets/sprites/npc_%s.png" % npc)
 	_save(_sheet(Sprites.MAGPIE, 8, 8), "res://assets/sprites/magpie.png")
 
 	# Objects (+ palette variants)
@@ -76,12 +100,12 @@ func _init() -> void:
 	_save(oimg, "res://assets/sprites/objects.png")
 	index["objects"] = oindex
 
-	# Portraits
+	# Portraits: every expression gets 4 cells - base, blink, talk, blink+talk
 	var chars := ["mira", "grin", "bellamy", "tobi", "oddo"]
 	var maxc := 0
 	for ch in chars:
 		maxc = maxi(maxc, Sprites.PORTRAIT_SETS[ch].size())
-	var pimg := Image.create(maxc * 32, chars.size() * 32, false, Image.FORMAT_RGBA8)
+	var pimg := Image.create(maxc * 4 * 32, chars.size() * 32, false, Image.FORMAT_RGBA8)
 	pimg.fill(Color(0, 0, 0, 0))
 	var pindex := {}
 	for r in chars.size():
@@ -90,9 +114,12 @@ func _init() -> void:
 		pindex[ch] = {}
 		for col in set.size():
 			var e: Array = set[col]
-			var p := Sprites.portrait(ch, e[1], e[2])
-			pimg.blit_rect(p, Rect2i(0, 0, 32, 32), Vector2i(col * 32, r * 32))
-			pindex[ch][e[0]] = [col, r]
+			var talk_mouth := "normal" if e[2] == "open" else "open"
+			var variants := [[e[1], e[2]], ["closed", e[2]], [e[1], talk_mouth], ["closed", talk_mouth]]
+			for v in 4:
+				var p := Sprites.portrait(ch, variants[v][0], variants[v][1])
+				pimg.blit_rect(p, Rect2i(0, 0, 32, 32), Vector2i((col * 4 + v) * 32, r * 32))
+			pindex[ch][e[0]] = [col * 4, r]
 	_save(pimg, "res://assets/sprites/portraits.png")
 	index["portraits"] = pindex
 

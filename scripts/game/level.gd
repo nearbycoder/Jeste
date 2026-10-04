@@ -25,6 +25,10 @@ var dialogue: DialogueBox
 var camera: Camera2D
 
 var cam_center := Vector2(160, 90)
+var look_ahead := Vector2.ZERO
+var look_kick := Vector2.ZERO
+var lighting: Lighting
+var vignette: TextureRect
 var shake := 0.0
 var freeze := 0
 var mode := "play"        # play | dead | respawn | transition | dialogue | complete
@@ -39,6 +43,7 @@ var after_dialogue := ""
 var events_log: Array = []      # test mode: collected ids, deaths, exits
 var finished := false
 var pending_script := ""
+var death_burst_done := true
 var script_delay := 0.0
 var replay := PackedByteArray()  # optional scripted input (demo / screenshots)
 var replay_pos := 0
@@ -83,12 +88,27 @@ func _build_nodes() -> void:
 	stage.add_child(player_view)
 	effects = Effects.new()
 	stage.add_child(effects)
+	player_view.effects = effects
+	lighting = Lighting.new()
+	lighting.world = world
+	lighting.player_view = player_view
+	lighting.setup(chapter_n)
+	stage.add_child(lighting)
 
 	camera = Camera2D.new()
 	camera.position = cam_center
 	add_child(camera)
 	camera.make_current()
 
+	var vl := CanvasLayer.new()
+	vl.layer = 4
+	add_child(vl)
+	vignette = TextureRect.new()
+	vignette.texture = _vignette_texture()
+	vignette.size = Vector2(320, 180)
+	vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	vignette.modulate = Color(1, 1, 1, {0: 0.5, 1: 0.8, 2: 0.85, 3: 0.75, 4: 0.35, 5: 0.8, 6: 0.9, 7: 0.4, 8: 0.35}.get(chapter_n, 0.6))
+	vl.add_child(vignette)
 	var ui := CanvasLayer.new()
 	ui.layer = 5
 	add_child(ui)
@@ -102,6 +122,25 @@ func _build_nodes() -> void:
 	hud.pause_choice.connect(_on_pause_choice)
 	hud.results_closed.connect(_on_results_closed)
 	hud.show_timer = bool(Game.settings.get("show_timer", false))
+
+
+static func _vignette_texture() -> Texture2D:
+	var img := Image.create(320, 180, false, Image.FORMAT_RGBA8)
+	for y in 180:
+		for x in 320:
+			var d := Vector2((x - 160.0) / 160.0, (y - 90.0) / 90.0).length()
+			var a := clampf((d - 0.65) / 0.75, 0.0, 1.0)
+			a = floorf(a * a * 8.0) / 8.0 * 0.55
+			img.set_pixel(x, y, Color(0.03, 0.01, 0.06, a))
+	return ImageTexture.create_from_image(img)
+
+
+## Name of the character currently talking in a cutscene (for NPC animation).
+func speaker() -> String:
+	if mode == "dialogue" and dialogue.active and not dialogue.cur.is_empty():
+		if dialogue.shown < dialogue._total_chars():
+			return str(dialogue.cur.who)
+	return ""
 
 
 func _tileset() -> String:
@@ -133,6 +172,8 @@ func _load_room(id: String, spawn: int, view: RoomView = null) -> void:
 			world.trigger_fired |= 1 << i
 	var v := view if view else room_view
 	v.level = self
+	if lighting:
+		lighting.room_view = v
 	v.build(room, world, _tileset(), chapter_n)
 	for n in str(room.meta.get("hidden", "")).split(",", false):
 		if not Game.has_seen("show_" + room_id + "_" + n):
@@ -299,55 +340,74 @@ func _handle_event(ev: String) -> void:
 			effects.dust(feet, 0.0, 4)
 		"walljump", "wallbounce":
 			Sfx.play("walljump")
-			effects.dust(feet + Vector2(-world.facing * 4, -4), world.facing, 4)
+			var wall := feet + Vector2(-world.facing * 5, -5)
+			effects.dust(wall, world.facing, 5)
+			effects.ring(wall, Color(1, 1, 1, 0.8), 8.0, 0.2)
 		"super", "hyper":
 			Sfx.play("jump", 0.85)
 			effects.dust(feet, world.facing, 8)
+			effects.ring(feet + Vector2(0, -3), player_view.cap_col.lightened(0.4), 14.0, 0.25)
 		"land":
 			Sfx.play("land", 1.0, -4.0)
-			effects.dust(feet, 0.0, 5)
+			effects.land(feet, clampf(player_view.prev_vy / 200.0, 0.3, 1.2))
 		"dash", "launch":
 			Sfx.play("dash")
 			freeze = 3
 			_shake(0.12)
-			effects.burst(_pc(), player_view.cap_col, 8, 50.0, 0.25)
+			effects.burst(_pc(), player_view.cap_col.lightened(0.2), 10, 60.0, 0.28)
+			effects.ring(_pc(), player_view.cap_col.lightened(0.5), 18.0, 0.28)
+			look_kick = Vector2(world.dash_dir_x, world.dash_dir_y) * 6.0
 		"refill":
 			Sfx.play("refill", 1.0, -6.0)
 		"gem":
 			Sfx.play("gem")
-			effects.sparkle(_pc(), Color("8aff6e"), 8)
+			effects.sparkle(_pc(), Color("8aff6e"), 10)
+			effects.ring(_pc(), Color("aaffb0"), 16.0, 0.3)
+			effects.burst(_pc(), Color("8aff6e"), 8, 50.0, 0.3)
 		"spring":
 			room_view.notify_spring()
 			Sfx.play("spring")
-		"crumble":
-			Sfx.play("crumble", 1.0, -3.0)
+			effects.ring(feet, Color("f2c14e"), 12.0, 0.25)
+			effects.dust(feet, 0.0, 4)
 		"crumble_back":
 			pass
 		"break":
 			Sfx.play("break")
 			_shake(0.2)
 			effects.debris(Rect2(_pc() - Vector2(12, 12), Vector2(24, 24)), Color("8a7a6a"), 18)
-		"key":
-			Sfx.play("key")
-		"door":
-			Sfx.play("door")
-			_shake(0.15)
 		"mask":
 			Sfx.play("mask", 1.0 if world.mask_active == 0 else 0.8)
 		"balloon":
 			Sfx.play("balloon")
+			effects.ring(_pc(), Color("ff8a9a"), 12.0, 0.25)
 		"bumper":
 			Sfx.play("bumper")
 			_shake(0.1)
+			effects.ring(_pc(), Color("8ab4ff"), 20.0, 0.3)
+			effects.burst(_pc(), Color("ffd27a"), 8, 70.0, 0.3)
 		"zip_start":
 			Sfx.play("zip_start")
 		"zip_hit":
 			Sfx.play("zip_hit")
 			_shake(0.15)
+			effects.burst(_pc() + Vector2(0, 8), Color("ffd27a"), 10, 80.0, 0.3)
 		"dream_in":
 			Sfx.play("curtain")
+			effects.sparkle(_pc(), Color("ffd27a"), 8)
 		"dream_out":
 			Sfx.play("curtain", 1.3)
+			effects.sparkle(_pc(), Color("fff0b0"), 10)
+			effects.ring(_pc(), Color("fff0b0"), 14.0, 0.25)
+		"key":
+			Sfx.play("key")
+			effects.sparkle(_pc(), Color("f2c14e"), 8)
+		"door":
+			Sfx.play("door")
+			_shake(0.15)
+			effects.debris(Rect2(_pc() - Vector2(8, 10), Vector2(16, 20)), Color("6b7390"), 10)
+		"crumble":
+			Sfx.play("crumble", 1.0, -3.0)
+			effects.dust(feet + Vector2(0, 2), 0.0, 3, Color("c8a070"))
 		"berry_touch":
 			Sfx.play("berry_touch")
 		"berry_flee":
@@ -365,7 +425,8 @@ func _handle_event(ev: String) -> void:
 				var cid := ev.split(":", true, 1)[1]
 				var fresh := Game.collect(cid)
 				Sfx.play("berry")
-				effects.sparkle(_pc() + Vector2(0, -10), Color("ffd27a"), 10)
+				effects.sparkle(_pc() + Vector2(0, -10), Color("ffd27a"), 14)
+				effects.ring(_pc() + Vector2(0, -10), Color("ffd27a"), 18.0, 0.35)
 				effects.popup(_pc() + Vector2(0, -18), "Sunberry!" if fresh else "Again!")
 				hud.show_berry(Game.berries_in_chapter(chapter_n), chapter.berry_count())
 				Game.save()
@@ -402,10 +463,10 @@ func _on_death() -> void:
 		_respawn()
 		return
 	Sfx.play("death")
-	var dp := _pc()
-	dp.y = minf(dp.y, room.h * 8.0 - 10.0)
-	effects.death(dp, player_view.cap_col)
-	player_view.visible_player = false
+	player_view.flash = 1.0
+	player_view.flash_col = Color.WHITE
+	player_view._kick(Vector2(0.5, -0.5))
+	death_burst_done = false
 	_shake(0.3)
 
 
@@ -464,6 +525,7 @@ func _on_exit() -> void:
 	nv.position = origin
 	var p0 := exit_feet - spawn_feet
 	player_view.position = p0
+	effects.clear_all()
 	trans = {"t": 0.0, "dur": 0.45, "from": cam_center, "to": origin + _cam_target(), "origin": origin, "p0": p0, "old": old_view}
 	mode = "transition"
 
@@ -567,7 +629,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 # ---------------------------------------------------------------- per-frame visuals
 
 func _cam_target() -> Vector2:
-	var pc := _pc()
+	var pc := _pc() + look_ahead
 	var w := room.w * 8.0
 	var h := room.h * 8.0
 	var tx := w / 2.0 if w <= 320.0 else clampf(pc.x, 160.0, w - 160.0)
@@ -587,6 +649,13 @@ func _process(delta: float) -> void:
 		match mode:
 			"dead":
 				timer += delta
+				if not death_burst_done and timer > 0.1:
+					death_burst_done = true
+					var dp := _pc()
+					dp.y = minf(dp.y, room.h * 8.0 - 10.0)
+					effects.death(dp, player_view.cap_col)
+					player_view.visible_player = false
+					hud.flash = 0.35
 				if timer > 0.5 and hud.wipe_target == 0.0:
 					hud.wipe_dir = 1.0
 					hud.wipe_speed = 4.0
@@ -599,6 +668,10 @@ func _process(delta: float) -> void:
 				timer += delta
 				if timer > 0.35:
 					player_view.visible_player = true
+					player_view.reset_tails()
+					player_view.flash = 1.0
+					player_view._kick(Vector2(-0.4, 0.5))
+					effects.ring(_pc(), Color.WHITE, 14.0, 0.25)
 					mode = "play"
 			"transition":
 				trans.t += delta
@@ -609,6 +682,9 @@ func _process(delta: float) -> void:
 				if k >= 1.0:
 					_finish_transition()
 	if mode == "play" or mode == "dialogue" or mode == "respawn":
+		var want := Vector2(clampf(world.vx * 0.12, -20.0, 20.0) + world.facing * 6.0, clampf(world.vy * 0.05, -8.0, 12.0)) + look_kick
+		look_ahead = look_ahead.lerp(want, 1.0 - pow(0.02, delta))
+		look_kick = look_kick.lerp(Vector2.ZERO, 1.0 - pow(0.001, delta))
 		cam_center = cam_center.lerp(_cam_target(), 1.0 - pow(0.0005, delta))
 	var off := Vector2.ZERO
 	if shake > 0.0:
@@ -616,9 +692,44 @@ func _process(delta: float) -> void:
 		off = Vector2(randf_range(-2, 2), randf_range(-2, 2)) * minf(shake * 10.0, 2.0)
 	camera.position = (cam_center + off).round()
 	backdrop.cam_pos = cam_center
+	lighting.position = room_view.position
 	backdrop.wind = Vector2(world.wind_x, world.wind_y)
 	hud.timer_value = chapter_time
 	_update_grin()
+	_update_cutscene_pose(delta)
+
+
+## Visual-only staging: Mira faces the NPC she talks to, animates while she
+## speaks, and drops to the ground if the chapter ended mid-jump.
+func _update_cutscene_pose(delta: float) -> void:
+	player_view.talking = speaker() == "mira"
+	var face := 0
+	if mode == "dialogue" or (mode == "complete" and dialogue.active):
+		var best := 1e9
+		var pc := _pc()
+		for e in room.entities:
+			if e.type != "npc" or room_view.npc_hidden.has(e.get("name", "")):
+				continue
+			var nx: float = e.cx * 8 + 4
+			var d := absf(nx - pc.x)
+			if d < best and d < 120.0 and d > 2.0:
+				best = d
+				face = 1 if nx > pc.x else -1
+	player_view.dialogue_facing = face
+	if world.end_reached:
+		# find the floor below the frozen player and fall onto it
+		var floor_gap := 0
+		while floor_gap < 96 and not world._collide(world.x, world.y + floor_gap + 1) and not world._jumpthru_below(world.x, world.y + floor_gap):
+			floor_gap += 1
+		if player_view.settle_y < floor_gap:
+			player_view.settle_v = minf(player_view.settle_v + 600.0 * delta, 240.0)
+			player_view.settle_y = minf(player_view.settle_y + player_view.settle_v * delta, floor_gap)
+			if player_view.settle_y >= floor_gap and floor_gap > 0:
+				player_view.settle_v = 0.0
+				player_view._kick(Vector2(0.4, -0.35))
+				effects.land(_pc() + Vector2(0, 5.5 + floor_gap), 0.6)
+		else:
+			player_view.settle_v = 0.0
 
 
 func _update_grin() -> void:

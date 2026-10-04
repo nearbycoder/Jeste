@@ -78,10 +78,11 @@ static func portraits() -> Texture2D:
 	return tex("res://assets/sprites/portraits.png")
 
 
-static func portrait_rect(character: String, expr: String) -> Rect2:
+## variant: 0 base, 1 blink, 2 talking, 3 blink + talking
+static func portrait_rect(character: String, expr: String, variant: int = 0) -> Rect2:
 	var p: Dictionary = index().get("portraits", {}).get(character, {})
 	var cr: Array = p.get(expr, p.get("normal", [0, 0]))
-	return Rect2(cr[0] * 32, cr[1] * 32, 32, 32)
+	return Rect2((int(cr[0]) + variant) * 32, int(cr[1]) * 32, 32, 32)
 
 
 static func has_portrait(character: String) -> bool:

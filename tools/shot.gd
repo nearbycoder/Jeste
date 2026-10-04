@@ -20,6 +20,7 @@ func _ready() -> void:
 	add_child(level)
 
 func _process(_d: float) -> void:
+	RenderingServer.force_draw(false)
 	frames += 1
 	if level.mode == "dialogue" and frames % 20 == 0:
 		var ev := InputEventAction.new()
@@ -28,6 +29,12 @@ func _process(_d: float) -> void:
 		level.dialogue.handle_input(ev)
 	if frames == target:
 		var img := get_viewport().get_texture().get_image()
-		img.resize(img.get_width() * 3, img.get_height() * 3, Image.INTERPOLATE_NEAREST)
+		if OS.get_cmdline_user_args().has("zoom"):
+			var sp: Vector2 = get_viewport().get_canvas_transform() * (level.world.player_center() + level.player_view.position)
+			var r := Rect2i(clampi(int(sp.x) - 40, 0, 240), clampi(int(sp.y) - 28, 0, 124), 80, 56)
+			img = img.get_region(r)
+			img.resize(640, 448, Image.INTERPOLATE_NEAREST)
+		else:
+			img.resize(img.get_width() * 3, img.get_height() * 3, Image.INTERPOLATE_NEAREST)
 		img.save_png(out)
 		get_tree().quit()

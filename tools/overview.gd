@@ -43,6 +43,7 @@ func _load() -> void:
 	wait = 6
 
 func _process(_d: float) -> void:
+	RenderingServer.force_draw(false)
 	wait -= 1
 	if wait > 0:
 		return

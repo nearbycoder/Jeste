@@ -96,6 +96,29 @@ f l c t s x j a u m q r   decorations
 Room headers set `exits` (e.g. `right:1-02 top[3-8]:1-03b`), `wind`, `dashes`, `chase`,
 `npc`, `triggers`, `enter`, `title`, ...
 
+## Animation & visual polish
+
+- **Rigged pixel characters** (`tools/art_doll.gd`): Mira, the Grin, Bellamy, Tobi and Oddo are
+  "paper dolls": hand-drawn heads and torsos plus procedurally drawn limbs, posed per frame
+  from a joint table and auto-outlined. Each character has 34 frames of 24x24 animation:
+  breathing idle with blinks, an 8-frame run synced to distance travelled, skid, rise/apex/fall,
+  landing squash, horizontal/up/down dash poses, a 4-frame climb cycle, wall slide, duck, sit
+  and talk.
+- **Mira's jester cap** has two verlet-simulated tails with jingle bells. They react to
+  momentum, wind and dashes, and change colour with your dashes (red / blue / pink), flashing
+  white when a dash is restored.
+- **Juice**: damped-spring squash & stretch, gradient dash afterimages and a ribbon trail,
+  speed streaks, footstep and skid dust, wall-slide dust, landing rings, shockwaves, sparkles,
+  debris, freeze frames, directional screen shake and a camera that looks ahead.
+- **Lighting**: an additive glow pass with pixel-stepped falloff for Mira, gems, berries,
+  bells, lanterns, torches, mushrooms and campfires, plus a per-chapter vignette.
+- **Living world**: grass that sways and parts around Mira; spinning gems; springs, balloons and
+  bumpers with squash and stretch; procedural cloth flags; campfire embers; crumbling boards
+  that shed debris; mask blocks that flash as they swap. NPCs breathe, blink, face Mira and
+  animate while they talk.
+- **Cutscenes**: portraits blink and move their mouths while typing; letters pop in; angry
+  lines shake; Mira faces whoever she is speaking with.
+
 ## Automated verification
 
 ```sh

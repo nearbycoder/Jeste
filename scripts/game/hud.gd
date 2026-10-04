@@ -161,7 +161,10 @@ func _draw() -> void:
 	if berry_show > 0.0:
 		var slide := clampf(berry_show * 4.0, 0.0, 1.0)
 		var x := -60.0 + 66.0 * ease(slide, 0.5)
-		draw_texture_rect_region(Art.objects(), Rect2(x - 2, 2, 16, 16), Art.obj_rect("berry0"))
+		var pop := maxf(0.0, berry_show - 2.6) * 2.5
+		draw_set_transform(Vector2(x + 6, 10), 0, Vector2(1.0 + pop, 1.0 + pop))
+		draw_texture_rect_region(Art.objects(), Rect2(-8, -8, 16, 16), Art.obj_rect("berry0"))
+		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 		PixelText.draw(self, Vector2(x + 14, 6), "x %d" % berry_count, Color.WHITE, Color(0, 0, 0, 0.8))
 	# Timer
 	if show_timer:
@@ -174,13 +177,23 @@ func _draw() -> void:
 		PixelText.draw_centered(self, 160, 150, room_title, Color(1, 1, 1, a), Color(0, 0, 0, a * 0.8))
 	# Chapter title card
 	if title_text != "" and title_t < title_dur:
-		var a := clampf(minf(title_t * 2.0, (title_dur - title_t) * 1.5), 0.0, 1.0)
+		var a := clampf((title_dur - title_t) * 1.5, 0.0, 1.0)
+		var open := ease(clampf(title_t * 2.5, 0.0, 1.0), 0.3)
 		var y := 70.0
-		draw_rect(Rect2(0, y - 6, 320, 34), Color(0.05, 0.03, 0.08, 0.7 * a))
-		draw_rect(Rect2(0, y - 6, 320, 1), Color(0.95, 0.76, 0.3, a))
-		draw_rect(Rect2(0, y + 27, 320, 1), Color(0.95, 0.76, 0.3, a))
-		PixelText.draw_centered(self, 160, y, title_sub, Color(0.95, 0.76, 0.3, a))
-		PixelText.draw_centered(self, 160, y + 12, title_text, Color(1, 1, 1, a), Color(0, 0, 0, a))
+		var bh := 34.0 * open
+		draw_rect(Rect2(0, y + 11 - bh / 2.0, 320, bh), Color(0.05, 0.03, 0.08, 0.75 * a))
+		var lw := 320.0 * open
+		draw_rect(Rect2(160 - lw / 2.0, y + 11 - bh / 2.0, lw, 1), Color(0.95, 0.76, 0.3, a))
+		draw_rect(Rect2(160 - lw / 2.0, y + 10 + bh / 2.0, lw, 1), Color(0.95, 0.76, 0.3, a))
+		var s1 := ease(clampf(title_t * 2.0 - 0.3, 0.0, 1.0), 0.25)
+		var s2 := ease(clampf(title_t * 2.0 - 0.5, 0.0, 1.0), 0.25)
+		PixelText.draw_centered(self, 160 - (1.0 - s1) * 60.0, y, title_sub, Color(0.95, 0.76, 0.3, a * s1))
+		PixelText.draw_centered(self, 160 + (1.0 - s2) * 60.0, y + 12, title_text, Color(1, 1, 1, a * s2), Color(0, 0, 0, a * s2))
+		# a little jester diamond on either side
+		for sx in [-1, 1]:
+			var dx: float = 160 + sx * (PixelText.width(title_text) / 2.0 + 10) + (1.0 - s2) * 60.0 * sx
+			var d := PackedVector2Array([Vector2(dx, y + 12), Vector2(dx + 3, y + 15), Vector2(dx, y + 18), Vector2(dx - 3, y + 15)])
+			draw_colored_polygon(d, Color(0.85, 0.2, 0.35, a * s2))
 	# Flash
 	if flash > 0.0:
 		draw_rect(Rect2(0, 0, 320, 180), Color(1, 1, 1, flash * 0.6))

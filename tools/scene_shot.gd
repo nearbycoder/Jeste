@@ -18,6 +18,7 @@ func _ready() -> void:
 	add_child(node)
 
 func _process(_d: float) -> void:
+	RenderingServer.force_draw(false)
 	f += 1
 	if presses.has(f):
 		var ev := InputEventAction.new()

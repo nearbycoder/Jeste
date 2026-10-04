@@ -1,6 +1,6 @@
 # Jeste level verification report
 
-Generated 2026-10-04 06:02:37
+Generated 2026-10-04 07:14:06
 
 ## Chapter 0: The Foot of Jeste - PASS
 - End reachable from start: yes
@@ -177,4 +177,15 @@ Share of random 1-frame timing slips that still clear each task (lower = tighter
 | `8_8-01_s0_to_8-02` | 93 | 100% |
 | `8_8-02_s0_to_end` | 35 | 100% |
 
-**Overall: PASS**  (1s)
+## End-to-end playthroughs
+- Chapter 0: PASS - 6 room visits, 1222 frames (20.4s), deaths 0, collected 0
+- Chapter 1: PASS - 12 room visits, 2787 frames (46.5s), deaths 0, collected 13, golden carried to the end
+- Chapter 2: PASS - 10 room visits, 1607 frames (26.8s), deaths 0, collected 7, golden carried to the end
+- Chapter 3: PASS - 9 room visits, 1796 frames (29.9s), deaths 0, collected 10, golden carried to the end
+- Chapter 4: PASS - 9 room visits, 1498 frames (25.0s), deaths 0, collected 10, golden carried to the end
+- Chapter 5: PASS - 8 room visits, 1203 frames (20.1s), deaths 0, collected 7, golden carried to the end
+- Chapter 6: PASS - 9 room visits, 1493 frames (24.9s), deaths 0, collected 8, golden carried to the end
+- Chapter 7: PASS - 11 room visits, 1692 frames (28.2s), deaths 0, collected 13, golden carried to the end
+- Chapter 8: PASS - 2 room visits, 128 frames (2.1s), deaths 0, collected 0
+
+**Overall: PASS**  (4s)
