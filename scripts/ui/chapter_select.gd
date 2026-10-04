@@ -16,6 +16,10 @@ var leaving := -1
 var leaving_room := ""
 var marker_x := 0.0
 var card_flash := 0.0
+var pc_vp: SubViewport
+var pc_view: RoomView
+var pc_world: World
+var pc_for := -1
 
 static var _cards: Dictionary = {}
 
@@ -37,6 +41,12 @@ func _ready() -> void:
 	backdrop.setup(sel)
 	post.setup(sel)
 	marker_x = _marker_pos(sel).x
+	pc_vp = SubViewport.new()
+	pc_vp.size = Vector2i(int(PC.size.x), int(PC.size.y))
+	pc_vp.transparent_bg = true
+	pc_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	pc_vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+	add_child(pc_vp)
 	Sfx.play_music("map")
 	Sfx.play_ambience("")
 
@@ -124,21 +134,70 @@ static func _card(n: int) -> Dictionary:
 	if not def.spawns.is_empty():
 		sp = def.spawns[0]
 	var feet := Vector2i(sp.x * 8 + 4, sp.y * 8 + 8)
-	var x0 := clampi(feet.x - 48, 0, maxi(W - int(PC.size.x), 0))
-	var y0 := clampi(feet.y + 26 - int(PC.size.y), 0, maxi(H - int(PC.size.y), 0))
-	var src := Rect2i(x0, y0, int(PC.size.x), int(PC.size.y))
-	var img := Image.create(int(PC.size.x), int(PC.size.y), false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	for k in ["bg", "deco", "fg"]:
-		img.blend_rect(art[k], src, Vector2i.ZERO)
-	# Mira standing at the spawn
-	var sheet := Art.image("res://assets/sprites/player_menu.png")
-	var fi := Art.frame_index("idle0")
-	var mira := sheet.get_region(Rect2i(fi * 24, 0, 24, 24))
-	img.blend_rect(mira, Rect2i(0, 0, 24, 24), Vector2i(feet.x - 12 - x0, feet.y - 24 - y0))
-	var d := {"tex": ImageTexture.create_from_image(img)}
+	# pick the most interesting window: terrain edges + entities, Mira preferred
+	var cw := int(PC.size.x) / 8
+	var chh := int(PC.size.y) / 8 + 1
+	var edge := PackedFloat32Array()
+	edge.resize(def.w * def.h)
+	for cy in def.h:
+		for cx in def.w:
+			var t := def.cells[cy * def.w + cx]
+			if t == RoomDef.EMPTY or t == RoomDef.BGWALL:
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					var nt := def.cell(cx + d.x, cy + d.y)
+					if nt != RoomDef.EMPTY and nt != RoomDef.BGWALL:
+						edge[cy * def.w + cx] = 1
+						break
+			elif t == RoomDef.CURTAIN:
+				edge[cy * def.w + cx] = 0.12
+			elif t != RoomDef.SOLID and t != RoomDef.SOLID_ALT:
+				edge[cy * def.w + cx] = 1.5
+	var best := -1.0
+	var x0 := 0
+	var y0 := 0
+	for oy in range(0, maxi(def.h - chh, 0) + 1):
+		for ox in range(0, maxi(def.w - cw, 0) + 1):
+			var sc := 0.0
+			for cy in range(oy, mini(oy + chh, def.h)):
+				for cx in range(ox, mini(ox + cw, def.w)):
+					sc += edge[cy * def.w + cx]
+			for e in def.entities:
+				if e.cx >= ox and e.cx < ox + cw and e.cy >= oy and e.cy < oy + chh:
+					sc += 8.0
+			if sp.x >= ox + 1 and sp.x < ox + cw - 1 and sp.y >= oy + 2 and sp.y < oy + chh - 1:
+				sc += 25.0
+			if sc > best:
+				best = sc
+				x0 = ox * 8
+				y0 = oy * 8
+	x0 = clampi(x0, 0, maxi(W - int(PC.size.x), 0))
+	y0 = clampi(y0, 0, maxi(H - int(PC.size.y), 0))
+	var d := {"rid": rid, "ts": ts, "crop": Vector2(x0, y0), "feet": Vector2(feet)}
 	_cards[n] = d
 	return d
+
+
+## Live postcard: the real RoomView of the chosen room in a transparent
+## SubViewport, so curtains ripple, gems spin and NPCs breathe.
+func _ensure_postcard(n: int) -> void:
+	if pc_for == n:
+		return
+	pc_for = n
+	if pc_view:
+		pc_view.queue_free()
+		pc_view = null
+	if not _unlocked(n):
+		return
+	var info := _card(n)
+	var ch := LevelDB.get_chapter(n)
+	var def: RoomDef = ch.rooms[info.rid]
+	pc_world = World.new()
+	pc_world.load_room(def, 0, ch.dashes)
+	pc_world.x = -100   # keep the (unused) player far away from triggers / NPC facing
+	pc_view = RoomView.new()
+	pc_vp.add_child(pc_view)
+	pc_view.build(def, pc_world, info.ts, n)
+	pc_view.position = -(info.crop as Vector2)
 
 
 func _draw_postcard(r: Rect2, n: int, a: float) -> void:
@@ -159,7 +218,14 @@ func _draw_postcard(r: Rect2, n: int, a: float) -> void:
 		if first < r.size.x:
 			draw_texture_rect_region(tex, Rect2(r.position + Vector2(first, 0), Vector2(r.size.x - first, r.size.y)), Rect2(0, oy, r.size.x - first, r.size.y), Color(1, 1, 1, a))
 	if _unlocked(n):
-		draw_texture(_card(n).tex, r.position, Color(1, 1, 1, a))
+		_ensure_postcard(n)
+		draw_texture(pc_vp.get_texture(), r.position, Color(1, 1, 1, a))
+		var info := _card(n)
+		var mira := (info.feet as Vector2) - (info.crop as Vector2)
+		var fi := Art.frame_index("idle%d" % [0, 0, 1, 2, 3, 3, 3, 2, 1, 0, 4, 0][int(time * 5.0) % 12])
+		var dst := Rect2(r.position + mira - Vector2(12, 24), Vector2(24, 24))
+		if r.encloses(dst.grow(-6)):
+			draw_texture_rect_region(Art.player_menu(), dst, Rect2(fi * 24, 0, 24, 24), Color(1, 1, 1, a))
 	else:
 		draw_rect(r, Color(0.04, 0.03, 0.07, 0.82 * a))
 		_draw_lock(r.get_center(), a)

@@ -9,7 +9,8 @@ extends Node
 
 # Each segment: chapter, first/last route chunk, cutscenes to show (others are skipped).
 const PLAYLIST := [
-	{"type": "title", "secs": 6.0},
+	{"type": "title", "secs": 7.5},
+	{"type": "select", "secs": 9.0},
 	{"type": "play", "ch": 0, "from": 0, "to": -1, "story": ["pro_arrive", "pro_magpie"]},
 	{"type": "play", "ch": 1, "from": 0, "to": -1, "story": ["ch1_tobi"]},
 	{"type": "play", "ch": 2, "from": 0, "to": 3, "story": ["ch2_dream"]},
@@ -21,7 +22,7 @@ const PLAYLIST := [
 	{"type": "play", "ch": 6, "from": 7, "to": -1, "story": ["ch6_together"]},
 	{"type": "play", "ch": 7, "from": 0, "to": 4, "story": ["ch7_start"]},
 	{"type": "play", "ch": 7, "from": 7, "to": -1, "story": ["ch7_end"]},
-	{"type": "credits", "secs": 12.0},
+	{"type": "credits", "secs": 17.0},
 ]
 
 var routes: Dictionary
@@ -74,6 +75,13 @@ func _next() -> void:
 			node = load("res://scenes/main.tscn").instantiate()
 		"credits":
 			node = load("res://scenes/credits.tscn").instantiate()
+		"select":
+			Game.data = Game.default_save()
+			Game.data.unlocked = 8
+			Game.data.resume = {"chapter": 0, "room": "0-01"}
+			for i in 8:
+				Game.data.chapters[str(i)] = {"complete": true, "deaths": [0, 23, 41, 57, 66, 38, 72, 104][i], "best_time": [61.2, 402.5, 388.1, 455.0, 371.9, 329.4, 410.7, 512.3][i], "golden": i % 3 == 1}
+			node = load("res://scenes/chapter_select.tscn").instantiate()
 		"play":
 			_start_play(s)
 	add_child(node)
@@ -119,7 +127,17 @@ func _process(delta: float) -> void:
 	fade.color.a = maxf(fade.color.a - delta * 2.5, 0.0)
 	var s: Dictionary = PLAYLIST[seg]
 	match s.type:
-		"title", "credits":
+		"title", "credits", "select":
+			if s.type == "select" and node:
+				# browse the postcards: start at the prologue and step right
+				var step := int((t - 0.8) / 0.9)
+				if t > 0.8 and step < 8 and node.sel != step + 1 and node.sel == step:
+					var ev := InputEventAction.new()
+					ev.action = "right"
+					ev.pressed = true
+					node._unhandled_input(ev)
+			if s.type == "credits" and node and t > 7.0 and not node.ended and node.scroll < node._total() - 140.0:
+				node.scroll = node._total() - 140.0
 			if t >= float(s.secs):
 				fading = 0.5
 		"play":

@@ -1,6 +1,6 @@
 # Jeste level verification report
 
-Generated 2026-10-04 13:58:14
+Generated 2026-10-04 14:05:11
 
 ## Chapter 0: The Foot of Jeste - PASS
 - End reachable from start: yes
@@ -191,4 +191,4 @@ Share of random 1-frame timing slips that still clear each task (lower = tighter
 ## Menu flow
 - PASS - UI FLOW PASS
 
-**Overall: PASS**  (39s)
+**Overall: PASS**  (44s)
