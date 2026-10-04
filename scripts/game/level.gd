@@ -54,11 +54,15 @@ func _ready() -> void:
 	chapter_n = Game.pending_chapter
 	chapter = LevelDB.get_chapter(chapter_n)
 	_build_nodes()
+	var start_room := Game.pending_room if Game.pending_room != "" else chapter.start
 	if not fast:
+		# paint every room on worker threads; the first one is needed right away
+		var first: RoomDef = chapter.rooms.get(start_room)
+		if first:
+			RoomView.prebake(first, str(first.meta.get("tileset", chapter.tileset)))
 		for rid in chapter.order:
 			var rd: RoomDef = chapter.rooms[rid]
-			RoomView.painted(rd, str(rd.meta.get("tileset", chapter.tileset)))
-	var start_room := Game.pending_room if Game.pending_room != "" else chapter.start
+			RoomView.prebake(rd, str(rd.meta.get("tileset", chapter.tileset)))
 	_load_room(start_room, Game.pending_spawn if Game.pending_room != "" else 0)
 	cam_center = _cam_target()
 	if not fast:
@@ -76,6 +80,10 @@ const AMBIENCE := {
 	0: "amb_meadow", 1: "amb_night", 2: "amb_dream", 3: "amb_carnival", 4: "amb_wind",
 	5: "amb_hall", 6: "amb_cave", 7: "amb_wind", 8: "amb_meadow",
 }
+
+
+func _exit_tree() -> void:
+	RoomView.flush_bakes()
 
 
 func _build_nodes() -> void:

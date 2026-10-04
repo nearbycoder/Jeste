@@ -305,11 +305,18 @@ static func render(def: RoomDef, tileset: String) -> Dictionary:
 		if t == RoomDef.SOLID_ALT: return 2
 		if t == RoomDef.FAKE: return 3
 		return 0
+	# per-cell material table (with a one-cell border), then fill pixel rows
+	var cw := def.w + 2
+	var cm := PackedByteArray()
+	cm.resize(cw * (def.h + 2))
+	for cy in range(-1, def.h + 1):
+		for cx in range(-1, def.w + 1):
+			cm[(cy + 1) * cw + cx + 1] = cell_mat.call(cx, cy)
 	for py in h:
-		var cy := floori(float(py - PAD) / T)
+		var cy := clampi(floori(float(py - PAD) / T), -1, def.h)
+		var row := (cy + 1) * cw
 		for px in w:
-			var cx := floori(float(px - PAD) / T)
-			mat[py * w + px] = cell_mat.call(cx, cy)
+			mat[py * w + px] = cm[row + clampi(floori(float(px - PAD) / T), -1, def.w) + 1]
 	# round convex corners a little (visual only)
 	for cy in range(-1, def.h + 1):
 		for cx in range(-1, def.w + 1):

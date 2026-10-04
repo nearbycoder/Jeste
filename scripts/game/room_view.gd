@@ -92,11 +92,69 @@ func _blit_tile(dst: Image, col: int, row: int, cx: int, cy: int) -> void:
 	dst.blend_rect(tiles_img, Rect2i(col * T, row * T, T, T), Vector2i(cx * T, cy * T))
 
 
+static var _tasks := {}
+static var _mutex := Mutex.new()
+
+
+static func _art_key(def_: RoomDef, ts: String) -> String:
+	return def_.id + "|" + ts + "|" + str(hash(def_.rows))
+
+
+## Queue a room's terrain painting on the worker pool (no-op if cached/queued).
+static func prebake(def_: RoomDef, ts: String) -> void:
+	var key := _art_key(def_, ts)
+	_mutex.lock()
+	if not _art_cache.has(key) and not _tasks.has(key):
+		_tasks[key] = WorkerThreadPool.add_task(_bake_task.bind(key, def_, ts), false, "terrain " + def_.id)
+	_mutex.unlock()
+
+
+static func _bake_task(key: String, def_: RoomDef, ts: String) -> void:
+	var art := TerrainArt.render(def_, ts)
+	_mutex.lock()
+	_art_cache[key] = art
+	_mutex.unlock()
+
+
+static func is_painted(def_: RoomDef, ts: String) -> bool:
+	var key := _art_key(def_, ts)
+	_mutex.lock()
+	var ok := _art_cache.has(key)
+	_mutex.unlock()
+	return ok
+
+
+## Painted layers for a room: from the cache, by waiting on a queued
+## background job, or rendered right here as a last resort.
 static func painted(def_: RoomDef, ts: String) -> Dictionary:
-	var key := def_.id + "|" + ts + "|" + str(hash(def_.rows))
-	if not _art_cache.has(key):
-		_art_cache[key] = TerrainArt.render(def_, ts)
-	return _art_cache[key]
+	var key := _art_key(def_, ts)
+	_mutex.lock()
+	var tid: int = _tasks.get(key, -1)
+	_mutex.unlock()
+	if tid != -1:
+		WorkerThreadPool.wait_for_task_completion(tid)
+		_mutex.lock()
+		_tasks.erase(key)
+		_mutex.unlock()
+	_mutex.lock()
+	var art: Dictionary = _art_cache.get(key, {})
+	_mutex.unlock()
+	if art.is_empty():
+		art = TerrainArt.render(def_, ts)
+		_mutex.lock()
+		_art_cache[key] = art
+		_mutex.unlock()
+	return art
+
+
+## Wait for every queued job (call before quitting / freeing scenes).
+static func flush_bakes() -> void:
+	_mutex.lock()
+	var ids := _tasks.values()
+	_tasks.clear()
+	_mutex.unlock()
+	for tid in ids:
+		WorkerThreadPool.wait_for_task_completion(tid)
 
 
 func _bake() -> void:

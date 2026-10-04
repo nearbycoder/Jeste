@@ -47,8 +47,19 @@ func _ready() -> void:
 	pc_vp.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	pc_vp.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	add_child(pc_vp)
+	# paint the postcard rooms in the background, nearest chapters first
+	var order := range(LevelDB.chapter_count())
+	order.sort_custom(func(a, b): return absi(a - sel) < absi(b - sel))
+	for n in order:
+		if _unlocked(n):
+			var info := _card(n)
+			RoomView.prebake(LevelDB.get_chapter(n).rooms[info.rid], info.ts)
 	Sfx.play_music("map")
 	Sfx.play_ambience("")
+
+
+func _exit_tree() -> void:
+	RoomView.flush_bakes()
 
 
 func _unlocked(n: int) -> bool:
@@ -127,7 +138,6 @@ static func _card(n: int) -> Dictionary:
 		rid = ch.start
 	var def: RoomDef = ch.rooms[rid]
 	var ts: String = str(def.meta.get("tileset", ch.tileset if ch.tileset != "" else Art.CHAPTER_TILESETS[n]))
-	var art := RoomView.painted(def, ts)
 	var W := def.w * 8
 	var H := def.h * 8
 	var sp := Vector2i(2, def.h - 3)
@@ -191,6 +201,9 @@ func _ensure_postcard(n: int) -> void:
 	var info := _card(n)
 	var ch := LevelDB.get_chapter(n)
 	var def: RoomDef = ch.rooms[info.rid]
+	if not RoomView.is_painted(def, info.ts):
+		pc_for = -1   # try again next frame
+		return
 	pc_world = World.new()
 	pc_world.load_room(def, 0, ch.dashes)
 	pc_world.x = -100   # keep the (unused) player far away from triggers / NPC facing
@@ -219,7 +232,8 @@ func _draw_postcard(r: Rect2, n: int, a: float) -> void:
 			draw_texture_rect_region(tex, Rect2(r.position + Vector2(first, 0), Vector2(r.size.x - first, r.size.y)), Rect2(0, oy, r.size.x - first, r.size.y), Color(1, 1, 1, a))
 	if _unlocked(n):
 		_ensure_postcard(n)
-		draw_texture(pc_vp.get_texture(), r.position, Color(1, 1, 1, a))
+		if pc_for == n:
+			draw_texture(pc_vp.get_texture(), r.position, Color(1, 1, 1, a))
 		var info := _card(n)
 		var mira := (info.feet as Vector2) - (info.crop as Vector2)
 		var fi := Art.frame_index("idle%d" % [0, 0, 1, 2, 3, 3, 3, 2, 1, 0, 4, 0][int(time * 5.0) % 12])
