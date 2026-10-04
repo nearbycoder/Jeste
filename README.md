@@ -202,9 +202,10 @@ python3 -m venv /tmp/jvenv && /tmp/jvenv/bin/pip install numpy
 
 ### Recording a gameplay video
 
-`tools/demo.tscn` plays the title screen and chapter highlights through the real game,
-driven by the proven routes in `tests/routes.json` (written by `run_tests.py`), with
-cutscenes auto-advancing at reading pace. Record it losslessly with Godot's Movie Maker
+`tools/demo.tscn` plays the title screen, a tour of the chapter select, chapter highlights
+through the real game and the credits' curtain call. The gameplay is driven by the proven
+routes in `tests/routes.json` (written by `run_tests.py`), and cutscenes auto-advance at
+reading pace. Record it losslessly with Godot's Movie Maker
 and encode with ffmpeg:
 
 ```sh

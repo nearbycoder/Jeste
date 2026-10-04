@@ -22,7 +22,7 @@ const PLAYLIST := [
 	{"type": "play", "ch": 6, "from": 7, "to": -1, "story": ["ch6_together"]},
 	{"type": "play", "ch": 7, "from": 0, "to": 4, "story": ["ch7_start"]},
 	{"type": "play", "ch": 7, "from": 7, "to": -1, "story": ["ch7_end"]},
-	{"type": "credits", "secs": 17.0},
+	{"type": "credits", "secs": 18.0},
 ]
 
 var routes: Dictionary
@@ -136,8 +136,8 @@ func _process(delta: float) -> void:
 					ev.action = "right"
 					ev.pressed = true
 					node._unhandled_input(ev)
-			if s.type == "credits" and node and t > 7.0 and not node.ended and node.scroll < node._total() - 140.0:
-				node.scroll = node._total() - 140.0
+			if s.type == "credits" and node and t > 7.0 and not node.ended and node.scroll < node._total() - 60.0:
+				node.scroll = node._total() - 60.0
 			if t >= float(s.secs):
 				fading = 0.5
 		"play":
