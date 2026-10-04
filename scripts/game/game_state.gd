@@ -24,6 +24,10 @@ func _ready() -> void:
 	apply_settings()
 
 
+func _exit_tree() -> void:
+	Art.clear_cache()
+
+
 # ---------------------------------------------------------------- input
 
 func _key(action: String, keys: Array) -> void:

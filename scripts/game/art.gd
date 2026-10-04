@@ -9,6 +9,11 @@ static var _tex: Dictionary = {}
 static var _img: Dictionary = {}
 
 
+static func clear_cache() -> void:
+	_tex.clear()
+	_img.clear()
+
+
 static func index() -> Dictionary:
 	if _index.is_empty():
 		var f := FileAccess.open("res://assets/art_index.json", FileAccess.READ)

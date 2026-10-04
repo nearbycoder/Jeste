@@ -31,6 +31,16 @@ func _ready() -> void:
 	add_child(_music_b)
 
 
+func _exit_tree() -> void:
+	for p in _pool:
+		p.stop()
+		p.stream = null
+	for p in [_music_a, _music_b]:
+		p.stop()
+		p.stream = null
+	_cache.clear()
+
+
 func _stream(path: String) -> AudioStream:
 	if _cache.has(path):
 		return _cache[path]

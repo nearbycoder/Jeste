@@ -153,6 +153,10 @@ func _draw() -> void:
 		draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 10, r.end.y - 8 + bob2), Vector2(r.end.x - 4, r.end.y - 8 + bob2), Vector2(r.end.x - 7, r.end.y - 5 + bob2)]), Color("f2c14e"))
 
 
+func _exit_tree() -> void:
+	_mira_tex = null
+
+
 func _draw_portrait(dst: Rect2, src: Rect2, who: String) -> void:
 	var tex := Art.portraits()
 	if who == "mira":
