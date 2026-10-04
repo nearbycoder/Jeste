@@ -117,13 +117,13 @@ func _draw() -> void:
 	var over := sin(k * PI) * 3.0 * (1.0 - k * 0.5)
 	r.position.y = lerpf(-r.size.y - 4.0, r.position.y, k) + (over if box_open < 1.0 else 0.0)
 	var a := clampf(box_open * 1.5, 0.0, 1.0)
-	# shadow, body, double gold frame
-	draw_rect(Rect2(r.position + Vector2(2, 2), r.size), Color(0, 0, 0, 0.35 * a))
-	draw_rect(r, Color(0.05, 0.03, 0.09, 0.94 * a))
-	draw_rect(r, Color(0.95, 0.76, 0.3, a), false, 1.0)
-	draw_rect(r.grow(-2), Color(1, 1, 1, 0.07 * a), false, 1.0)
-	for c in [r.position, Vector2(r.end.x - 3, r.position.y), Vector2(r.position.x, r.end.y - 3), r.end - Vector2(3, 3)]:
-		draw_rect(Rect2(c, Vector2(3, 3)), Color(0.95, 0.76, 0.3, a))
+	# shared framed panel (accent tinted per speaker)
+	var accent := UIKit.GOLD
+	if who == "grin":
+		accent = Color("e8506a")
+	elif who == "sign" or who == "narrator":
+		accent = Color("c8b89a")
+	UIKit.panel(self, Rect2(r.position.round(), r.size), a, accent)
 	if box_open < 0.9:
 		return
 	var left_side := who == "mira" or who == "nana"
@@ -140,18 +140,21 @@ func _draw() -> void:
 		var bob := roundf(sin(time * 2.2) * 0.6) + (-1.0 if talk else 0.0)
 		var frame_r := Rect2(px - 1, r.position.y + 8, 34, 34)
 		draw_rect(frame_r, Color(0.14, 0.09, 0.2))
-		draw_rect(frame_r, Color(0.95, 0.76, 0.3, 0.6), false, 1.0)
+		UIKit.frame(self, frame_r.grow(1), UIKit.INK)
+		UIKit.frame(self, frame_r, Color(accent, 0.8))
 		_draw_portrait(Rect2(px, r.position.y + 9 + bob, 32, 32), pr, who)
 		if left_side:
 			text_x = px + 40
 	var name: String = Story.NAMES.get(who, who.capitalize())
 	if name != "":
 		# name plate
-		var nw := PixelText.width(name) + 8
-		var plate := Rect2(text_x - 3, r.position.y - 4, nw, 11)
-		draw_rect(plate, Color(0.95, 0.76, 0.3))
-		draw_rect(plate.grow(-1), Color(0.18, 0.1, 0.2))
-		PixelText.draw(self, Vector2(text_x + 1, r.position.y - 3), name, Color("f2c14e"))
+		var nw := PixelText.width(name) + 10
+		var plate := Rect2(roundf(text_x - 4), roundf(r.position.y - 5), nw, 12)
+		var pc := UIKit.CRIMSON.darkened(0.25) if who != "grin" else Color("5a1830")
+		draw_rect(plate.grow(1), UIKit.INK)
+		draw_rect(plate, pc)
+		draw_rect(Rect2(plate.position.x, plate.position.y, plate.size.x, 1), pc.lightened(0.35))
+		PixelText.draw_outlined(self, Vector2(plate.position.x + 5, plate.position.y + 2), name, UIKit.CREAM, UIKit.INK)
 	var remaining := int(shown)
 	var y := r.position.y + (12 if name != "" else 8)
 	var col := Color.WHITE if who != "sign" else Color("d0e8ff")
