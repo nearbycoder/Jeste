@@ -29,7 +29,7 @@
   <a href="docs/media/jeste_trailer.mp4">
     <img src="docs/media/trailer_poster.png" alt="Play the Jeste feature trailer (1:48)" width="100%">
   </a>
-  <br><sub>Click to play the 1:48 feature trailer (MP4, 1080p60). Every frame is the real game, played by the project's automated solver.</sub>
+  <br><sub>The 1:48 feature trailer (1080p60 MP4, 38 MB): <a href="docs/media/jeste_trailer.mp4">open it on GitHub</a> or <a href="https://github.com/nearbycoder/Jeste/raw/main/docs/media/jeste_trailer.mp4">download it</a>. Every frame is the real game, played by the project's automated solver.</sub>
 </p>
 
 ## About
