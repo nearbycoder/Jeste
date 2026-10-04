@@ -402,13 +402,16 @@ class Bus:
                 self.sL[start:end] += s * lg * send
                 self.sR[start:end] += s * rg * send
 
-    def render(self, ir=None, master=0.85, lowcut=30.0, target_db=-16.0):
+    def render(self, ir=None, master=0.85, lowcut=30.0, target_db=-16.0, presence=0.6, presence_hz=2200.0):
         L, R = self.L.copy(), self.R.copy()
         if ir is not None:
             L += convolve(self.sL, ir[0], circular=self.loop)[: self.n]
             R += convolve(self.sR, ir[1], circular=self.loop)[: self.n]
         L = spectral(L, "hp", lowcut, 1)
         R = spectral(R, "hp", lowcut, 1)
+        # presence: a gentle high shelf so melodies cut through on small speakers
+        L = L + spectral(L, "hp", presence_hz, 1) * presence
+        R = R + spectral(R, "hp", presence_hz, 1) * presence
         peak = max(np.max(np.abs(L)), np.max(np.abs(R)), 1e-9)
         # gentle glue: normalise into a soft-knee saturator
         L = np.tanh(L / peak * 1.25) / math.tanh(1.25)

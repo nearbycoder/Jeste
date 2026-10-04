@@ -369,8 +369,8 @@ def ch6():
     mel_b = "D5:2 B4:1 G4:1 A4:2 F#4:2 E4:3 -:1 G4:2 B4:1 E5:1 A#4:4 C#5:4"
     s = Song("ch6", 76, 16, reverb=(4.5, 2.0, 0.7), master=0.8)
     prog = A + B
-    s.chords(S.pad, prog, center=55, gain=0.2, send=0.6, bright=1200)
-    s.bassline(S.subbass, prog, [(0, 4, "r")], octave=1, gain=0.35, send=0.05)
+    s.chords(S.pad, prog, center=55, gain=0.2, send=0.6, bright=1600)
+    s.bassline(S.subbass, prog, [(0, 4, "r")], octave=1, gain=0.2, send=0.05)
     s.melody(S.epiano, mel_a, 0, gain=0.24, send=0.55, pan=0.15, vel=0.55)
     s.melody(S.epiano, mel_a, 32, transpose=12, gain=0.12, send=0.65, pan=-0.2, vel=0.45)
     s.melody(S.epiano, mel_b, 32, transpose=12, gain=0.22, send=0.55, pan=0.15, vel=0.55)
@@ -412,7 +412,7 @@ def chase():
     s.melody(S.chip, mel, 16, gain=0.22, send=0.2, pan=0.15)
     s.melody(S.flute, mel, 32, gain=0.26, send=0.2, pan=0.2)
     s.melody(S.flute, mel, 48, gain=0.26, send=0.2, pan=0.2)
-    s.drums({"k": "k..kk..kk..kk..k", "s": "....s.......s...", "h": "hhhhhhhhhhhhhhhh", "t": "..............tT"}, gain=0.3, pans={"h": 0.3})
+    s.drums({"k": "k...k...k...k...", "s": "....s.......s...", "h": "h.hhh.hhh.hhh.hh", "t": "..............tT"}, gain=0.26, pans={"h": 0.3})
     s.render()
 
 
