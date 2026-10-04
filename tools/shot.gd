@@ -19,9 +19,21 @@ func _ready() -> void:
 		level.replay = Solver.decode(a[4])
 	add_child(level)
 
+var perf_t := 0.0
+var perf_n := 0
+var perf_max := 0.0
+
 func _process(_d: float) -> void:
-	RenderingServer.force_draw(false)
+	if OS.get_environment("PERF") == "":
+		RenderingServer.force_draw(false)
 	frames += 1
+	if OS.get_environment("PERF") != "" and frames > 60:
+		var pt := Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0
+		perf_t += pt
+		perf_n += 1
+		perf_max = maxf(perf_max, pt)
+		if frames == target - 1:
+			print("PERF process avg %.2f ms, max %.2f ms, draw calls %d, objects %d" % [perf_t / perf_n, perf_max, Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME), Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)])
 	if level.mode == "dialogue" and frames % 20 == 0:
 		var ev := InputEventAction.new()
 		ev.action = "confirm"
