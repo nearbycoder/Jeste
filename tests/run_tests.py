@@ -340,7 +340,9 @@ def main():
             lines.append(f"- `{r['id']}`: {r.get('error', '')}")
             print(f"  unsolved: {r['id']}: {r.get('error', '')}")
         lines.append("")
-    if routes:
+    full_run = not args.chapters
+    if routes and full_run:
+        # (partial runs must not clobber the full route file used by tools/demo.gd)
         with open(os.path.join(ROOT, "tests", "routes.json"), "w") as f:
             json.dump(routes, f)
     if not args.no_e2e and routes:
@@ -390,10 +392,26 @@ def main():
             print(f"  Chapter {chs}: {'PASS' if ok else 'FAIL'} - {msg}")
             lines.append(f"- Chapter {chs}: {'PASS' if ok else 'FAIL'} - {msg}")
         lines.append("")
+    if not args.no_e2e:
+        print("== Menu flow (title, options, chapter select, pause, assist, results, credits)")
+        p = subprocess.run([GODOT, "--headless", "--path", ROOT, "--fixed-fps", "60", "res://tests/ui_flow.tscn"],
+                           capture_output=True, text=True, timeout=600)
+        out = p.stdout + p.stderr
+        errs = [l for l in out.splitlines() if "SCRIPT ERROR" in l]
+        ok = "UI FLOW PASS" in out and not errs
+        all_ok &= ok
+        detail = next((l for l in out.splitlines() if l.startswith("UI FLOW")), "no result")
+        if errs:
+            detail += f" ({len(errs)} script errors: {errs[0]})"
+        print(f"  {'PASS' if ok else 'FAIL'} - {detail}")
+        lines.append("## Menu flow")
+        lines.append(f"- {'PASS' if ok else 'FAIL'} - {detail}")
+        lines.append("")
     lines.append(f"**Overall: {'PASS' if all_ok else 'FAIL'}**  ({time.time() - t0:.0f}s)")
-    with open(os.path.join(ROOT, "tests", "REPORT.md"), "w") as f:
+    report_path = os.path.join(ROOT, "tests", "REPORT.md") if full_run else os.path.join(tempfile.gettempdir(), "jeste_REPORT_partial.md")
+    with open(report_path, "w") as f:
         f.write("\n".join(lines) + "\n")
-    print(f"== Overall: {'PASS' if all_ok else 'FAIL'} ({time.time() - t0:.0f}s) - see tests/REPORT.md")
+    print(f"== Overall: {'PASS' if all_ok else 'FAIL'} ({time.time() - t0:.0f}s) - see {os.path.relpath(report_path, ROOT) if full_run else report_path}")
     sys.exit(0 if all_ok else 1)
 
 

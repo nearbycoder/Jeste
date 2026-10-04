@@ -645,16 +645,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if fast:
 		return
 	if hud.handle_menu_input(ev):
-		get_viewport().set_input_as_handled()
+		if is_inside_tree(): get_viewport().set_input_as_handled()
 		return
 	if mode == "dialogue" and dialogue.handle_input(ev):
-		get_viewport().set_input_as_handled()
+		if is_inside_tree(): get_viewport().set_input_as_handled()
 		return
 	if ev.is_action_pressed("pause") and mode != "complete":
 		paused = true
 		hud.open_pause()
 		Sfx.play("menu_select")
-		get_viewport().set_input_as_handled()
+		if is_inside_tree(): get_viewport().set_input_as_handled()
 
 
 # ---------------------------------------------------------------- per-frame visuals
