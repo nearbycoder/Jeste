@@ -37,9 +37,14 @@ func _next() -> void:
 			return
 		var l: Dictionary = lines[idx]
 		if l.type == "say":
-			cur = l
+			cur = l.duplicate()
+			# {jump} / {dash} / {grab} show the player's current key bindings
+			var txt: String = cur.text
+			for a in ["jump", "dash", "grab"]:
+				txt = txt.replace("{%s}" % a, Game.key_label(a))
+			cur.text = txt
 			shown = 0.0
-			wrapped = PixelText.wrap(l.text, int(BOX.size.x - 52))
+			wrapped = PixelText.wrap(txt, int(BOX.size.x - 52))
 			return
 		var w := 0.0
 		if level and level.has_method("cutscene_command"):

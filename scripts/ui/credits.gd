@@ -169,7 +169,7 @@ func _draw() -> void:
 			var spin := sin(time * 12.0 + c.ph)
 			draw_rect(Rect2((c.p as Vector2).round(), Vector2(2 if absf(spin) > 0.4 else 1, 1)), c.c if spin > 0 else (c.c as Color).darkened(0.3))
 		if end_t > 2.0:
-			var pairs := [["C", "Title"]]
+			var pairs := [[Game.key_label("jump"), "Title"]]
 			UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 100), pairs, 0.8)
 
 

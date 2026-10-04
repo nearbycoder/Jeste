@@ -20,10 +20,10 @@ mira:normal: (Nana always said we'd climb it together, one day.)
 mira:determined: (Guess I'm climbing it for both of us.)
 
 @pro_sign_jump
-sign:normal: "Press C or Space to JUMP. Hold the button longer to jump higher."
+sign:normal: "Press {jump} to JUMP. Hold the button longer to jump higher."
 
 @pro_sign_climb
-sign:normal: "Hold Z to GRAB a wall. Press Up or Down while holding to climb."
+sign:normal: "Hold {grab} to GRAB a wall. Press Up or Down while holding to climb."
 sign:normal: "Climbing wears you out! Catch your breath on solid ground."
 
 @pro_sign_walljump
@@ -45,7 +45,7 @@ magpie:normal: Kraa! Kraa!
 !flash
 narrator:normal: The magpie leaps into the air - and darts forward in a sudden burst of light. Something sparks in Mira's chest, warm and bright.
 mira:surprised: ...What was THAT?
-sign:normal: "Press X to DASH in the direction you're holding. You get one dash in the air, and landing restores it."
+sign:normal: "Press {dash} to DASH in the direction you're holding. You get one dash in the air, and landing restores it."
 sign:normal: "Watch the tails of your cap: red means your dash is ready, blue means it's spent."
 mira:grin: A dash! Ha! Nana, you would have LOVED this.
 magpie:normal: Kraa!

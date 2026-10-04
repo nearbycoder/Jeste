@@ -365,7 +365,7 @@ func _draw() -> void:
 	var dstr := "Deaths %d" % int(Game.data.total_deaths)
 	PixelText.draw_outlined(self, Vector2(314 - PixelText.width(dstr), 6), dstr, UIKit.CREAM, UIKit.INK)
 	_draw_path()
-	var pairs := [["Arrows", "Choose"], ["C", "Climb"], ["X", "Back"]]
+	var pairs := [["Arrows", "Choose"], [Game.key_label("jump"), "Climb"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 167), pairs, 0.9)
 	if confirm_resume:
 		draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.45))

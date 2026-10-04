@@ -19,8 +19,8 @@ var headless_test := false     # set by test harness: no saving to disk
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	setup_input()
 	load_settings()
+	setup_input()
 	load_save()
 	apply_settings()
 
@@ -52,21 +52,89 @@ func _axis(action: String, axis: int, value: float) -> void:
 	InputMap.action_add_event(action, ev)
 
 
+const REBINDABLE := ["jump", "dash", "grab", "up", "down", "left", "right"]
+const DEFAULT_KEYS := {
+	"left": [KEY_LEFT, KEY_A], "right": [KEY_RIGHT, KEY_D],
+	"up": [KEY_UP, KEY_W], "down": [KEY_DOWN, KEY_S],
+	"jump": [KEY_C, KEY_SPACE, KEY_J], "dash": [KEY_X, KEY_K, KEY_SHIFT],
+	"grab": [KEY_Z, KEY_V, KEY_L],
+}
+
+
+## Current keyboard keys per action: custom bindings override the defaults.
+func keys_for(action: String) -> Array:
+	var b: Dictionary = settings.get("bindings", {}) if settings else {}
+	if b.has(action):
+		var out := []
+		for k in b[action]:
+			out.append(int(k))   # JSON stores numbers as floats
+		return out
+	return DEFAULT_KEYS.get(action, [])
+
+
+## Short label of an action's primary key for on-screen prompts.
+func key_label(action: String) -> String:
+	var ks := keys_for(action)
+	if ks.is_empty():
+		return "?"
+	return key_name(int(ks[0]))
+
+
+static func key_name(k: int) -> String:
+	match k:
+		KEY_LEFT: return "Left"
+		KEY_RIGHT: return "Right"
+		KEY_UP: return "Up"
+		KEY_DOWN: return "Down"
+		KEY_SPACE: return "Space"
+		KEY_SHIFT: return "Shift"
+		KEY_CTRL: return "Ctrl"
+		KEY_ALT: return "Alt"
+		KEY_TAB: return "Tab"
+		KEY_ENTER: return "Enter"
+	return OS.get_keycode_string(k)
+
+
+## Bind `key` to `action`; if another action used it, that action takes over
+## this action's previous primary key (a swap, so nothing is left unbound).
+func rebind(action: String, key: int) -> void:
+	var b: Dictionary = settings.get("bindings", {})
+	var old: Array = keys_for(action).duplicate()
+	for other in REBINDABLE:
+		if other == action:
+			continue
+		var ks: Array = keys_for(other).duplicate()
+		if ks.has(key):
+			ks.erase(key)
+			if not old.is_empty() and not ks.has(old[0]):
+				ks.insert(0, old[0])
+			b[other] = ks
+	b[action] = [key]
+	settings.bindings = b
+	setup_input()
+
+
+func reset_bindings() -> void:
+	settings.bindings = {}
+	setup_input()
+
+
 func setup_input() -> void:
-	var defs := {
-		"left": [KEY_LEFT, KEY_A], "right": [KEY_RIGHT, KEY_D],
-		"up": [KEY_UP, KEY_W], "down": [KEY_DOWN, KEY_S],
-		"jump": [KEY_C, KEY_SPACE, KEY_J], "dash": [KEY_X, KEY_K, KEY_SHIFT],
-		"grab": [KEY_Z, KEY_V, KEY_L],
-		"pause": [KEY_ESCAPE, KEY_ENTER, KEY_P],
-		"confirm": [KEY_C, KEY_SPACE, KEY_ENTER, KEY_J],
-		"back": [KEY_X, KEY_ESCAPE, KEY_BACKSPACE, KEY_K],
-	}
+	var defs := {}
+	for a in REBINDABLE:
+		defs[a] = keys_for(a)
+	defs["pause"] = [KEY_ESCAPE, KEY_ENTER, KEY_P]
+	defs["confirm"] = [KEY_SPACE, KEY_ENTER] + keys_for("jump")
+	defs["back"] = [KEY_ESCAPE, KEY_BACKSPACE] + keys_for("dash")
 	for a in defs:
 		if InputMap.has_action(a):
 			InputMap.erase_action(a)
 		InputMap.add_action(a, 0.4)
-		_key(a, defs[a])
+		var seen := {}
+		for k in defs[a]:
+			if not seen.has(k):
+				seen[k] = true
+				_key(a, [k])
 	_pad("jump", [JOY_BUTTON_A, JOY_BUTTON_Y])
 	_pad("dash", [JOY_BUTTON_X, JOY_BUTTON_B])
 	_pad("grab", [JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_LEFT_SHOULDER])

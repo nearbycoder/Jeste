@@ -289,7 +289,7 @@ func _draw_pause(e: float) -> void:
 	if level:
 		var info := "%s   Deaths %d" % [str(level.chapter.name), level.deaths_this_chapter]
 		PixelText.draw_centered_outlined(self, 160, r.end.y + 8, info, Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
-	var pairs := [["C", "Select"], ["X", "Resume"]]
+	var pairs := [[Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Resume"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
 
 
@@ -307,7 +307,7 @@ func _draw_options(e: float) -> void:
 			"Screen Shake": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), e)
 			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
 			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)
-	var pairs := [["Arrows", "Change"], ["X", "Back"]]
+	var pairs := [["Arrows", "Change"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
 
 
@@ -401,5 +401,5 @@ func _draw_results() -> void:
 		PixelText.draw_outlined(self, Vector2(pr.end.x - 10 - PixelText.width(v), y), v, Color(vc, reveal), Color(UIKit.INK, reveal))
 	if results_t > 1.0 + rows.size() * 0.25:
 		var blink := 0.65 + 0.35 * sin(time * 5.0)
-		var pairs := [["C", "Continue"]]
+		var pairs := [[Game.key_label("jump"), "Continue"]]
 		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 162), pairs, blink)

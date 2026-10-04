@@ -21,7 +21,11 @@ var logo_mat: ShaderMaterial
 var jingled := false
 var bell_swing := 0.0
 
-const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Screen Shake", "Rumble", "Speedrun Timer", "Erase Save", "Back"]
+const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Screen Shake", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
+const CONTROLS := ["jump", "dash", "grab", "up", "down", "left", "right", "Reset Defaults", "Back"]
+var ctl_sel := 0
+var ctl_k: Array = []
+var waiting_key := false
 const LOGO_Y := 25.0
 const MENU_X := 40.0
 const MENU_Y := 102.0
@@ -42,6 +46,8 @@ func _ready() -> void:
 	_build_items()
 	opt_k.resize(OPTIONS.size())
 	opt_k.fill(0.0)
+	ctl_k.resize(CONTROLS.size())
+	ctl_k.fill(0.0)
 	ledge_tex = _make_ledge()
 	# warm additive glow from the campfire
 	glow = Node2D.new()
@@ -127,6 +133,8 @@ func _process(delta: float) -> void:
 		row_k[i] = move_toward(row_k[i], 1.0 if (i == sel and screen == "main") else 0.0, delta * 8.0)
 	for i in opt_k.size():
 		opt_k[i] = move_toward(opt_k[i], 1.0 if i == opt_sel else 0.0, delta * 8.0)
+	for i in ctl_k.size():
+		ctl_k[i] = move_toward(ctl_k[i], 1.0 if i == ctl_sel else 0.0, delta * 8.0)
 	panel_k = move_toward(panel_k, 1.0 if screen != "main" else 0.0, delta * 6.0)
 	if not jingled and time > 1.05:
 		jingled = true
@@ -161,8 +169,23 @@ func _go(what: String) -> void:
 			Game.goto_credits()
 
 
+func _input(ev: InputEvent) -> void:
+	# key capture for rebinding happens before actions are dispatched
+	if not waiting_key or not (ev is InputEventKey) or not ev.pressed or ev.echo:
+		return
+	get_viewport().set_input_as_handled()
+	var k: int = (ev as InputEventKey).physical_keycode
+	waiting_key = false
+	if k == KEY_ESCAPE:
+		Sfx.play("menu_move")
+		return
+	Game.rebind(CONTROLS[ctl_sel], k)
+	Game.save_settings()
+	Sfx.play("menu_select")
+
+
 func _unhandled_input(ev: InputEvent) -> void:
-	if leaving != "" or time < 0.8:
+	if leaving != "" or time < 0.8 or waiting_key:
 		return
 	match screen:
 		"main":
@@ -196,6 +219,25 @@ func _unhandled_input(ev: InputEvent) -> void:
 			elif ev.is_action_pressed("back"):
 				screen = "main"
 				Game.save_settings()
+		"controls":
+			if ev.is_action_pressed("up"):
+				ctl_sel = (ctl_sel + CONTROLS.size() - 1) % CONTROLS.size()
+				Sfx.play("menu_move")
+			elif ev.is_action_pressed("down"):
+				ctl_sel = (ctl_sel + 1) % CONTROLS.size()
+				Sfx.play("menu_move")
+			elif ev.is_action_pressed("confirm"):
+				Sfx.play("menu_select")
+				match CONTROLS[ctl_sel]:
+					"Reset Defaults":
+						Game.reset_bindings()
+						Game.save_settings()
+					"Back":
+						screen = "options"
+					_:
+						waiting_key = true
+			elif ev.is_action_pressed("back"):
+				screen = "options"
 		"confirm_reset":
 			if ev.is_action_pressed("confirm"):
 				Game.reset_save()
@@ -226,6 +268,10 @@ func _change_option(d: int, confirm: bool) -> void:
 				Game.rumble(0.6, 0.15)
 		"Speedrun Timer":
 			Game.settings.show_timer = not Game.settings.show_timer
+		"Controls":
+			if confirm:
+				screen = "controls"
+				ctl_sel = 0
 		"Erase Save":
 			if confirm:
 				screen = "confirm_reset"
@@ -321,25 +367,51 @@ func _draw() -> void:
 	if panel_k > 0.0:
 		var e := ease(panel_k, 0.3)
 		var r := Rect2(84, 36 + (1.0 - e) * 12.0, 152, 16 + OPTIONS.size() * 12)
+		if screen == "controls":
+			e = 0.0   # the controls panel replaces the options panel
 		UIKit.panel(self, r, e)
 		UIKit.panel_title(self, r, "OPTIONS", e)
 		for i in OPTIONS.size():
 			var y := r.position.y + 10 + i * 12
 			UIKit.menu_row(self, r.position.x + 12, y, 128, OPTIONS[i], opt_k[i], time, e)
 			_draw_opt_value(OPTIONS[i], Vector2(r.end.x - 10, y), e)
+		if screen == "controls":
+			_draw_controls()
 		if screen == "confirm_reset":
 			draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.5))
 			var cr := Rect2(60, 76, 200, 40)
 			UIKit.panel(self, cr, 1.0, UIKit.CRIMSON)
 			PixelText.draw_centered(self, 160, cr.position.y + 8, "Erase ALL progress?", Color.WHITE)
-			var pairs := [["C", "Erase"], ["X", "Keep"]]
+			var pairs := [[Game.key_label("jump"), "Erase"], [Game.key_label("dash"), "Keep"]]
 			UIKit.hints(self, Vector2(160 - UIKit.hints_width(pairs) / 2.0, cr.position.y + 23), pairs)
 	# control hints
 	var hk := _intro(1.6, 0.5)
 	if hk > 0.0:
-		var pairs := [["Arrows", "Move"], ["C", "Jump"], ["X", "Dash"], ["Z", "Grab"]] if screen == "main" else [["Arrows", "Change"], ["C", "Select"], ["X", "Back"]]
+		var pairs := [["Arrows", "Move"], [Game.key_label("jump"), "Jump"], [Game.key_label("dash"), "Dash"], [Game.key_label("grab"), "Grab"]] if screen == "main" else [["Arrows", "Change"], [Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Back"]]
+		if waiting_key:
+			pairs = [["Esc", "Cancel"]]
 		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, hk * 0.9)
 	UIKit.wipe(self, wipe, -1.0 if leaving == "" else 1.0)
+
+
+func _draw_controls() -> void:
+	draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.45))
+	var r := Rect2(78, 30, 164, 16 + CONTROLS.size() * 12 + 12)
+	UIKit.panel(self, r)
+	UIKit.panel_title(self, r, "CONTROLS")
+	var names := {"jump": "Jump", "dash": "Dash", "grab": "Grab / Climb", "up": "Up", "down": "Down", "left": "Left", "right": "Right"}
+	for i in CONTROLS.size():
+		var y := r.position.y + 10 + i * 12
+		var id: String = CONTROLS[i]
+		UIKit.menu_row(self, r.position.x + 12, y, 140, names.get(id, id), ctl_k[i], time)
+		if names.has(id):
+			var lbl := "..." if (waiting_key and i == ctl_sel) else Game.key_label(id)
+			var w := maxf(PixelText.width(lbl) + 6.0, 9.0)
+			if waiting_key and i == ctl_sel:
+				PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width("press a key"), y), "press a key", Color(UIKit.GOLD, 0.6 + 0.4 * sin(time * 8.0)), UIKit.INK)
+			else:
+				UIKit.keycap(self, Vector2(r.end.x - 10 - w, y), lbl)
+	PixelText.draw_centered(self, 160, r.end.y - 11, "Pad: A jump  X dash  RB/RT grab", Color(UIKit.MUTED, 0.8))
 
 
 func _draw_opt_value(name: String, right: Vector2, a: float) -> void:

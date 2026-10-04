@@ -34,6 +34,15 @@ func _ready() -> void:
 		["check", "options", 0],
 		["press", "right", 4], ["press", "down", 4], ["press", "left", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],  # toggles
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Controls
+		["check", "controls", 0],
+		["press", "confirm", 6],                                  # rebind Jump
+		["key", "N", 6],
+		["check", "jump_is_n", 0],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
+		["check", "jump_default", 0],
+		["press", "back", 10],
 		["press", "back", 20],
 		["check", "main", 0],
 		["press", "up", 6],                                      # Climb
@@ -120,10 +129,22 @@ func _process(_d: float) -> void:
 				_fail("step %d: expected scene %s, got %s" % [idx, s[1], cur.name if cur else "none"])
 		"press":
 			_press(s[1])
+		"key":
+			var ev := InputEventKey.new()
+			ev.physical_keycode = OS.find_keycode_from_string(s[1])
+			ev.keycode = ev.physical_keycode
+			ev.pressed = true
+			Input.parse_input_event(ev)
+			var up := ev.duplicate()
+			up.pressed = false
+			Input.parse_input_event.call_deferred(up)
 		"check":
 			var ok := true
 			match s[1]:
 				"options": ok = cur.screen == "options"
+				"controls": ok = cur.screen == "controls"
+				"jump_is_n": ok = get_node("/root/Game").key_label("jump") == "N"
+				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"
 				"main": ok = cur.screen == "main"
 				"paused": ok = cur.paused and cur.hud.paused
 				"assist": ok = cur.hud.assist_open
