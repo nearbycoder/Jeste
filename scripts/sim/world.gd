@@ -5,8 +5,9 @@ extends RefCounted
 ## automated solver / replay tests drive exactly the same code, so a recorded
 ## input sequence that clears a room in a test clears it in the real game.
 ##
-## Movement constants are modelled on Celeste's published player controller
-## (units: pixels and seconds, 60 steps per second).
+## Movement constants and timings follow a published, MIT-licensed platformer
+## player controller (see THIRD_PARTY_NOTICES.md). Units: pixels and seconds,
+## 60 steps per second.
 
 # ---------------------------------------------------------------- input bits
 const IN_LEFT := 1
@@ -1600,7 +1601,7 @@ func _update_chaser() -> void:
 	var i := (n - 1 - chase_delay) * 2
 	var cxp := chase_hist[i]
 	var cyp := chase_hist[i + 1]
-	# Smaller hitbox than the player, like Celeste's Badeline chasers.
+	# Smaller hitbox than the player, so near misses feel fair.
 	if not assist_invincible and absi(cxp - x) < 6 and absi(cyp - y) < 8:
 		_die()
 

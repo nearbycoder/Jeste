@@ -1,4 +1,35 @@
+# Godot caches and exports
 .godot/
-*.tmp
 /export/
-docs/*.mp4
+*.tmp
+*.translation
+
+# Build output and work files (exports, trailer captures, venvs)
+/build/
+/dist/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Raw recordings and captures (the published trailer lives in docs/media/)
+/docs/*.mp4
+*.avi
+*.mkv
+*.wav.bak
+
+# Blender backups
+*.blend1
+
+# Secrets
+.env
+.env.*
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+.vscode/
+.idea/
