@@ -86,6 +86,14 @@ func _exit_tree() -> void:
 	RoomView.flush_bakes()
 
 
+func _notification(what: int) -> void:
+	# auto-pause when the window loses focus mid-climb
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and not fast and not Game.headless_test:
+		if not paused and mode == "play" and hud and not hud.results:
+			paused = true
+			hud.open_pause()
+
+
 func _build_nodes() -> void:
 	var bg_layer := CanvasLayer.new()
 	bg_layer.layer = -10

@@ -34,6 +34,8 @@ func _process(_d: float) -> void:
 			if p[1] == "pause":
 				level.paused = true
 				level.hud.open_pause()
+			elif p[1] == "berry":
+				level.hud.show_berry(3, 12)
 			elif p[1] == "down":
 				var ev := InputEventAction.new()
 				ev.action = "down"

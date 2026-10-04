@@ -58,8 +58,13 @@ func _ready() -> void:
 		["press", "pause", 20],
 		["press", "up", 4], ["press", "confirm", 40],           # Retry Room (wraps to last = Return to Map? no: up from Resume = Return to Map)
 		["expect", "ChapterSelect", 0],
+		["seed_resume", "", 0],
 		["press", "back", 60],
 		["expect", "Title", 0],
+		["check", "has_continue", 0],
+		["press", "confirm", 120],                               # Continue
+		["expect", "Level", 0],
+		["check", "resumed", 0],
 		["scene", "res://scenes/level.tscn", 60],
 		["results", "", 120],
 		["press", "confirm", 90],
@@ -124,6 +129,8 @@ func _process(_d: float) -> void:
 				"assist": ok = cur.hud.assist_open
 				"options_open": ok = cur.hud.options_open
 				"unpaused": ok = not cur.paused
+				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02"
+				"has_continue": ok = cur.items.size() > 0 and cur.items[0] == "Continue" and cur.sel == 0
 			if not ok:
 				_fail("step %d: check %s failed" % [idx, s[1]])
 		"skip_dialogue":
@@ -135,6 +142,8 @@ func _process(_d: float) -> void:
 					cur.dialogue.handle_input(ev)
 		"results":
 			cur._show_results()
+		"seed_resume":
+			get_node("/root/Game").data.resume = {"chapter": 1, "room": "1-02"}
 		"done":
 			print("UI FLOW PASS")
 			get_tree().quit(0)

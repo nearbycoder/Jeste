@@ -218,12 +218,20 @@ func _draw() -> void:
 	# Berry counter
 	if berry_show > 0.0:
 		var slide := clampf(berry_show * 4.0, 0.0, 1.0)
-		var x := -60.0 + 66.0 * ease(slide, 0.5)
+		var x := roundf(-70.0 + 74.0 * ease(slide, 0.5))
 		var pop := maxf(0.0, berry_show - 2.6) * 2.5
-		draw_set_transform(Vector2(x + 6, 10), 0, Vector2(1.0 + pop, 1.0 + pop))
+		var txt := "%d / %d" % [berry_count, berry_total] if berry_total > 0 else str(berry_count)
+		var pw := PixelText.width(txt) + 26.0
+		# dark pill with a gold underline
+		draw_rect(Rect2(x - 2, 3, pw + 3, 15), Color(UIKit.INK, 0.75))
+		draw_rect(Rect2(x - 1, 2, pw + 1, 1), Color(UIKit.INK, 0.75))
+		draw_rect(Rect2(x - 1, 18, pw + 1, 1), Color(UIKit.INK, 0.75))
+		draw_rect(Rect2(x, 17, pw - 1, 1), Color(UIKit.GOLD, 0.8))
+		draw_set_transform(Vector2(x + 8, 10), 0, Vector2(1.0 + pop, 1.0 + pop))
 		draw_texture_rect_region(Art.objects(), Rect2(-8, -8, 16, 16), Art.obj_rect("berry0"))
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-		PixelText.draw(self, Vector2(x + 14, 6), "x %d" % berry_count, Color.WHITE, Color(0, 0, 0, 0.8))
+		var full := berry_total > 0 and berry_count >= berry_total
+		PixelText.draw_outlined(self, Vector2(x + 18, 6), txt, UIKit.GOLD if full else UIKit.CREAM, UIKit.INK)
 	# Timer
 	if show_timer:
 		var t := timer_value
