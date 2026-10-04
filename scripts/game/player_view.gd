@@ -425,6 +425,22 @@ func _draw_tails(back: bool) -> void:
 			draw_line(tip + Vector2(0, -3 * g), tip + Vector2(0, 3 * g), Color(1, 1, 0.8, g))
 
 
+## Soft ground shadow that shrinks and fades with height.
+func _draw_contact_shadow(feet: Vector2) -> void:
+	if is_grin or world == null:
+		return
+	var gap := 0
+	while gap < 48 and not world._collide(world.x, world.y + gap + 1) and not world._jumpthru_below(world.x, world.y + gap):
+		gap += 1
+	if gap >= 48:
+		return
+	var k := 1.0 - gap / 48.0
+	var gy := roundf(feet.y + gap - settle_y)
+	var hw := roundf(3.0 + 2.0 * k)
+	draw_rect(Rect2(roundf(feet.x) - hw, gy - 1, hw * 2.0, 1), Color(0, 0, 0, 0.32 * k))
+	draw_rect(Rect2(roundf(feet.x) - hw + 1, gy - 2, hw * 2.0 - 2, 1), Color(0, 0, 0, 0.14 * k))
+
+
 func _tail_r(i: int) -> float:
 	return lerpf(1.6, 0.7, float(i) / (TAIL_N - 1))
 
@@ -441,9 +457,10 @@ func _draw() -> void:
 	_mat.set_shader_parameter("cap_light", cap_col.lightened(0.35))
 	_mat.set_shader_parameter("flash", flash)
 	_mat.set_shader_parameter("flash_color", flash_col)
+	var feet := _feet()
+	_draw_contact_shadow(feet)
 	_draw_tails(true)
 	var mod := Color(1, 1, 1, 0.9) if is_grin else Color.WHITE
-	var feet := _feet()
 	var sx := -squash.x if _facing() < 0 else squash.x
 	draw_set_transform(Vector2(roundf(feet.x), roundf(feet.y)), 0, Vector2(sx, squash.y))
 	draw_texture_rect_region(_tex(), Rect2(-12, -24, 24, 24), Rect2(last_frame * FS, 0, FS, FS), mod)

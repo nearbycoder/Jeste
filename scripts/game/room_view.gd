@@ -14,6 +14,8 @@ var tiles_img: Image
 var bg_tex: ImageTexture
 var fg_tex: ImageTexture
 var fake_tex: ImageTexture
+var deco_tex: ImageTexture
+static var _art_cache := {}
 var fake_alpha := {}
 var time := 0.0
 var level: Node = null   # Level, for follower positions
@@ -90,48 +92,21 @@ func _blit_tile(dst: Image, col: int, row: int, cx: int, cy: int) -> void:
 	dst.blend_rect(tiles_img, Rect2i(col * T, row * T, T, T), Vector2i(cx * T, cy * T))
 
 
+static func painted(def_: RoomDef, ts: String) -> Dictionary:
+	var key := def_.id + "|" + ts + "|" + str(hash(def_.rows))
+	if not _art_cache.has(key):
+		_art_cache[key] = TerrainArt.render(def_, ts)
+	return _art_cache[key]
+
+
 func _bake() -> void:
-	var w := def.w * T
-	var h := def.h * T
-	var bg := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var fg := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	var fk := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	bg.fill(Color(0, 0, 0, 0))
-	fg.fill(Color(0, 0, 0, 0))
-	fk.fill(Color(0, 0, 0, 0))
-	var outline := tiles_img.get_pixel(0, 7) if tiles_img else Color.BLACK
+	var art := painted(def, tileset)
+	var fg: Image = (art.fg as Image).duplicate()
+	# spikes and jump-through planks keep their hand-drawn tiles
 	for cy in def.h:
 		for cx in def.w:
 			var t := def.cells[cy * def.w + cx]
 			match t:
-				RoomDef.SOLID, RoomDef.SOLID_ALT, RoomDef.FAKE:
-					var dst := fk if t == RoomDef.FAKE else fg
-					var m := 0
-					if _is_solid_cell(cx, cy - 1): m |= 1
-					if _is_solid_cell(cx + 1, cy): m |= 2
-					if _is_solid_cell(cx, cy + 1): m |= 4
-					if _is_solid_cell(cx - 1, cy): m |= 8
-					var variant := (cx * 7 + cy * 13) % 2
-					var row := variant + (2 if t == RoomDef.SOLID_ALT else 0)
-					_blit_tile(dst, m, row, cx, cy)
-					# inner corners
-					var ox := cx * T
-					var oy := cy * T
-					if m & 9 == 9 and not _is_solid_cell(cx - 1, cy - 1):
-						dst.set_pixel(ox, oy, outline)
-					if m & 3 == 3 and not _is_solid_cell(cx + 1, cy - 1):
-						dst.set_pixel(ox + 7, oy, outline)
-					if m & 12 == 12 and not _is_solid_cell(cx - 1, cy + 1):
-						dst.set_pixel(ox, oy + 7, outline)
-					if m & 6 == 6 and not _is_solid_cell(cx + 1, cy + 1):
-						dst.set_pixel(ox + 7, oy + 7, outline)
-				RoomDef.BGWALL:
-					var m := 0
-					if _is_same(cx, cy - 1, t): m |= 1
-					if _is_same(cx + 1, cy, t): m |= 2
-					if _is_same(cx, cy + 1, t): m |= 4
-					if _is_same(cx - 1, cy, t): m |= 8
-					_blit_tile(bg, m, 4, cx, cy)
 				RoomDef.JUMPTHRU:
 					var l := cx > 0 and def.cells[cy * def.w + cx - 1] == RoomDef.JUMPTHRU
 					var r := cx < def.w - 1 and def.cells[cy * def.w + cx + 1] == RoomDef.JUMPTHRU
@@ -148,12 +123,10 @@ func _bake() -> void:
 					_blit_tile(fg, 2, 6, cx, cy)
 				RoomDef.SPIKE_RIGHT:
 					_blit_tile(fg, 3, 6, cx, cy)
-			# Background wall behind dynamic blocks and entities looks nicer
-			if t in [RoomDef.CRUMBLE, RoomDef.DOOR, RoomDef.CRACKED]:
-				pass
-	bg_tex = ImageTexture.create_from_image(bg)
+	bg_tex = ImageTexture.create_from_image(art.bg)
 	fg_tex = ImageTexture.create_from_image(fg)
-	fake_tex = ImageTexture.create_from_image(fk)
+	fake_tex = ImageTexture.create_from_image(art.fake)
+	deco_tex = ImageTexture.create_from_image(art.deco)
 	fake_alpha.clear()
 
 
@@ -290,6 +263,8 @@ func _draw() -> void:
 		return
 	if bg_tex:
 		draw_texture(bg_tex, Vector2.ZERO)
+	if deco_tex:
+		draw_texture(deco_tex, Vector2.ZERO)
 	if world.room != def:
 		# The world has moved on (room transition): static layers only.
 		if fg_tex:

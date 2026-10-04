@@ -175,7 +175,7 @@ func _draw() -> void:
 			if age < 3.0:
 				off.y = -roundf((3.0 - age) * 0.5)
 			if shaky and ch != " ":
-				off += Vector2(randi_range(-1, 1) * 0.5, randi_range(-1, 1) * 0.5).round()
+				off.y += roundf(sin(time * 24.0 + idx * 1.7) * 0.6)
 			PixelText.draw(self, Vector2(x, y) + off, ch, col, Color(0, 0, 0, 0.7))
 			x += PixelText.char_width(ch) + 1
 		drawn += line.length()

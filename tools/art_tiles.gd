@@ -241,53 +241,67 @@ static func build(name: String) -> Image:
 				img.set_pixel(ox + 7, py, outline)
 			for py in range(44, 47):
 				img.set_pixel(ox + 6, py, wood_d)
-	# Crumble (cols 4-7)
-	var cr := _c("a07850")
-	var cr_l := _c("c89a68")
-	var cr_d := _c("6b4a30")
+	# Crumble (cols 4-7): cracked, shaded boards
+	var cr_ramp := [_c("2a1a10"), _c("5a3a22"), _c("7a5232"), _c("9a6c44"), _c("c08c5a")]
 	for i in 4:
 		var ox := 32 + i * 8
 		for py in 8:
 			for px in 8:
-				var col := cr
-				if py == 0: col = cr_l
-				if py == 7 or py == 3: col = cr_d
-				if (px + py * 2 + i) % 7 == 0: col = cr_d
-				img.set_pixel(ox + px, 40 + py, col)
+				var k := 3
+				if py == 0: k = 4
+				elif py >= 6: k = 1
+				elif py == 5: k = 2
+				if (px + i * 3) % 7 == 0 and py > 0 and py < 6: k = 2
+				img.set_pixel(ox + px, 40 + py, cr_ramp[k])
+		img.set_pixel(ox + 2 + (i % 3), 41, cr_ramp[0])
+		img.set_pixel(ox + 3 + (i % 3), 42, cr_ramp[0])
+		img.set_pixel(ox + 3 + (i % 3), 43, cr_ramp[0])
+		img.set_pixel(ox + 5, 44, cr_ramp[0])
 		for px in 8:
-			img.set_pixel(ox + px, 47, outline)
-		img.set_pixel(ox + 3 + (i % 2), 41, outline)
-		img.set_pixel(ox + 4 + (i % 2), 42, outline)
-		img.set_pixel(ox + 2, 45, outline)
+			img.set_pixel(ox + px, 47, cr_ramp[0])
 		if i == 0 or i == 3:
 			for py in 8:
-				img.set_pixel(ox, 40 + py, outline)
+				img.set_pixel(ox, 40 + py, cr_ramp[0])
+			img.set_pixel(ox + 1, 40, cr_ramp[3])
 		if i == 2 or i == 3:
 			for py in 8:
-				img.set_pixel(ox + 7, 40 + py, outline)
-	# Door (col 8): iron gate
-	var iron := _c("3a3f52")
-	var iron_l := _c("6b7390")
-	var gold := _c("e8b84a")
+				img.set_pixel(ox + 7, 40 + py, cr_ramp[0])
+		# nail heads
+		img.set_pixel(ox + 1, 41, _c("d8dce8"))
+		img.set_pixel(ox + 6, 41, _c("d8dce8"))
+	# Door (col 8): riveted iron bars with a gold padlock
+	var iron := [_c("101220"), _c("2a2f44"), _c("454c68"), _c("6a7390"), _c("9aa3c0")]
 	for py in 8:
 		for px in 8:
-			var col := iron
-			if px % 3 == 1: col = iron_l
-			if px == 0 or px == 7: col = outline
-			img.set_pixel(64 + px, 40 + py, col)
-	img.set_pixel(67, 43, gold); img.set_pixel(68, 43, gold); img.set_pixel(67, 44, outline); img.set_pixel(68, 44, gold)
-	# Cracked wall (col 9)
+			var k := 1
+			var bar := px % 4
+			if bar == 1: k = 3
+			elif bar == 2: k = 2
+			if py == 0 or py == 7: k = 2
+			if bar == 1 and py % 4 == 1: k = 4
+			if px == 0 or px == 7: k = 0
+			img.set_pixel(64 + px, 40 + py, iron[k])
+	var gold := _c("f2c14e")
+	var gold_d := _c("a8782a")
+	for p in [Vector2i(3, 3), Vector2i(4, 3), Vector2i(3, 4), Vector2i(4, 4), Vector2i(3, 5), Vector2i(4, 5)]:
+		img.set_pixel(64 + p.x, 40 + p.y, gold)
+	img.set_pixel(67, 42, gold_d); img.set_pixel(68, 42, gold_d)
+	img.set_pixel(68, 44, _c("1c1424"))
+	img.set_pixel(67, 45, gold_d)
+	# Cracked wall (col 9): chapter rock with fracture lines and chips
 	for py in 8:
 		for px in 8:
 			var col := _fill(pal.style, px, py, 1, _c(pal.base), _c(pal.light), _c(pal.dark))
 			img.set_pixel(72 + px, 40 + py, col)
-	for p in [Vector2i(1, 1), Vector2i(2, 2), Vector2i(3, 2), Vector2i(4, 3), Vector2i(4, 4), Vector2i(5, 5), Vector2i(6, 6), Vector2i(3, 5), Vector2i(2, 6)]:
+	for p in [Vector2i(0, 1), Vector2i(1, 2), Vector2i(2, 2), Vector2i(3, 3), Vector2i(4, 3), Vector2i(4, 4), Vector2i(5, 5), Vector2i(6, 5), Vector2i(7, 6), Vector2i(3, 4), Vector2i(2, 5), Vector2i(2, 6), Vector2i(5, 1), Vector2i(6, 0)]:
 		img.set_pixel(72 + p.x, 40 + p.y, outline)
-	# Mask blocks (cols 10-13)
-	_draw_mask_block(img, 80, 40, _c("e0485f"), _c("ff8a9a"), _c("8a1f33"), true, false)
-	_draw_mask_block(img, 88, 40, _c("e0485f"), _c("ff8a9a"), _c("8a1f33"), false, false)
-	_draw_mask_block(img, 96, 40, _c("4a7be0"), _c("8ab4ff"), _c("1f3a8a"), true, true)
-	_draw_mask_block(img, 104, 40, _c("4a7be0"), _c("8ab4ff"), _c("1f3a8a"), false, true)
+	for p in [Vector2i(1, 1), Vector2i(3, 2), Vector2i(5, 4), Vector2i(1, 5)]:
+		img.set_pixel(72 + p.x, 40 + p.y, _c(pal.light).lightened(0.2))
+	# Mask blocks (cols 10-13): porcelain theatre masks
+	_draw_mask_block(img, 80, 40, false, true)
+	_draw_mask_block(img, 88, 40, false, false)
+	_draw_mask_block(img, 96, 40, true, true)
+	_draw_mask_block(img, 104, 40, true, false)
 	# Curtain (col 14, 15)
 	var vel := _c("8a1430")
 	var vel_l := _c("c0284a")
@@ -308,25 +322,40 @@ static func build(name: String) -> Image:
 	return img
 
 
-static func _draw_mask_block(img: Image, ox: int, oy: int, col: Color, light: Color, dark: Color, solid: bool, frown: bool) -> void:
+static func _draw_mask_block(img: Image, ox: int, oy: int, tragedy: bool, solid: bool) -> void:
+	# comedy = warm red porcelain with a smile; tragedy = cool blue with a frown
+	var ramp := [_c("2a0a14"), _c("8a1f33"), _c("c8344a"), _c("ec5a6e"), _c("ffb0b8")]
+	if tragedy:
+		ramp = [_c("0a1230"), _c("1f3a8a"), _c("3a64c8"), _c("5a8af0"), _c("b8d0ff")]
+	var gold := _c("f2c14e")
+	if not solid:
+		for py in 8:
+			for px in 8:
+				var edge := px == 0 or py == 0 or px == 7 or py == 7
+				if edge and (px + py) % 3 != 0:
+					var cc: Color = ramp[3]
+					img.set_pixel(ox + px, oy + py, Color(cc.r, cc.g, cc.b, 0.75))
+		img.set_pixel(ox + 2, oy + 3, Color(ramp[3], 0.5))
+		img.set_pixel(ox + 5, oy + 3, Color(ramp[3], 0.5))
+		return
 	for py in 8:
 		for px in 8:
-			var edge := px == 0 or py == 0 or px == 7 or py == 7
-			if solid:
-				var c := col
-				if edge: c = dark
-				elif py == 1 or px == 1: c = light
-				img.set_pixel(ox + px, oy + py, c)
-			else:
-				if edge and (px + py) % 2 == 0:
-					img.set_pixel(ox + px, oy + py, Color(col.r, col.g, col.b, 0.8))
-	if solid:
-		# tiny face: eyes + smile / frown
-		img.set_pixel(ox + 2, oy + 3, dark)
-		img.set_pixel(ox + 5, oy + 3, dark)
-		if frown:
-			img.set_pixel(ox + 2, oy + 6, dark); img.set_pixel(ox + 3, oy + 5, dark)
-			img.set_pixel(ox + 4, oy + 5, dark); img.set_pixel(ox + 5, oy + 6, dark)
-		else:
-			img.set_pixel(ox + 2, oy + 5, dark); img.set_pixel(ox + 3, oy + 6, dark)
-			img.set_pixel(ox + 4, oy + 6, dark); img.set_pixel(ox + 5, oy + 5, dark)
+			var k := 2
+			if py <= 1 or px == 1: k = 3
+			if py == 1 and px <= 2: k = 4
+			if py >= 6 or px == 6: k = 1
+			var c: Color = ramp[k]
+			if px == 0 or py == 0 or px == 7 or py == 7:
+				c = gold if (px + py) % 2 == 0 and not (px == 0 and py == 0) else _c("a8782a")
+			img.set_pixel(ox + px, oy + py, c)
+	# eyes
+	img.set_pixel(ox + 2, oy + 3, ramp[0]); img.set_pixel(ox + 5, oy + 3, ramp[0])
+	if tragedy:
+		img.set_pixel(ox + 2, oy + 2, ramp[1]); img.set_pixel(ox + 5, oy + 2, ramp[1])
+		img.set_pixel(ox + 2, oy + 6, ramp[0]); img.set_pixel(ox + 3, oy + 5, ramp[0])
+		img.set_pixel(ox + 4, oy + 5, ramp[0]); img.set_pixel(ox + 5, oy + 6, ramp[0])
+		img.set_pixel(ox + 2, oy + 4, ramp[4])   # tear
+	else:
+		img.set_pixel(ox + 2, oy + 5, ramp[0]); img.set_pixel(ox + 3, oy + 6, ramp[0])
+		img.set_pixel(ox + 4, oy + 6, ramp[0]); img.set_pixel(ox + 5, oy + 5, ramp[0])
+		img.set_pixel(ox + 1, oy + 4, ramp[4]); img.set_pixel(ox + 6, oy + 4, ramp[4])  # blush

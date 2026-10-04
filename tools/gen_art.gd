@@ -133,6 +133,7 @@ func _init() -> void:
 		var b := Bg.build(ch)
 		_save(b.sky, "res://assets/bg/ch%d_sky.png" % ch)
 		_save(b.far, "res://assets/bg/ch%d_far.png" % ch)
+		_save(b.mid, "res://assets/bg/ch%d_mid.png" % ch)
 		_save(b.near, "res://assets/bg/ch%d_near.png" % ch)
 
 	# Icon: Mira's happy portrait scaled 2x

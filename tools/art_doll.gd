@@ -50,11 +50,12 @@ static func _line(img: Image, a: Vector2i, b: Vector2i, col: Color, thick: int) 
 	while true:
 		_px(img, p.x, p.y, col)
 		if thick > 1:
-			# thicken along the axis perpendicular to the dominant direction
+			# thicken along the axis perpendicular to the dominant direction,
+			# the extra row is the shadowed side of the limb (volume)
 			if dx > -dy:
-				_px(img, p.x, p.y - 1, col)
+				_px(img, p.x, p.y - 1, col.lightened(0.12))
 			else:
-				_px(img, p.x + 1, p.y, col)
+				_px(img, p.x + 1, p.y, col.darkened(0.18))
 		if p == b:
 			break
 		var e2 := 2 * err
@@ -77,23 +78,46 @@ static func _blit(img: Image, rows: Array, ox: int, oy: int, pal: Dictionary) ->
 				_px(img, ox + x, oy + y, Color.html("#" + pal[c]))
 
 
+## Rim light from the upper front, soft shade on the back, then a selective
+## outline tinted by the colour it borders (pure dark only along the bottom).
 static func _outline(img: Image, col: Color) -> void:
 	var w := img.get_width()
 	var h := img.get_height()
 	var src := img.duplicate() as Image
+	var solid := func(x: int, y: int) -> bool:
+		return x >= 0 and y >= 0 and x < w and y < h and src.get_pixel(x, y).a > 0.5
+	# lighting pass
 	for y in h:
 		for x in w:
-			if src.get_pixel(x, y).a > 0.5:
+			if not solid.call(x, y):
 				continue
-			var near := false
-			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-				var nx: int = x + d.x
-				var ny: int = y + d.y
-				if nx >= 0 and ny >= 0 and nx < w and ny < h and src.get_pixel(nx, ny).a > 0.5:
-					near = true
+			var c := src.get_pixel(x, y)
+			if c.is_equal_approx(Color.html("#ff00ff")) or c.is_equal_approx(Color.html("#c000c0")) or c.is_equal_approx(Color.html("#ff80ff")):
+				continue   # cap key colours are recoloured at runtime
+			if not solid.call(x, y - 1):
+				c = c.lightened(0.14)
+			elif not solid.call(x + 1, y) and not solid.call(x + 1, y - 1):
+				c = c.lightened(0.08)
+			if not solid.call(x - 1, y) and solid.call(x, y - 1):
+				c = c.darkened(0.12)
+			img.set_pixel(x, y, c)
+	# outline pass
+	for y in h:
+		for x in w:
+			if solid.call(x, y):
+				continue
+			var near := Color(0, 0, 0, 0)
+			var below: bool = solid.call(x, y - 1) and not solid.call(x, y + 1)
+			for d in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, -1)]:
+				if solid.call(x + d.x, y + d.y):
+					near = src.get_pixel(x + d.x, y + d.y)
 					break
-			if near:
-				img.set_pixel(x, y, col)
+			if near.a == 0.0:
+				continue
+			var oc := col
+			if not below and not near.is_equal_approx(Color.html("#ff00ff")) and not near.is_equal_approx(Color.html("#c000c0")) and not near.is_equal_approx(Color.html("#ff80ff")):
+				oc = near.darkened(0.72).lerp(col, 0.45)
+			img.set_pixel(x, y, oc)
 
 
 ## pose keys (all optional):

@@ -34,6 +34,9 @@ func _ready() -> void:
 	add_child(layer)
 	backdrop = Backdrop.new()
 	layer.add_child(backdrop)
+	var post := PostFX.new()
+	add_child(post)
+	post.setup(8)
 	backdrop.setup(8)
 	Sfx.play_music("credits")
 

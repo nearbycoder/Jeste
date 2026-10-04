@@ -29,6 +29,7 @@ var look_ahead := Vector2.ZERO
 var look_kick := Vector2.ZERO
 var lighting: Lighting
 var vignette: TextureRect
+var post: PostFX
 var shake := 0.0
 var freeze := 0
 var mode := "play"        # play | dead | respawn | transition | dialogue | complete
@@ -53,6 +54,10 @@ func _ready() -> void:
 	chapter_n = Game.pending_chapter
 	chapter = LevelDB.get_chapter(chapter_n)
 	_build_nodes()
+	if not fast:
+		for rid in chapter.order:
+			var rd: RoomDef = chapter.rooms[rid]
+			RoomView.painted(rd, str(rd.meta.get("tileset", chapter.tileset)))
 	var start_room := Game.pending_room if Game.pending_room != "" else chapter.start
 	_load_room(start_room, Game.pending_spawn if Game.pending_room != "" else 0)
 	cam_center = _cam_target()
@@ -100,6 +105,9 @@ func _build_nodes() -> void:
 	add_child(camera)
 	camera.make_current()
 
+	post = PostFX.new()
+	add_child(post)
+	post.setup(chapter_n)
 	var vl := CanvasLayer.new()
 	vl.layer = 4
 	add_child(vl)
@@ -357,6 +365,7 @@ func _handle_event(ev: String) -> void:
 			effects.burst(_pc(), player_view.cap_col.lightened(0.2), 10, 60.0, 0.28)
 			effects.ring(_pc(), player_view.cap_col.lightened(0.5), 18.0, 0.28)
 			look_kick = Vector2(world.dash_dir_x, world.dash_dir_y) * 6.0
+			post.pulse(0.6)
 		"refill":
 			Sfx.play("refill", 1.0, -6.0)
 		"gem":
