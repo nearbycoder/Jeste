@@ -61,6 +61,26 @@ func _replay(def: RoomDef, spawn: int, dashes: int, inputs: PackedByteArray) -> 
 	return {"dead": wd.dead, "exited": wd.exited, "exit_target": wd.exit_target, "end": wd.end_reached, "collected": collected}
 
 
+## Share of 1-frame timing slips (a frame inserted somewhere in the route)
+## that still clear the task. Low values flag routes needing precise timing.
+func _robustness(def: RoomDef, job: Dictionary, dashes: int, inputs: PackedByteArray) -> float:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(str(job.id))
+	var ok := 0
+	var trials := 24
+	for t in trials:
+		var at := rng.randi_range(0, maxi(inputs.size() - 1, 0))
+		var mod := inputs.slice(0, at)
+		mod.append(inputs[at] if at < inputs.size() else 0)
+		mod.append_array(inputs.slice(at))
+		# allow a few extra frames to finish
+		for k in 30:
+			mod.append(inputs[inputs.size() - 1] if not inputs.is_empty() else 0)
+		if _check(job, _replay(def, int(job.spawn), dashes, mod)):
+			ok += 1
+	return float(ok) / trials
+
+
 func _run(job: Dictionary, verify_only: bool, budget: int) -> Dictionary:
 	var ch := LevelDB.get_chapter(int(job.chapter))
 	var def: RoomDef = ch.room(job.room)
@@ -78,6 +98,7 @@ func _run(job: Dictionary, verify_only: bool, budget: int) -> Dictionary:
 			res.frames = inputs.size()
 			res.exit_target = "end" if rep.end else rep.exit_target
 			res.collected = rep.collected
+			res.robustness = _robustness(def, job, ch.dashes, inputs)
 			return res
 	if verify_only:
 		res["error"] = "no valid cached solution"
@@ -103,6 +124,7 @@ func _run(job: Dictionary, verify_only: bool, budget: int) -> Dictionary:
 			res.frames = s.solution.size()
 			res.exit_target = "end" if rep.end else rep.exit_target
 			res.collected = rep.collected
+			res.robustness = _robustness(def, job, ch.dashes, s.solution)
 		else:
 			res["error"] = "solution failed replay: " + JSON.stringify(rep)
 	else:

@@ -32,7 +32,7 @@ is a trickster: *"It shows you whatever you hide behind your smile."*
 | 7 | The Summit | **two dashes**, every mechanic | Sunrise at the top. Mira finally cries and laughs at the same time, and the mountain laughs *with* her |
 | Epilogue | The Show | - | A new act: "Three Balls and a Bell" |
 
-The collectibles are part of the story: **58 Sunberries**, **7 Jester Bells** (Nana's
+The collectibles are part of the story: **61 Sunberries** (4 of them winged - collect them without dashing!), **7 Jester Bells** (Nana's
 lost bells, hidden in secret rooms behind fake or cracked walls, each with a message) and a
 **Golden Sunberry** in chapters 1-7 for deathless runs.
 

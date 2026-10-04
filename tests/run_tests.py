@@ -321,6 +321,18 @@ def main():
         lines.append("")
         if rep["end_reachable"]:
             routes[chs] = build_route(rep)
+    rob = sorted(((r.get("robustness", 1.0), r["id"], r.get("frames", 0)) for r in results.values() if r.get("ok")))
+    if rob:
+        lines.append("## Route robustness")
+        lines.append("Share of random 1-frame timing slips that still clear each task (lower = tighter timing).")
+        lines.append("")
+        lines.append("| task | frames | robustness |")
+        lines.append("|---|---|---|")
+        for v, tid, fr in rob:
+            lines.append(f"| `{tid}` | {fr} | {v * 100:.0f}% |")
+        lines.append("")
+        avg = sum(v for v, _, _ in rob) / len(rob)
+        print(f"  route robustness: average {avg * 100:.0f}%, tightest {rob[0][1]} {rob[0][0] * 100:.0f}%")
     failed = [r for r in results.values() if not r.get("ok")]
     if failed:
         lines.append("## Unsolved tasks")
