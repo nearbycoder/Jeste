@@ -344,7 +344,15 @@ def main():
                 e2e = json.load(f)
         else:
             print(p.stdout[-2000:], p.stderr[-2000:])
+        script_errors = [l for l in (p.stdout + p.stderr).splitlines() if "SCRIPT ERROR" in l]
+        if script_errors:
+            all_ok = False
+            print("  SCRIPT ERRORS during end-to-end run:")
+            for l in script_errors[:10]:
+                print("   ", l)
         lines.append("## End-to-end playthroughs")
+        if script_errors:
+            lines.append(f"- {len(script_errors)} script errors during the run (FAIL)")
         for chs in sorted(routes, key=int):
             r = e2e.get(chs)
             rep = report[chs]

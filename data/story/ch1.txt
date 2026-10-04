@@ -1,0 +1,53 @@
+; ======================================================================
+; CHAPTER 1 - Lantern Town
+; An abandoned town where every lantern still burns. Mira's troupe once
+; performed here; she meets Tobi, a nervous painter.
+; ======================================================================
+
+@ch1_arrive
+!wait 0.5
+mira:surprised: Huh. A whole town, halfway up the mountain.
+mira:normal: Every lantern's lit... but there's nobody here.
+mira:grin: Hellooo? Anyone want to see a juggling act? Front row seats! Free of charge!
+!wait 0.6
+mira:normal: ...
+mira:worried: Tough crowd.
+mira:normal: (Wait. I know this street. The Lark & Lantern troupe played here when I was little. Nana did her famous "three-ball sneeze".)
+mira:grin: (Ha. I dropped every single ball that night. Nana told everyone it was part of the act.)
+
+@ch1_poster
+narrator:normal: A faded poster is pasted to the theater wall: "THE LARK & LANTERN TROUPE! Starring ODILE THE MAGNIFICENT and her granddaughter, LITTLE MIRA!"
+mira:sad: ...Nana.
+mira:grin: Look at that hair. I look like a startled chicken.
+mira:normal: (Keep moving. Keep smiling. That's the job.)
+
+@ch1_dressing
+narrator:normal: A tiny dressing room hides behind the stage. A mirror ringed with dead bulbs. A chair. And on the table, something small and golden, ringing softly.
+mira:surprised: That's... one of Nana's bells. From her cap! She lost them on tour, years ago.
+mira:sad: How did it end up all the way up here?
+
+@ch1_tobi
+tobi:scared: AH! Don't - don't move! Please!
+mira:surprised: Wha - what? Is there a bear?!
+tobi:normal: No, no, you're just... standing exactly where my painting's light was. Sorry. Sorry! Hi.
+tobi:happy: I'm Tobi. I paint. Or, I'm trying to. I'm supposed to paint the summit of Jeste for my first gallery show.
+mira:grin: Mira! I juggle. Or, I'm trying to. I'm supposed to be a famous jester by now.
+tobi:happy: Ha! Okay. Hi, Mira.
+tobi:normal: I'm going to set up camp a little further up. There's a nice spot by the old well. Come warm up, if you want?
+mira:happy: Free fire and a captive audience? I'll be there!
+
+@ch1_end
+!wait 0.4
+tobi:happy: You made it! Here, sit. The fire's nice.
+mira:grin: So then the bear says, "That's not my hat, that's my CUB!"
+tobi:happy: Pfff - ha ha! Okay, okay, that's... that one's good.
+mira:grin: And THEN -
+tobi:normal: Mira.
+mira:normal: Yeah?
+tobi:normal: You've been telling jokes for an hour. Do you ever... stop? Being "on", I mean?
+mira:grin: Stop? Ha! Why would I stop? Stopping is boring!
+mira:normal: ...
+tobi:sad: Sorry. That was a weird thing to ask. My mom always says I ask weird things.
+mira:normal: No, it's fine. I'm just... tired, I guess. It's late.
+mira:normal: (The fire crackles. Somewhere far below, a bell rings. I don't want to sleep tonight.)
+!fade_out

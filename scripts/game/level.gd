@@ -239,6 +239,9 @@ func _physics_process(_delta: float) -> void:
 		return
 	if mode == "play":
 		var inp := Game.read_input()
+		if freeze > 0:
+			freeze -= 1
+			return
 		if replay_pos < replay.size():
 			inp = replay[replay_pos]
 			replay_pos += 1

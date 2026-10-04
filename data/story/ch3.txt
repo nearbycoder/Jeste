@@ -1,0 +1,53 @@
+; ======================================================================
+; CHAPTER 3 - The Grand Carnival
+; A ghostly ringmaster keeps his abandoned carnival running forever,
+; because he is terrified of the silence after the final bow.
+; ======================================================================
+
+@ch3_arrive
+!wait 0.4
+oddo:frantic: AH! A GUEST! A real, live, breathing guest! Welcome, welcome, WELCOME to the Grand Carnival!
+mira:surprised: Uh - hi? Are you... see-through?
+oddo:normal: Ringmaster Oddo, at your service! Ghost by profession, showman by passion! The show starts in five minutes!
+mira:normal: ...It's a little empty for a show.
+oddo:frantic: Details! The gates are just stuck, that's all. The keys are scattered around the grounds. Silly me!
+oddo:normal: Fetch them for me, would you? The show must go on! It must ALWAYS go on!
+mira:grin: Ha! Now THAT'S a motto I can get behind.
+
+@ch3_masks
+sign:normal: "COMEDY & TRAGEDY! Every time you DASH, the red smiling masks and the blue frowning masks trade places."
+sign:normal: "Plan your dashes, and the stage will rise to meet you."
+
+@ch3_fortune
+narrator:normal: A dusty tent. A crystal ball glows faintly, and beside it rests a small golden bell.
+narrator:normal: A card on the table reads: "You will find what you lost when you stop pretending you never lost it."
+mira:normal: ...Creepy, Madame Zuzu. Very creepy.
+mira:sad: (Another one of Nana's bells.)
+
+@ch3_bigtop
+!wait 0.3
+oddo:frantic: You did it! The Big Top is open! Places, everyone! PLACES!
+mira:normal: Oddo... there's no one here. There hasn't been anyone here for a long time.
+oddo:frantic: Nonsense! Once the music starts, they'll come back! They always come back!
+mira:normal: How long have you been running this show?
+oddo:normal: Oh... a while. Since the last night. The last night, everybody clapped, and then...
+oddo:sad: ...then it got so quiet.
+oddo:sad: I hated that quiet. So I just never ended the show. If it never ends, there's never any quiet.
+mira:sad: ...
+mira:normal: (That's me. That's exactly me.)
+mira:normal: (Since Nana, I never stopped performing. Because the second I stop, it'll be quiet, and I'll have to feel it.)
+
+@ch3_end
+mira:normal: Hey, Oddo. What if we gave it a proper ending? A real final bow?
+oddo:sad: And then what?
+mira:normal: Then it's quiet. And quiet is... okay. I think. I'm still learning that part.
+oddo:normal: ...You'd stay? For the bow?
+mira:happy: Front row. I'll clap the loudest. I promise.
+!stop_music
+!wait 0.5
+oddo:peace: Ladies and gentlemen... thank you. You've been a wonderful audience.
+!sfx complete
+!flash
+narrator:normal: Mira claps alone in the empty tent. Oddo bows deeply, and smiles, and is gone.
+mira:sad: ...Goodnight, Oddo.
+mira:tears: (Why do I feel like crying? I never cry.)

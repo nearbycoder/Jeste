@@ -1,0 +1,68 @@
+; ======================================================================
+; CHAPTER 6 - Undertow
+; At the bottom of the mountain, Bellamy reveals he climbed Jeste with
+; Nana long ago. Mira finds the Grin - frightened, not cruel - and they
+; reconcile. Together, they can dash twice.
+; ======================================================================
+
+@ch6_wake
+!wait 0.8
+mira:worried: ...Ow. Ow ow ow.
+mira:surprised: Where... Is that water? Glowing water?
+bellamy:normal: Hoo. You fell a long way, kiddo.
+mira:surprised: Bellamy?! What are you doing all the way down here?
+bellamy:smile: Fishing. And waiting. Jeste always brings the climbers down here eventually. The roots of the mountain.
+mira:sad: I broke the mirror. I tried to get rid of her - of the Grin. And then everything just... fell.
+bellamy:normal: Mm. Sounds about right.
+bellamy:normal: I'll tell you a secret, Mira Vale. I've climbed this mountain before. Fifty years ago. With a loud, wonderful clown named Odile.
+mira:surprised: ...Nana? You knew Nana?!
+bellamy:laugh: Knew her? She made me laugh so hard on that ridge I nearly fell off it. Twice.
+bellamy:normal: She met her own grinning reflection up there too, you know. Everyone does.
+mira:normal: What did she do?
+bellamy:smile: She sat down with it. Told it, "Thank you for the show. You can take a break now."
+bellamy:normal: The mask is for the audience, kiddo. It was never meant to be worn for yourself.
+mira:sad: ...
+mira:determined: I need to find her. The Grin. I need to talk to her.
+bellamy:smile: Go on, then. The drums down here bounce you right up. Odile loved them.
+
+@ch6_grotto
+narrator:normal: A grotto of glowing moss. In the stillness, a bell rings softly - the fifth of Nana's bells.
+mira:normal: Bellamy said she climbed here. Fifty years ago. Maybe she hid these for me to find.
+mira:happy: Ha. That's exactly the kind of thing she'd do.
+
+@ch6_find
+!wait 0.4
+mira:normal: ...There you are.
+grin:sad: Go away. You wanted me gone. So I'm gone.
+mira:normal: You're hiding in the dark at the bottom of a mountain. That's not gone. That's sulking.
+grin:angry: Don't joke with me! That's MY job! It's the only thing I'm good for!
+mira:normal: That's not true.
+grin:angry: Isn't it?! You'll leave me down here! You'll throw me away like a broken prop!
+!shake 0.5
+grin:angry: I won't let you! I WON'T!
+!sfx death
+mira:surprised: Wait - !
+
+@ch6_together
+!npc_show grin
+!wait 0.4
+grin:sad: ...Why did you follow me? After everything?
+mira:normal: Because you're me. The part of me that kept going when I couldn't.
+mira:normal: When Nana died, I couldn't breathe. You smiled for me. You juggled for me. You got me out of bed.
+mira:sad: I'm sorry I tried to smash you. You were just trying to protect me.
+grin:sad: ...I was so tired. Smiling all the time. Every second. I didn't know how to stop.
+mira:normal: Then let's stop together. You don't have to be "on" anymore. Not all the time.
+mira:normal: And when I need to cry, you let me cry. Deal?
+grin:soft: ...Deal.
+!flash
+!sfx bell
+narrator:normal: The Grin reaches up and takes off the painted mask. Underneath is just Mira's face - tear-streaked, and smiling. A real smile.
+narrator:normal: She steps forward, and the two of them become one.
+!npc_hide grin
+mira:tears: ...Oh. I'm crying.
+mira:happy: Ha... ha ha. I'm crying AND laughing. Is that allowed?
+sign:normal: "A TWIN GEM gleams nearby. It grants TWO dashes until you touch the ground."
+
+@ch6_end
+mira:determined: Okay, Jeste. Round two.
+mira:happy: The summit. For both of us. All three of us. Nana, too.

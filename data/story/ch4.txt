@@ -1,0 +1,57 @@
+; ======================================================================
+; CHAPTER 4 - Whistling Ridge
+; On a stuck gondola high above the ridge, Mira has a panic attack.
+; Tobi teaches her the juggler's breath: keep three things in the air.
+; ======================================================================
+
+@ch4_arrive
+!wait 0.4
+mira:surprised: Whoa! This wind! It's like the whole mountain is laughing!
+mira:grin: Ha! Ha ha! Yeah? You think I'm funny, Jeste? I've got MORE!
+mira:normal: (It doesn't sound like it's laughing with me, though.)
+sign:normal: "Strong winds ahead. Duck behind rocks to shelter from the gusts."
+
+@ch4_gondola
+tobi:happy: Mira! Over here! The old cable cars still run. Want to share a ride?
+mira:grin: Do I get a window seat?
+!shake 0.6
+!sfx zip_hit
+tobi:scared: ...Uh. Why did we stop?
+mira:surprised: We're - we're just stuck. It's fine. It's FINE.
+mira:worried: Ha. Ha ha. Look at that drop, though. Ha...
+mira:worried: I can't... I can't breathe right. Tobi, I can't breathe.
+tobi:scared: Okay! Okay. Hey. Look at me, not down.
+mira:tears: Everything's spinning. Everyone's watching. I'm going to drop everything again, like at the show, and they'll all laugh, and Nana won't be there to -
+tobi:normal: Mira. You juggle, right? Juggle with me.
+mira:worried: ...What?
+tobi:normal: Name three things you can see. Toss them up, one at a time. Out loud.
+mira:worried: ...The cable. The clouds. Your... really ugly scarf.
+tobi:happy: Hey! Okay, good. Three things you can hear.
+mira:normal: The wind. The bell, way down. My own breathing.
+tobi:normal: Keep them in the air. Slowly. In... and out.
+narrator:normal: The cable car creaks. Mira breathes. One, two, three. One, two, three.
+mira:normal: ...It's slowing down. The spinning.
+tobi:happy: My art teacher taught me that. I used to freeze up every time someone looked at my paintings.
+!shake 0.3
+!sfx zip_start
+mira:normal: Thanks, Tobi. Really.
+mira:sad: The last time that happened was on stage. In front of everyone. Three weeks after Nana's funeral.
+mira:sad: I dropped every ball. I just stood there. And the crowd started laughing.
+tobi:sad: ...I'm sorry.
+mira:grin: Ha! Hey, at least they laughed, right? Tough crowd, tough jester.
+tobi:normal: You don't have to do that with me. The joke thing.
+mira:normal: ...Yeah. I know. I'm working on it.
+
+@ch4_station
+narrator:normal: An old cable station sleeps beneath the cliff. Gears rusted still. On the operator's chair: a golden bell, tied with a faded ribbon.
+mira:normal: Nana's ribbon. She tied these bells on herself. Said it was good luck.
+mira:sad: Some luck, huh, Nana?
+
+@ch4_end
+tobi:happy: You made it! Look - the summit. It's right there.
+mira:happy: It doesn't look so far from here.
+tobi:normal: There's an old temple between us and it, though. The Mirror Cathedral, the map says.
+mira:normal: ...Mirrors. Great.
+mira:normal: (The Grin was in a mirror.)
+tobi:normal: We'll go together. Okay?
+mira:happy: Okay.

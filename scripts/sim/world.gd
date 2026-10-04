@@ -509,6 +509,7 @@ func load_state(s: Array) -> void:
 	mask_ghost = ghost.duplicate()
 	exit_side = s[16]; exit_target = s[17]
 	chase_hist = (s[18] as PackedInt32Array).duplicate()
+	curtain_pass = state == ST_DASH or state == ST_DREAM
 	if need_rebuild and not dyn_cells.is_empty():
 		_rebuild_dynamic_solids()
 
@@ -741,6 +742,8 @@ func step(inp: int) -> void:
 	in_y = (1 if inp & IN_DOWN else 0) - (1 if inp & IN_UP else 0)
 	jump_held = (inp & IN_JUMP) != 0
 	grab_held = (inp & IN_GRAB) != 0
+	curtain_pass = state == ST_DASH or state == ST_DREAM
+	zip_ignore = -1
 
 	if zip_count > 0:
 		_update_zips()

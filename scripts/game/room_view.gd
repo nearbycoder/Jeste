@@ -161,7 +161,7 @@ func notify_spring() -> void:
 
 
 func _update_followers(delta: float) -> void:
-	if world == null:
+	if world == null or world.room != def:
 		return
 	var pc := world.player_center() + Vector2(-world.facing * 10, -8)
 	var lead := pc
@@ -224,6 +224,13 @@ func _draw() -> void:
 		return
 	if bg_tex:
 		draw_texture(bg_tex, Vector2.ZERO)
+	if world.room != def:
+		# The world has moved on (room transition): static layers only.
+		if fg_tex:
+			draw_texture(fg_tex, Vector2.ZERO)
+		if fake_tex:
+			draw_texture(fake_tex, Vector2.ZERO)
+		return
 	_draw_decor_back()
 	_draw_curtains()
 	_draw_groups()
@@ -263,6 +270,22 @@ func _draw_curtains() -> void:
 			continue
 		var r: Rect2i = g.rect
 		var px := Rect2(r.position * T, r.size * T)
+		var mirror: bool = chapter == 5 or (chapter == 7 and str(def.meta.get("mirror", "")) == "1")
+		if mirror:
+			# Mirror glass: cool silver with drifting reflections.
+			draw_rect(px, Color("2a4a5a"))
+			for c in g.cells:
+				var cx: int = c % def.w
+				var cy: int = c / def.w
+				var k := 0.5 + 0.5 * sin(time * 1.5 + (cx + cy) * 0.5)
+				draw_rect(Rect2(cx * T, cy * T, T, T), Color("5f8fa8").lerp(Color("bfe9ff"), k * 0.35))
+			var sweep := fposmod(time * 40.0, px.size.x + px.size.y)
+			for i in int(px.size.y):
+				var sx := px.position.x + sweep - i
+				if sx >= px.position.x and sx < px.end.x:
+					draw_rect(Rect2(int(sx), px.position.y + i, 2, 1), Color(1, 1, 1, 0.5))
+			draw_rect(px, Color("cfe6e6") if not passable else Color.WHITE, false, 1.0)
+			continue
 		draw_rect(px, Color("4a0a1c"))
 		for c in g.cells:
 			var cx: int = c % def.w

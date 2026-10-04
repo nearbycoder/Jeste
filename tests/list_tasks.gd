@@ -54,6 +54,11 @@ func _init() -> void:
 			# Sanity checks
 			if r.spawns.is_empty():
 				result.errors.append("%s: no spawn" % rid)
+			for si in r.spawns.size():
+				var wd := World.new()
+				wd.load_room(r, si, ch.dashes)
+				if wd._collide(wd.x, wd.y):
+					result.errors.append("%s: spawn %d is inside a wall" % [rid, si])
 			for e in r.exits:
 				if not _edge_open(r, e):
 					result.errors.append("%s: exit %s has no opening on the border" % [rid, e.side])

@@ -1,0 +1,24 @@
+; ======================================================================
+; EPILOGUE - The Show
+; Back at Bellamy's bell tower. Mira performs a new act - one with room
+; for dropped balls, and for Nana.
+; ======================================================================
+
+@epi_start
+!wait 0.6
+narrator:normal: A few weeks later. Bellamy's yard, at the foot of Mount Jeste.
+bellamy:laugh: There she is! The jester who climbed Jeste!
+tobi:happy: I brought the painting! The gallery's taking it! Well - they said "maybe." Maybe is good!
+mira:happy: Maybe is great, Tobi.
+
+@epi_show
+mira:normal: Okay, everyone. Gather round. This is a new act. I've been working on it.
+mira:normal: It's called "Three Balls and a Bell."
+!sfx bell
+narrator:normal: She juggles. She tells a story about a loud, wonderful clown named Odile. Halfway through, she drops a ball - on purpose this time.
+mira:grin: Ha! Part of the act. Nana taught me that one.
+mira:tears: ...She taught me a lot of things.
+bellamy:smile: She'd be proud of you, kiddo.
+tobi:happy: That was the best show I've ever seen. Really.
+mira:happy: Thanks. I think it's the first one I've done without a mask.
+narrator:normal: Up on the mountain, the wind whistles over the twin peaks. It sounds a lot like applause.

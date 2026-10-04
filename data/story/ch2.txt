@@ -1,0 +1,46 @@
+; ======================================================================
+; CHAPTER 2 - The Hollow Stage
+; Mira dreams of a stage hollowed out of the mountain. The audience is
+; nothing but masks. Her reflection steps out of the mirror: the Grin.
+; ======================================================================
+
+@ch2_dream
+!wait 0.6
+mira:surprised: ...Where am I?
+mira:normal: This isn't the campfire. It's... a theater? Inside the mountain?
+narrator:normal: Velvet curtains hang in the dark, swaying though there is no wind. Thousands of empty masks watch from the seats.
+mira:worried: Okay. Okay. It's a dream. Just a weird dream.
+mira:grin: Ha! At least it's a full house.
+sign:normal: "Curtains part for those who move with purpose. DASH into a curtain to pass through it. Leaving a curtain restores your dash."
+
+@ch2_mirror
+!wait 0.4
+mira:normal: A mirror. Center stage.
+mira:grin: Hey, gorgeous. Ready for the show?
+!wait 0.6
+mira:surprised: ...My reflection isn't moving.
+!shake 0.4
+!sfx curtain
+!npc_show grin
+grin:smirk: Of course I'm ready. I'm ALWAYS ready. That's my whole job.
+mira:surprised: Wh - who are you?!
+grin:normal: I'm you, silly. The good part. The part that smiles when you can't.
+grin:smirk: The part that kept performing the night Nana didn't come back to the wagon.
+mira:angry: Don't. Don't talk about her.
+grin:normal: See? That face. Nobody wants that face, Mira. They paid for the jester.
+grin:smirk: So let me take the stage. You can rest. Forever, if you like.
+mira:angry: No way. Get back in the mirror!
+grin:angry: Then I'll just have to catch you.
+!sfx death
+!shake 0.6
+
+@ch2_end
+!wait 0.4
+mira:surprised: AH!
+tobi:scared: Whoa! Hey! You okay?! You were shouting in your sleep.
+mira:normal: I... yeah. Bad dream. Just a bad dream.
+tobi:normal: You were saying "get back in the mirror". Over and over.
+mira:grin: Ha! Probably dreamed about my hair. It's a nightmare in the mornings.
+tobi:sad: ...Right.
+mira:normal: (The Grin's face. My face, smiling like a painted doll.)
+mira:normal: (It's fine. It was a dream. Keep climbing.)

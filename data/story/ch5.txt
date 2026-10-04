@@ -1,0 +1,57 @@
+; ======================================================================
+; CHAPTER 5 - Mirror Cathedral
+; The Grin traps Tobi inside a mirror. Mira tries to destroy the Grin -
+; and the cathedral floor shatters beneath her.
+; ======================================================================
+
+@ch5_arrive
+!wait 0.4
+tobi:normal: Wow. Look at all the glass. It's like being inside a kaleidoscope.
+mira:worried: Yeah. Wow. So many... reflections.
+tobi:happy: Those balloons are still floating after all these years! They must be magic.
+sign:normal: "Hop into a balloon and it will hold you. Hold a direction - it will launch you that way. Press DASH to launch early."
+mira:grin: Circus balloons in a cathedral. Jeste, you've got style.
+
+@ch5_trapped
+tobi:happy: Mira, come look! In this mirror, it's like there's a whole other cathedral -
+!sfx curtain
+!shake 0.5
+tobi:scared: Wait - something's pulling - MIRA!
+!flash
+!npc_hide tobi
+mira:surprised: TOBI!
+grin:smirk: Relax. I'm just borrowing him.
+mira:angry: Let him go!
+grin:normal: Why? He's just another audience member. He'll leave once he sees the real you. They always do.
+grin:smirk: Come and get him, if you're so brave. I'll be waiting at the Great Mirror.
+mira:determined: (Okay. Okay. One, two, three. Breathe. Keep them in the air.)
+
+@ch5_belfry
+narrator:normal: The cathedral's belfry. The great bell is cracked and silent. But tucked into a crack in the stone, a small golden bell gleams.
+mira:normal: Four bells now, Nana. It's like you're leaving me a trail.
+mira:sad: Were you ever scared? Up here? You never looked scared.
+
+@ch5_confront
+!wait 0.3
+grin:normal: You made it. Of course you did. You never quit. That's the jester's best trick.
+mira:angry: Where's Tobi?
+!npc_show tobi
+tobi:scared: Mira! I'm okay! I'm - stuck behind the glass!
+grin:smirk: He's fine. He's watching. Everyone is always watching. Isn't that right?
+grin:normal: Let me take over. I'll smile for him. I'll smile for everyone. You'll never have to feel anything again.
+mira:angry: You don't get to decide that!
+grin:angry: I'M the one who kept you going! Who juggled at the funeral reception? Who told jokes while you were falling apart? ME!
+mira:angry: And I'm SICK of it! I don't need you! I want you GONE!
+
+@ch5_end
+!shake 0.8
+!sfx break
+mira:angry: Get out of my head!
+grin:angry: Mira, wait - if you break the mirror -
+!flash
+!sfx break
+!shake 1.0
+narrator:normal: The Great Mirror explodes into a thousand pieces. Tobi tumbles free onto the stone.
+narrator:normal: And then the floor gives way, and Mira falls, and falls, and falls, down into the dark heart of the mountain.
+tobi:scared: MIRAAAA!
+!fade_out
