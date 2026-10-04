@@ -387,7 +387,7 @@ func _draw() -> void:
 	# control hints
 	var hk := _intro(1.6, 0.5)
 	if hk > 0.0:
-		var pairs := [["Arrows", "Move"], [Game.key_label("jump"), "Jump"], [Game.key_label("dash"), "Dash"], [Game.key_label("grab"), "Grab"]] if screen == "main" else [["Arrows", "Change"], [Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Back"]]
+		var pairs := [[Game.move_label(), "Move"], [Game.key_label("jump"), "Jump"], [Game.key_label("dash"), "Dash"], [Game.key_label("grab"), "Grab"]] if screen == "main" else [[Game.move_label(), "Change"], [Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Back"]]
 		if waiting_key:
 			pairs = [["Esc", "Cancel"]]
 		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, hk * 0.9)
@@ -405,7 +405,7 @@ func _draw_controls() -> void:
 		var id: String = CONTROLS[i]
 		UIKit.menu_row(self, r.position.x + 12, y, 140, names.get(id, id), ctl_k[i], time)
 		if names.has(id):
-			var lbl := "..." if (waiting_key and i == ctl_sel) else Game.key_label(id)
+			var lbl := "..." if (waiting_key and i == ctl_sel) else Game.kb_label(id)
 			var w := maxf(PixelText.width(lbl) + 6.0, 9.0)
 			if waiting_key and i == ctl_sel:
 				PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width("press a key"), y), "press a key", Color(UIKit.GOLD, 0.6 + 0.4 * sin(time * 8.0)), UIKit.INK)

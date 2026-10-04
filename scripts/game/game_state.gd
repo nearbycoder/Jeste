@@ -15,6 +15,8 @@ var pending_chapter := 0
 var pending_room := ""
 var pending_spawn := 0
 var headless_test := false     # set by test harness: no saving to disk
+var using_pad := false         # last input came from a gamepad (prompts show pad buttons)
+const PAD_LABELS := {"jump": "A", "dash": "X", "grab": "RB", "up": "Up", "down": "Down", "left": "Left", "right": "Right"}
 
 
 func _ready() -> void:
@@ -27,6 +29,18 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Art.clear_cache()
+
+
+func _input(ev: InputEvent) -> void:
+	if ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and absf((ev as InputEventJoypadMotion).axis_value) > 0.5):
+		using_pad = true
+	elif ev is InputEventKey or ev is InputEventMouseButton:
+		using_pad = false
+
+
+## Label for the movement prompt ("Arrows" on keyboard, "Stick" on a pad).
+func move_label() -> String:
+	return "Stick" if using_pad else "Arrows"
 
 
 # ---------------------------------------------------------------- input
@@ -73,7 +87,14 @@ func keys_for(action: String) -> Array:
 
 
 ## Short label of an action's primary key for on-screen prompts.
+func kb_label(action: String) -> String:
+	var ks := keys_for(action)
+	return "?" if ks.is_empty() else key_name(int(ks[0]))
+
+
 func key_label(action: String) -> String:
+	if using_pad:
+		return PAD_LABELS.get(action, "?")
 	var ks := keys_for(action)
 	if ks.is_empty():
 		return "?"

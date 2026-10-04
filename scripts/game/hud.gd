@@ -307,7 +307,7 @@ func _draw_options(e: float) -> void:
 			"Screen Shake": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), e)
 			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
 			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)
-	var pairs := [["Arrows", "Change"], [Game.key_label("dash"), "Back"]]
+	var pairs := [[Game.move_label(), "Change"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
 
 
