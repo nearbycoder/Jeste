@@ -118,6 +118,45 @@ Room headers set `exits` (e.g. `right:1-02 top[3-8]:1-03b`), `wind`, `dashes`, `
   animate while they talk.
 - **Cutscenes**: portraits blink and move their mouths while typing; letters pop in; angry
   lines shake; Mira faces whoever she is speaking with.
+- **Painted world** (`scripts/game/terrain_art.gd`, `tools/art_bg.gd`): terrain is painted per
+  pixel from the collision map (bevel, ambient occlusion, material detail, grass/snow/crystal
+  caps, icicles and vines). Interior walls get pillars, beams, windows that open onto the
+  backdrop, velvet curtains, bunting, crystals or ice cracks depending on the chapter.
+  Parallax backdrops are painted with lit mountain faces, gullies, haze, clouds and set
+  pieces such as Mount Jeste, the carnival and gothic stained glass. Bloom and per-chapter
+  colour grading (`post_fx.gd`) finish the frame.
+- **Set pieces**: velvet theatre curtains that ripple, mirrors that reflect Mira as she moves,
+  prayer flags on the summit, procedural campfires and confetti when a chapter is cleared.
+
+## Front end
+
+The title screen has a beveled block-letter logo with a gloss sweep and a jester cap whose bells
+jingle, plus a campfire vignette. Chapter select shows a "living postcard" for each chapter (a
+parallax backdrop with the painted opening room), collectible stats, a wax seal on cleared
+chapters and a trail of chapter markers. Pause, options, assist and results screens share the
+same UI kit (`scripts/ui/ui_kit.gd`): framed panels, animated menu rows, sliders, toggles and
+keycap prompts. Options cover music/sound volume, fullscreen, screen shake, gamepad rumble and
+the speedrun timer.
+
+## Audio
+
+All sound is synthesized offline by `tools/gen_audio.py` on top of `tools/synth.py`, which
+needs numpy:
+
+- **Instruments**: electric piano, piano, plucks, music box, FM bells/celesta, detuned-saw
+  pads and strings, a formant choir, drawbar organ, calliope, flute, a soft filtered pulse,
+  bass, sub bass and tuba, plus synthesized kick, snare, brushes, hats, shaker, toms, clap and
+  cymbal.
+- **Mixing**: stereo panning, a convolution reverb with generated impulse responses, a
+  soft-knee bus and loudness normalisation to about -16 dBFS.
+- **Music**: 13 tracks built on one recurring "Jeste" theme. Gameplay tracks are 32-bar loops
+  whose second half varies the instrumentation. Note tails and reverb wrap around so the
+  loops are seamless. Tracks are encoded as Ogg Vorbis.
+- **Ambience**: wind, crickets, cave drips, cathedral room tone, dream shimmer and carnival
+  murmur loops, played under the music.
+- **Sound effects**: layered and filtered, with short reverb tails. They include footsteps,
+  wall-slide, climb and respawn sounds. Gamepads rumble on dashes, springs, impacts,
+  collectibles and deaths.
 
 ## Automated verification
 
@@ -139,6 +178,9 @@ python3 tests/run_tests.py --chapters 1 3 --resolve
    the proven room solutions along a shortest route that collects everything. The run
    must collect every collectible into the save data with **zero deaths**, which also
    proves every Golden Sunberry run.
+5. **Menu flow** (`tests/ui_flow.tscn`): simulated input drives the title, options, chapter
+   select, a level, pause, assist and options menus, return to map, results and credits.
+   Each screen must be reached without script errors.
 
 Results are written to `tests/REPORT.md`.
 
@@ -153,7 +195,9 @@ godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/
 
 ```sh
 godot --headless --path . --script res://tools/gen_art.gd   # sprites, tiles, backgrounds, font
-python3 tools/gen_audio.py                                   # sound effects + music
+python3 -m venv /tmp/jvenv && /tmp/jvenv/bin/pip install numpy
+/tmp/jvenv/bin/python tools/gen_audio.py                     # sfx, music, ambience (needs ffmpeg)
+/tmp/jvenv/bin/python tools/gen_audio.py ch3 sfx             # or just some of them
 ```
 
 ### Recording a gameplay video
