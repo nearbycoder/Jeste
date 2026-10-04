@@ -1,0 +1,33 @@
+extends Node
+## Screenshot helper (needs a display):
+## godot --path . res://tools/shot.tscn -- <chapter> <room> <out.png> <frames> [rle inputs] [spawn]
+var frames := 0
+var target := 60
+var out := ""
+var level
+
+func _ready() -> void:
+	var a := OS.get_cmdline_user_args()
+	Game.headless_test = true
+	Game.data = Game.default_save()
+	Game.pending_chapter = int(a[0])
+	Game.pending_room = a[1]
+	out = a[2]
+	target = int(a[3])
+	level = load("res://scenes/level.tscn").instantiate()
+	if a.size() > 4 and a[4] != "-":
+		level.replay = Solver.decode(a[4])
+	add_child(level)
+
+func _process(_d: float) -> void:
+	frames += 1
+	if level.mode == "dialogue" and frames % 20 == 0:
+		var ev := InputEventAction.new()
+		ev.action = "confirm"
+		ev.pressed = true
+		level.dialogue.handle_input(ev)
+	if frames == target:
+		var img := get_viewport().get_texture().get_image()
+		img.resize(img.get_width() * 3, img.get_height() * 3, Image.INTERPOLATE_NEAREST)
+		img.save_png(out)
+		get_tree().quit()

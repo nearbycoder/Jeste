@@ -1,0 +1,59 @@
+; ======================================================================
+; PROLOGUE - The Foot of Jeste
+; Mira Vale, a traveling jester, arrives at the mountain her late
+; grandmother always promised they would climb together.
+; ======================================================================
+
+@pro_arrive
+!wait 0.6
+mira:happy: Okay! Mount Jeste. Finally.
+mira:normal: ...It's bigger than on Nana's postcards.
+bellamy:normal: Hoo. Another one.
+mira:surprised: Ah! Hi! Sorry, I didn't see you there.
+bellamy:normal: Most folks don't. Name's Bellamy. I ring the bell down here, so climbers always know which way is home.
+mira:grin: Mira Vale! Juggler, jester, and professional fall-down-and-get-back-up-er. Ta-daa!
+bellamy:laugh: Ha! A jester, climbing Jeste. The mountain's going to love you.
+bellamy:normal: Fair warning, kiddo. Jeste's a trickster. They say it shows you whatever you hide behind your smile.
+mira:grin: Then the joke's on Jeste! There's nothing behind this smile but more smile.
+bellamy:smile: ...Sure there isn't. Off you go, then. Mind the old bridge.
+mira:normal: (Nana always said we'd climb it together, one day.)
+mira:determined: (Guess I'm climbing it for both of us.)
+
+@pro_sign_jump
+sign:normal: "Press C or Space to JUMP. Hold the button longer to jump higher."
+
+@pro_sign_climb
+sign:normal: "Hold Z to GRAB a wall. Press Up or Down while holding to climb."
+sign:normal: "Climbing wears you out! Catch your breath on solid ground."
+
+@pro_sign_walljump
+sign:normal: "Jump while you're against a wall to kick off it - back and forth, all the way up."
+
+@pro_bridge
+!shake 0.5
+!sfx crumble
+mira:surprised: Whoa - whoa! Okay! This bridge is NOT up to code!
+mira:grin: Keep moving, Mira. Don't look down. Ha... ha...
+
+@pro_magpie
+!wait 0.4
+magpie:normal: Kraa!
+mira:surprised: Oh! A magpie. Hi, little guy.
+mira:worried: Don't suppose you know a way across that gap?
+magpie:normal: Kraa! Kraa!
+!sfx gem
+!flash
+narrator:normal: The magpie leaps into the air - and darts forward in a sudden burst of light. Something sparks in Mira's chest, warm and bright.
+mira:surprised: ...What was THAT?
+sign:normal: "Press X to DASH in the direction you're holding. You get one dash in the air, and landing restores it."
+sign:normal: "Watch the tails of your cap: red means your dash is ready, blue means it's spent."
+mira:grin: A dash! Ha! Nana, you would have LOVED this.
+magpie:normal: Kraa!
+
+@pro_end
+!wait 0.3
+mira:happy: Made it! First cliff, done.
+mira:normal: You can see the whole valley from here. Bellamy's tower. The bell.
+!sfx bell
+mira:normal: ...
+mira:grin: Okay, Jeste. Let's see what you've got.
