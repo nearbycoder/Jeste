@@ -340,6 +340,9 @@ def main():
             lines.append(f"- `{r['id']}`: {r.get('error', '')}")
             print(f"  unsolved: {r['id']}: {r.get('error', '')}")
         lines.append("")
+    if routes:
+        with open(os.path.join(ROOT, "tests", "routes.json"), "w") as f:
+            json.dump(routes, f)
     if not args.no_e2e and routes:
         print("== End-to-end playthroughs (real Level scene)")
         rpath = os.path.join(tempfile.gettempdir(), "jeste_routes.json")

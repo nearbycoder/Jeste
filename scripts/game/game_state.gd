@@ -13,6 +13,7 @@ var data: Dictionary = {}
 var settings: Dictionary = {}
 var pending_chapter := 0
 var pending_room := ""
+var pending_spawn := 0
 var headless_test := false     # set by test harness: no saving to disk
 
 
@@ -252,6 +253,7 @@ func goto_chapter_select() -> void:
 func start_chapter(n: int, room: String = "") -> void:
 	pending_chapter = n
 	pending_room = room
+	pending_spawn = 0
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://scenes/level.tscn")
 

@@ -49,7 +49,7 @@ func _ready() -> void:
 	chapter = LevelDB.get_chapter(chapter_n)
 	_build_nodes()
 	var start_room := Game.pending_room if Game.pending_room != "" else chapter.start
-	_load_room(start_room, 0)
+	_load_room(start_room, Game.pending_spawn if Game.pending_room != "" else 0)
 	cam_center = _cam_target()
 	if not fast:
 		if start_room == chapter.start:

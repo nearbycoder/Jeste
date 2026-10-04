@@ -132,3 +132,19 @@ godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/
 godot --headless --path . --script res://tools/gen_art.gd   # sprites, tiles, backgrounds, font
 python3 tools/gen_audio.py                                   # sound effects + music
 ```
+
+### Recording a gameplay video
+
+`tools/demo.tscn` plays the title screen and chapter highlights through the real game,
+driven by the proven routes in `tests/routes.json` (written by `run_tests.py`), with
+cutscenes auto-advancing at reading pace. Record it losslessly with Godot's Movie Maker
+and encode with ffmpeg:
+
+```sh
+mkdir -p /tmp/jeste_movie
+godot --path . --rendering-method mobile --resolution 320x180 \
+      --write-movie /tmp/jeste_movie/f.png --fixed-fps 60 res://tools/demo.tscn
+ffmpeg -framerate 60 -i /tmp/jeste_movie/f%08d.png -i /tmp/jeste_movie/f.wav \
+       -vf "scale=1920:1080:flags=neighbor,format=yuv420p" -c:v libx264 -crf 18 \
+       -tune animation -c:a aac -b:a 192k -shortest docs/jeste_gameplay.mp4
+```
