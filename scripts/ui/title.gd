@@ -1,17 +1,32 @@
 extends Node2D
-## Title screen with options menu.
+## Title screen: animated logo, campfire vignette and the options menu.
 
 var time := 0.0
 var sel := 0
 var items: Array = []
+var row_k: Array = []
 var screen := "main"     # main | options | confirm_reset
 var opt_sel := 0
+var opt_k: Array = []
 var backdrop: Backdrop
 var juggle_t := 0.0
-var fade := 1.0
+var wipe := 1.0
 var leaving := ""
+var panel_k := 0.0
+var embers: Array = []
+var ledge_tex: Texture2D
+var glow: Node2D
+var logo_node: Node2D
+var logo_mat: ShaderMaterial
+var jingled := false
+var bell_swing := 0.0
 
-const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Screen Shake", "Speedrun Timer", "Erase Save", "Back"]
+const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Screen Shake", "Rumble", "Speedrun Timer", "Erase Save", "Back"]
+const LOGO_Y := 25.0
+const MENU_X := 40.0
+const MENU_Y := 102.0
+const FIRE := Vector2(268, 150)
+const MIRA := Vector2(246, 150)
 
 
 func _ready() -> void:
@@ -25,7 +40,62 @@ func _ready() -> void:
 	post.setup(0)
 	backdrop.setup(0)
 	_build_items()
+	opt_k.resize(OPTIONS.size())
+	opt_k.fill(0.0)
+	ledge_tex = _make_ledge()
+	# warm additive glow from the campfire
+	glow = Node2D.new()
+	var gm := CanvasItemMaterial.new()
+	gm.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	glow.material = gm
+	glow.z_index = 1
+	glow.draw.connect(_draw_glow)
+	add_child(glow)
+	# logo with a gloss sweep shader
+	logo_node = Node2D.new()
+	logo_mat = ShaderMaterial.new()
+	var sh := Shader.new()
+	sh.code = """
+shader_type canvas_item;
+uniform float sweep = -100.0;
+void fragment() {
+	vec4 c = texture(TEXTURE, UV) * COLOR;
+	float lum = dot(c.rgb, vec3(0.3, 0.59, 0.11));
+	float d = FRAGCOORD.x + FRAGCOORD.y * 0.7 - sweep;
+	float band = (1.0 - step(3.0, abs(d))) * step(0.55, lum);
+	c.rgb = mix(c.rgb, vec3(1.0, 1.0, 0.95), band * 0.8);
+	COLOR = c;
+}
+"""
+	logo_mat.shader = sh
+	logo_node.material = logo_mat
+	logo_node.z_index = 2
+	logo_node.draw.connect(_draw_logo)
+	add_child(logo_node)
 	Sfx.play_music("title")
+
+
+func _make_ledge() -> Texture2D:
+	var d := RoomDef.new()
+	d.id = "title_ledge"
+	d.w = 16
+	d.h = 5
+	var rows := PackedStringArray([
+		"................",
+		"...#############",
+		"..##############",
+		"..##############",
+		"..##############",
+	])
+	d.rows = rows
+	d.cells.resize(d.w * d.h)
+	for y in d.h:
+		for x in d.w:
+			d.cells[y * d.w + x] = RoomDef.SOLID if rows[y][x] == "#" else RoomDef.EMPTY
+	var art := TerrainArt.render(d, "meadow")
+	var img: Image = art.fg
+	img.blend_rect(art.deco, Rect2i(0, 0, img.get_width(), img.get_height()), Vector2i.ZERO)
+	return ImageTexture.create_from_image(img)
 
 
 func _build_items() -> void:
@@ -38,6 +108,8 @@ func _build_items() -> void:
 	if OS.get_name() != "Web":
 		items.append("Quit")
 	sel = clampi(sel, 0, items.size() - 1)
+	row_k.resize(items.size())
+	row_k.fill(0.0)
 
 
 func _process(delta: float) -> void:
@@ -45,12 +117,36 @@ func _process(delta: float) -> void:
 	juggle_t += delta
 	backdrop.cam_pos.x = time * 12.0
 	if leaving != "":
-		fade = minf(fade + delta * 2.5, 1.0)
-		if fade >= 1.0:
+		wipe = minf(wipe + delta * 2.2, 1.0)
+		if wipe >= 1.0:
 			_go(leaving)
 	else:
-		fade = maxf(fade - delta * 1.5, 0.0)
+		wipe = maxf(wipe - delta * 1.6, 0.0)
+	for i in row_k.size():
+		row_k[i] = move_toward(row_k[i], 1.0 if (i == sel and screen == "main") else 0.0, delta * 8.0)
+	for i in opt_k.size():
+		opt_k[i] = move_toward(opt_k[i], 1.0 if i == opt_sel else 0.0, delta * 8.0)
+	panel_k = move_toward(panel_k, 1.0 if screen != "main" else 0.0, delta * 6.0)
+	if not jingled and time > 1.05:
+		jingled = true
+		bell_swing = 1.0
+		Sfx.play("bell", 1.2, -6.0)
+	bell_swing = maxf(bell_swing - delta * 0.6, 0.0)
+	# campfire embers
+	if randf() < delta * 14.0:
+		embers.append({"p": FIRE + Vector2(randf_range(-3, 3), -6), "v": Vector2(randf_range(-6, 6), randf_range(-26, -14)), "life": randf_range(0.8, 1.6)})
+	for e in embers:
+		e.life -= delta
+		e.v.x += sin(time * 3.0 + e.p.y * 0.2) * 12.0 * delta
+		e.p += e.v * delta
+	embers = embers.filter(func(e): return e.life > 0.0)
+	var period := 5.0
+	var ph := fmod(time - 1.4, period)
+	logo_mat.set_shader_parameter("sweep", -40.0 + ph * 260.0 if time > 1.4 else -100.0)
 	queue_redraw()
+	glow.queue_redraw()
+	logo_node.modulate.a = 1.0 - panel_k * 0.9
+	logo_node.queue_redraw()
 
 
 func _go(what: String) -> void:
@@ -65,7 +161,7 @@ func _go(what: String) -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
-	if leaving != "":
+	if leaving != "" or time < 0.8:
 		return
 	match screen:
 		"main":
@@ -122,6 +218,10 @@ func _change_option(d: int, confirm: bool) -> void:
 			Game.apply_settings()
 		"Screen Shake":
 			Game.settings.screen_shake = not Game.settings.screen_shake
+		"Rumble":
+			Game.settings.rumble = not bool(Game.settings.get("rumble", true))
+			if Game.settings.rumble:
+				Game.rumble(0.6, 0.15)
 		"Speedrun Timer":
 			Game.settings.show_timer = not Game.settings.show_timer
 		"Erase Save":
@@ -133,78 +233,124 @@ func _change_option(d: int, confirm: bool) -> void:
 	Game.save_settings()
 
 
-func _draw_logo(y: float) -> void:
-	var text := "JESTE"
-	var sc := 4.0
-	var w := PixelText.width(text) * sc
-	var x := 160.0 - w / 2.0
-	for i in text.length():
-		var c := text[i]
-		var cw := PixelText.char_width(c) + 1
-		var bob := sin(time * 2.0 + i * 0.7) * 2.0
-		draw_set_transform(Vector2(x + 2, y + bob + 3), 0, Vector2(sc, sc))
-		PixelText.draw(self, Vector2.ZERO, c, Color("1c1424"))
-		var col := Color("e03a5a") if i % 2 == 0 else Color("f2c14e")
-		draw_set_transform(Vector2(x, y + bob), 0, Vector2(sc, sc))
-		PixelText.draw(self, Vector2.ZERO, c, col)
-		x += cw * sc
-	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
-	# jester cap on the J
-	var jx := 160.0 - w / 2.0 + 6
-	var pts := PackedVector2Array([Vector2(jx - 6, y - 2), Vector2(jx - 14, y - 12), Vector2(jx + 2, y - 6), Vector2(jx + 10, y - 16), Vector2(jx + 10, y - 2)])
-	draw_colored_polygon(pts, Color("e03a5a"))
-	draw_circle(Vector2(jx - 14, y - 12), 2, Color("f2c14e"))
-	draw_circle(Vector2(jx + 10, y - 16), 2, Color("f2c14e"))
+# ---------------------------------------------------------------- drawing
+
+func _intro(delay: float, dur: float = 0.35) -> float:
+	return clampf((time - delay) / dur, 0.0, 1.0)
+
+
+func _draw_logo() -> void:
+	var letters := UIKit.logo_letters()
+	var total := UIKit.logo_width()
+	var x := roundf(160.0 - total / 2.0)
+	var cap_pos := Vector2.ZERO
+	for i in letters.size():
+		var L: Dictionary = letters[i]
+		var k := _intro(0.25 + i * 0.09, 0.45)
+		if k <= 0.0:
+			x += int(L.w) + 2
+			continue
+		# drop in with an overshoot, then a gentle idle bob
+		var drop := (1.0 - ease(k, 0.35)) * -50.0 + sin(k * PI) * 3.0 * (1.0 - k)
+		var bob := roundf(sin(time * 1.6 + i * 0.8) * 1.2) if time > 1.4 else 0.0
+		var pos := Vector2(x - int(L.m), LOGO_Y + drop + bob - int(L.m))
+		logo_node.draw_texture(L.tex, pos.round(), Color(1, 1, 1, minf(k * 2.0, 1.0)))
+		if i == 0:
+			cap_pos = pos + Vector2(int(L.m) - 9, int(L.m) - 23)
+		x += int(L.w) + 2
+	# jester cap on the J, popping on after the letters land
+	var ck := _intro(0.95, 0.3)
+	if ck > 0.0:
+		var s := 1.0 + sin(ck * PI) * 0.35
+		var tilt := sin(time * 1.6) * 0.04 + bell_swing * sin(time * 14.0) * 0.12
+		var cap := UIKit.logo_cap()
+		var pivot := cap_pos + Vector2(20, 24)
+		logo_node.draw_set_transform(pivot.round(), tilt, Vector2(s, s))
+		logo_node.draw_texture(cap, Vector2(-20, -24))
+		logo_node.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		var sw := sin(time * 3.0) * 0.25 + bell_swing * sin(time * 16.0) * 0.8
+		var tip1 := pivot + Vector2(-18, -10).rotated(tilt) * s
+		var tip2 := pivot + Vector2(18, -10).rotated(tilt) * s
+		UIKit.bell(logo_node, tip1 + Vector2(sin(sw) * 2.0, 3), sw)
+		UIKit.bell(logo_node, tip2 + Vector2(-sin(sw) * 2.0, 3), -sw)
+
+
+func _draw_glow() -> void:
+	var tex := Lighting.light_texture()
+	var fl := 0.85 + 0.1 * sin(time * 11.0) * sin(time * 7.3)
+	glow.draw_texture_rect(tex, Rect2(FIRE - Vector2(56, 60), Vector2(112, 112)), false, Color(1.0, 0.55, 0.2, 0.32 * fl))
+	glow.draw_texture_rect(tex, Rect2(FIRE - Vector2(22, 28), Vector2(44, 44)), false, Color(1.0, 0.8, 0.4, 0.3 * fl))
 
 
 func _draw() -> void:
-	_draw_logo(26)
-	PixelText.draw_centered(self, 160, 64, "a mountain that laughs back", Color(1, 0.92, 0.8), Color(0, 0, 0, 0.7))
-	# Mira juggling on a ledge
-	var base := Vector2(250, 150)
-	draw_rect(Rect2(226, 151, 60, 30), Color("1f1418"))
-	draw_rect(Rect2(226, 151, 60, 2), Color("4f9a3a"))
+	# ledge, fire and Mira juggling
+	draw_texture(ledge_tex, Vector2(212, 142))
+	UIKit.campfire(self, FIRE, time)
+	for e in embers:
+		var a := clampf(e.life, 0.0, 1.0)
+		draw_rect(Rect2((e.p as Vector2).round(), Vector2.ONE), Color(1.0, 0.75, 0.3, a))
 	var frame := Art.frame_index("talk%d" % (int(juggle_t * 4.4) % 2))
-	draw_set_transform(base, 0, Vector2(-1, 1))
+	draw_set_transform(MIRA, 0, Vector2(1, 1))
 	draw_texture_rect_region(Art.player_menu(), Rect2(-12, -24, 24, 24), Rect2(frame * 24, 0, 24, 24), Color.WHITE)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	for i in 3:
 		var t := juggle_t * 2.2 + i * TAU / 3.0
-		var p := base + Vector2(cos(t) * 7.0, -18.0 - absf(sin(t)) * 14.0)
+		var p := MIRA + Vector2(cos(t) * 7.0, -18.0 - absf(sin(t)) * 14.0)
 		var names := ["ball_r", "ball_y", "ball_u"]
-		draw_texture_rect_region(Art.objects(), Rect2(p.x - 8, p.y - 8, 16, 16), Art.obj_rect(names[i]))
-	match screen:
-		"main":
-			for i in items.size():
-				var s := i == sel
-				var txt: String = items[i]
-				if s:
-					txt = "> " + txt + " <"
-				PixelText.draw_centered(self, 120, 92 + i * 13, txt, Color.WHITE if s else Color(0.75, 0.72, 0.85), Color(0, 0, 0, 0.8))
-		"options":
-			draw_rect(Rect2(40, 80, 170, 96), Color(0.05, 0.03, 0.09, 0.9))
-			draw_rect(Rect2(40, 80, 170, 96), Color("f2c14e"), false, 1.0)
-			for i in OPTIONS.size():
-				var s := i == opt_sel
-				var col := Color.WHITE if s else Color(0.75, 0.72, 0.85)
-				PixelText.draw(self, Vector2(48, 85 + i * 12), ("> " if s else "  ") + OPTIONS[i], col)
-				var v := _opt_value(OPTIONS[i])
-				PixelText.draw(self, Vector2(202 - PixelText.width(v), 85 + i * 12), v, Color("8ab4ff"))
-		"confirm_reset":
-			draw_rect(Rect2(50, 90, 220, 50), Color(0.08, 0.02, 0.04, 0.95))
-			draw_rect(Rect2(50, 90, 220, 50), Color("e03a5a"), false, 1.0)
-			PixelText.draw_centered(self, 160, 98, "Erase ALL progress?", Color.WHITE)
-			PixelText.draw_centered(self, 160, 116, "Jump: erase    Dash: keep", Color(0.9, 0.8, 0.8))
-	PixelText.draw(self, Vector2(4, 170), "Move: Arrows  Jump: C  Dash: X  Grab: Z", Color(1, 1, 1, 0.6), Color(0, 0, 0, 0.6))
-	if fade > 0.0:
-		draw_rect(Rect2(0, 0, 320, 180), Color(0.05, 0.04, 0.08, fade))
+		draw_texture_rect_region(Art.objects(), Rect2((p - Vector2(8, 8)).round(), Vector2(16, 16)), Art.obj_rect(names[i]))
+	# tagline
+	var tk := _intro(1.15, 0.5) * (1.0 - panel_k)
+	if tk > 0.0:
+		var tag := "a mountain that laughs back"
+		var ty := LOGO_Y + 40.0
+		var tw := PixelText.width(tag)
+		draw_rect(Rect2(160 - tw / 2.0 - 18, ty + 4, 12 * tk, 1), Color(UIKit.GOLD, 0.7 * tk))
+		draw_rect(Rect2(160 + tw / 2.0 + 18 - 12 * tk, ty + 4, 12 * tk, 1), Color(UIKit.GOLD, 0.7 * tk))
+		PixelText.draw_centered_outlined(self, 160, ty, tag, Color(UIKit.CREAM, tk), Color(UIKit.INK, 0.9 * tk))
+	# main menu
+	var mk := 1.0 - panel_k
+	for i in items.size():
+		var k := _intro(1.25 + i * 0.07, 0.3)
+		if k <= 0.0:
+			continue
+		var x := MENU_X - (1.0 - ease(k, 0.3)) * 50.0 - panel_k * 30.0
+		UIKit.menu_row(self, x, MENU_Y + i * 14, 92, items[i], row_k[i], time, k * mk)
+	# options / confirm panel
+	if panel_k > 0.0:
+		var e := ease(panel_k, 0.3)
+		var r := Rect2(84, 36 + (1.0 - e) * 12.0, 152, 16 + OPTIONS.size() * 12)
+		UIKit.panel(self, r, e)
+		UIKit.panel_title(self, r, "OPTIONS", e)
+		for i in OPTIONS.size():
+			var y := r.position.y + 10 + i * 12
+			UIKit.menu_row(self, r.position.x + 12, y, 128, OPTIONS[i], opt_k[i], time, e)
+			_draw_opt_value(OPTIONS[i], Vector2(r.end.x - 10, y), e)
+		if screen == "confirm_reset":
+			draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.5))
+			var cr := Rect2(60, 76, 200, 40)
+			UIKit.panel(self, cr, 1.0, UIKit.CRIMSON)
+			PixelText.draw_centered(self, 160, cr.position.y + 8, "Erase ALL progress?", Color.WHITE)
+			var pairs := [["C", "Erase"], ["X", "Keep"]]
+			UIKit.hints(self, Vector2(160 - UIKit.hints_width(pairs) / 2.0, cr.position.y + 23), pairs)
+	# control hints
+	var hk := _intro(1.6, 0.5)
+	if hk > 0.0:
+		var pairs := [["Arrows", "Move"], ["C", "Jump"], ["X", "Dash"], ["Z", "Grab"]] if screen == "main" else [["Arrows", "Change"], ["C", "Select"], ["X", "Back"]]
+		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, hk * 0.9)
+	UIKit.wipe(self, wipe, -1.0 if leaving == "" else 1.0)
 
 
-func _opt_value(name: String) -> String:
+func _draw_opt_value(name: String, right: Vector2, a: float) -> void:
 	match name:
-		"Music Volume": return "%d%%" % int(round(float(Game.settings.music) * 100))
-		"Sound Volume": return "%d%%" % int(round(float(Game.settings.sfx) * 100))
-		"Fullscreen": return "On" if Game.settings.fullscreen else "Off"
-		"Screen Shake": return "On" if Game.settings.screen_shake else "Off"
-		"Speedrun Timer": return "On" if Game.settings.show_timer else "Off"
-	return ""
+		"Music Volume":
+			UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.music), a)
+		"Sound Volume":
+			UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.sfx), a)
+		"Fullscreen":
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), a)
+		"Screen Shake":
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), a)
+		"Rumble":
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), a)
+		"Speedrun Timer":
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), a)

@@ -132,20 +132,33 @@ static func range_layer(img: Image, base_y: float, amp: float, freq: int, seed: 
 	hts.resize(W + 1)
 	for x in W + 1:
 		hts[x] = base_y - ridged(float(x), freq, 5, seed) * amp
+	var mid := rock.lerp(shadow, 0.5)
 	for x in W:
 		var top := int(hts[x])
-		var slope := hts[posmod(x + 1, W)] - hts[posmod(x - 1, W)]
-		var lit := slope > 0.0 if sun_left else slope < 0.0
+		# smoothed slope -> which way this flank faces
+		var slope := (hts[posmod(x + 3, W)] - hts[posmod(x - 3, W)]) / 6.0
+		var face := slope if sun_left else -slope
+		var side := 1.0 if slope > 0.0 else -1.0
 		for y in range(maxi(top, 0), H):
 			var depth := float(y - top)
-			var col := rock if lit else shadow
+			# gullies running down the flank, fading with depth
+			var u := float(x) + side * depth * 0.8
+			var dg := fbm(posmod(u + 1.0, W), freq * 6, 3, seed + 9) - fbm(posmod(u - 1.0, W), freq * 6, 3, seed + 9)
+			var l := clampf(face * 2.2, -1.0, 1.0) * maxf(0.0, 1.0 - depth / 60.0) + dg * 10.0 * (1.0 if sun_left else -1.0)
+			var col: Color
+			if l > 0.25:
+				col = rock
+			elif l > -0.25:
+				col = dither_mix(mid, rock, (l + 0.25) * 2.0, x, y, 4)
+			else:
+				col = dither_mix(shadow, mid, clampf(l + 1.0, 0.0, 1.0), x, y, 4)
 			# subtle vertical gradient: darker toward the base
-			col = col.darkened(clampf((y - top) / 160.0, 0.0, 0.25))
+			col = col.darkened(clampf(depth / 160.0, 0.0, 0.25))
 			var jag := _h(x, 0, seed + 3) % 4
 			if y < snow_line + jag and depth < 24.0 + float(_h(x / 3, 1, seed) % 10):
-				col = snow if lit else snow.lerp(shadow, 0.45)
+				col = snow if l > -0.1 else snow.lerp(shadow, 0.45)
 			# ridge highlight
-			if depth < 1.0 and lit:
+			if depth < 1.0 and l > -0.2:
 				col = col.lightened(0.18)
 			var hz := clampf(haze + float(y - base_y + amp) / H * 0.25, 0.0, 0.92)
 			col = dither_mix(col, haze_col, hz, x, y, 6)
@@ -235,6 +248,46 @@ static func house(img: Image, x0: int, ground: int, w: int, h: int, wall: Color,
 		wy += 7
 
 
+## Mount Jeste: two sharp peaks like a jester's cap, painted with gullies
+## running down the flanks, a lit and a shadowed face, broken snowfields and
+## a warm rim light along every ridge.
+static func jester_peaks(img: Image, p1: Vector2, p2: Vector2, slope: float, pal: Dictionary, haze_col: Color, haze: float, max_y: int = H) -> void:
+	for x in W:
+		var f1 := clampf(absf(x - p1.x) / 24.0, 0.0, 1.0)
+		var f2 := clampf(absf(x - p2.x) / 24.0, 0.0, 1.0)
+		var e1 := p1.y + absf(x - p1.x) * slope + (ridged(float(x), 20, 4, 5) - 0.45) * 14.0 * f1
+		var e2 := p2.y + absf(x - p2.x) * slope * 1.06 + (ridged(float(x), 20, 4, 6) - 0.45) * 14.0 * f2
+		var own1 := e1 <= e2
+		var top := int(minf(e1, e2))
+		var pk := p1 if own1 else p2
+		var side := -1.0 if x < pk.x else 1.0
+		for y in range(maxi(top, 0), max_y):
+			var depth := float(y - top)
+			# gullies follow the flank: constant along lines parallel to the slope
+			var u := float(x) - side * (y - pk.y) * 0.7
+			var sd := 91 + (0 if own1 else 7)
+			var g := fbm(posmod(u, W), 40, 4, sd)
+			var dg := fbm(posmod(u + 1.5, W), 40, 4, sd) - fbm(posmod(u - 1.5, W), 40, 4, sd)
+			var l := (0.55 if side < 0.0 else -0.35) - dg * side * 14.0
+			# notch between the peaks sits in shadow
+			if not own1 and x < p2.x and x > p1.x:
+				l -= 0.25
+			var snow := y < pk.y + 30.0 + g * 26.0 + (6.0 if l > 0.2 else 0.0)
+			var col: Color
+			if snow:
+				col = pal.snow if l > 0.45 else (pal.snow_mid if l > -0.1 else pal.snow_shadow)
+			else:
+				col = pal.lit if l > 0.45 else (pal.mid if l > -0.1 else (pal.shadow if l > -0.6 else pal.deep))
+				col = dither_mix(col, pal.deep, clampf(depth / 140.0, 0.0, 0.5), x, y, 6)
+			# rim light on the silhouette
+			if depth < 1.0:
+				col = pal.rim
+			elif depth < 2.0 and side < 0.0:
+				col = col.lerp(pal.rim, 0.5)
+			var hz := clampf(haze + (y - pk.y - 30.0) / float(H) * 0.7, 0.0, 0.88)
+			img.set_pixel(x, y, dither_mix(col, haze_col, hz, x, y, 8))
+
+
 static func build(chapter: int) -> Dictionary:
 	var sky := Image.create(320, 180, false, Image.FORMAT_RGBA8)
 	var far := Image.create(W, H, false, Image.FORMAT_RGBA8)
@@ -249,18 +302,12 @@ static func build(chapter: int) -> Dictionary:
 			stars(sky, 50, 1, 70)
 			glow(sky, 236, 146, 70, c("ffd890"), 0.55)
 			disc(sky, 236, 146, 13, c("fff0c0"), c("ffc880"))
-			# Mount Jeste: two peaks like a jester's cap
-			for x in W:
-				var p1 := 30.0 + absf(x - 210.0) * 0.95 + (ridged(float(x), 32, 3, 5) - 0.5) * 6.0
-				var p2 := 40.0 + absf(x - 286.0) * 1.0 + (ridged(float(x), 32, 3, 6) - 0.5) * 6.0
-				var top := int(minf(p1, p2))
-				var lit := (x < 210) or (x > 248 and x < 286)
-				for y in range(maxi(top, 0), H):
-					var col := c("5a3a72") if lit else c("3e2852")
-					if y < top + 7 + _h(x, 0, 9) % 3 and y < 74:
-						col = c("f4e4f0") if lit else c("b89ac8")
-					col = dither_mix(col, c("a8486a"), clampf((y - 40) / 220.0, 0.0, 0.6), x, y, 6)
-					far.set_pixel(x, y, col)
+			# Mount Jeste: two peaks like a jester's cap, backlit by the sunset
+			jester_peaks(far, Vector2(210, 30), Vector2(286, 42), 0.95, {
+				"rim": c("ffc4a8"), "lit": c("6e4c88"), "mid": c("553a70"), "shadow": c("3e2a56"), "deep": c("2c1e42"),
+				"snow": c("fae8f2"), "snow_mid": c("d4bce0"), "snow_shadow": c("9a84bc")}, c("a8486a"), 0.0)
+			for k in 5:
+				cloud(far, 150 + k * 38 + _h(k, 1, 8) % 20, 96 + _h(k, 2, 8) % 16, 5 + k % 3, 8 + k, c("ffc8b0"), c("d88898"), c("8a4a72"), 0.92)
 			range_layer(mid, 150, 40, 6, 7, c("4a3048"), c("33213a"), -1, Color.WHITE, c("c06070"), 0.35)
 			for i in 90:
 				var x := _h(i, 1, 21) % W
@@ -446,13 +493,9 @@ static func build(chapter: int) -> Dictionary:
 			gradient(sky, [[0.0, c("5fa8d8")], [0.7, c("c4e2f0")], [1.0, c("ffe2b0")]])
 			for k in 5:
 				cloud(sky, 40 + k * 64, 24 + _h(k, 2, 81) % 40, 6, 81 + k, c("ffffff"), c("eaf4fa"), c("c8dcea"))
-			for x in W:
-				var p1 := 26.0 + absf(x - 420.0) * 0.9
-				var p2 := 34.0 + absf(x - 474.0) * 0.95
-				var top := int(minf(p1, p2))
-				for y in range(maxi(top, 0), 120):
-					var col := c("efe6f2") if y < top + 6 else c("9a8ab0")
-					far.set_pixel(x, y, dither_mix(col, c("c4e2f0"), 0.35, x, y))
+			jester_peaks(far, Vector2(420, 26), Vector2(474, 34), 0.9, {
+				"rim": c("ffffff"), "lit": c("b0a4c8"), "mid": c("958ab0"), "shadow": c("7a7098"), "deep": c("665c84"),
+				"snow": c("ffffff"), "snow_mid": c("e4e0f0"), "snow_shadow": c("bcb4d4")}, c("c4e2f0"), 0.3, 130)
 			range_layer(far, 128, 24, 6, 83, c("8aa070"), c("6a8458"), -1, Color.WHITE, c("c4e2f0"), 0.25)
 			range_layer(mid, 156, 18, 5, 85, c("5a9a48"), c("447a38"), -1, Color.WHITE, c("8ab070"), 0.1)
 			# the bell tower

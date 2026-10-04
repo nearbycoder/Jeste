@@ -1,0 +1,406 @@
+class_name UIKit
+extends RefCounted
+## Shared drawing kit for every menu: framed panels, animated menu rows,
+## keycap glyphs, toggles / sliders, the diamond screen wipe, a procedural
+## campfire and the JESTE logo (block letters with bevel, outline and
+## extrusion, built once into textures).
+
+const GOLD := Color("f2c14e")
+const GOLD_DK := Color("a8702a")
+const CREAM := Color("fff1d6")
+const INK := Color("140c1c")
+const CRIMSON := Color("d8344f")
+const MUTED := Color(0.78, 0.74, 0.86)
+
+
+static func frame(ci: CanvasItem, r: Rect2, col: Color) -> void:
+	var x0 := roundf(r.position.x)
+	var y0 := roundf(r.position.y)
+	var w := roundf(r.size.x)
+	var h := roundf(r.size.y)
+	ci.draw_rect(Rect2(x0, y0, w, 1), col)
+	ci.draw_rect(Rect2(x0, y0 + h - 1, w, 1), col)
+	ci.draw_rect(Rect2(x0, y0, 1, h), col)
+	ci.draw_rect(Rect2(x0 + w - 1, y0, 1, h), col)
+
+
+static func diamond(ci: CanvasItem, c: Vector2, r: float, col: Color) -> void:
+	var p := c.round()
+	ci.draw_colored_polygon(PackedVector2Array([p + Vector2(0, -r), p + Vector2(r, 0), p + Vector2(0, r), p + Vector2(-r, 0)]), col)
+
+
+## A framed panel: soft drop shadow, vertical gradient body, ink outline,
+## gold inner border, corner studs and a faint top sheen.
+static func panel(ci: CanvasItem, r: Rect2, a: float = 1.0, accent: Color = GOLD) -> void:
+	r = Rect2(r.position.round(), r.size.round())
+	ci.draw_rect(Rect2(r.position + Vector2(3, 3), r.size), Color(0, 0, 0, 0.35 * a))
+	var top := Color(0.13, 0.08, 0.19, 0.94 * a)
+	var bot := Color(0.05, 0.03, 0.08, 0.94 * a)
+	ci.draw_polygon(PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]),
+		PackedColorArray([top, top, bot, bot]))
+	frame(ci, r.grow(1), Color(INK, a))
+	frame(ci, r.grow(-1), Color(accent, 0.9 * a))
+	frame(ci, r.grow(-2), Color(accent.darkened(0.55), 0.6 * a))
+	ci.draw_rect(Rect2(r.position.x + 3, r.position.y + 3, r.size.x - 6, 1), Color(1, 1, 1, 0.07 * a))
+	for c in [r.position + Vector2(1, 1), Vector2(r.end.x - 2, r.position.y + 1), Vector2(r.position.x + 1, r.end.y - 2), r.end - Vector2(2, 2)]:
+		diamond(ci, c, 2.0, Color(accent.lightened(0.3), a))
+
+
+## Title strip on top of a panel.
+static func panel_title(ci: CanvasItem, r: Rect2, text: String, a: float = 1.0) -> void:
+	var w := PixelText.width(text) + 16
+	var tr := Rect2(roundf(r.get_center().x - w / 2.0), r.position.y - 6, w, 12)
+	ci.draw_rect(tr.grow(1), Color(INK, a))
+	ci.draw_rect(tr, Color(CRIMSON.darkened(0.25), a))
+	ci.draw_rect(Rect2(tr.position.x, tr.position.y, tr.size.x, 1), Color(CRIMSON.lightened(0.3), a))
+	PixelText.draw_centered(ci, tr.get_center().x, tr.position.y + 2, text, Color(CREAM, a), Color(INK, 0.8 * a))
+
+
+## Menu row. `k` is the 0..1 animated selection amount.
+static func menu_row(ci: CanvasItem, x: float, y: float, w: float, text: String, k: float, t: float, a: float = 1.0, centered := false) -> void:
+	var e := ease(clampf(k, 0.0, 1.0), 0.4)
+	if e > 0.01:
+		var x0 := x - 10.0
+		var c0 := Color(GOLD, 0.30 * e * a)
+		var c1 := Color(GOLD, 0.0)
+		if centered:
+			var cx := x + w / 2.0
+			ci.draw_polygon(PackedVector2Array([Vector2(cx - w / 2.0 - 12, y - 2), Vector2(cx, y - 2), Vector2(cx, y + 9), Vector2(cx - w / 2.0 - 12, y + 9)]),
+				PackedColorArray([c1, c0, c0, c1]))
+			ci.draw_polygon(PackedVector2Array([Vector2(cx, y - 2), Vector2(cx + w / 2.0 + 12, y - 2), Vector2(cx + w / 2.0 + 12, y + 9), Vector2(cx, y + 9)]),
+				PackedColorArray([c0, c1, c1, c0]))
+		else:
+			ci.draw_polygon(PackedVector2Array([Vector2(x0, y - 2), Vector2(x0 + w, y - 2), Vector2(x0 + w, y + 9), Vector2(x0, y + 9)]),
+				PackedColorArray([c0, c1, c1, c0]))
+			ci.draw_rect(Rect2(x0, y - 2, 2, 11), Color(GOLD, e * a))
+	var col := MUTED.lerp(CREAM, e)
+	var tx := x + roundf(4.0 * e) if not centered else x + w / 2.0 - PixelText.width(text) / 2.0
+	PixelText.draw_outlined(ci, Vector2(roundf(tx), y), text, Color(col, a * (0.8 + 0.2 * e)), Color(INK, 0.9 * a))
+	if e > 0.5:
+		var bx := (x - 5.0 if not centered else x + w / 2.0 - PixelText.width(text) / 2.0 - 7.0) + sin(t * 6.0) * 1.0
+		diamond(ci, Vector2(bx, y + 4), 2.0, Color(GOLD, a))
+
+
+## A keyboard / pad key glyph; returns its width.
+static func keycap(ci: CanvasItem, pos: Vector2, label: String, a: float = 1.0) -> float:
+	var w := maxf(PixelText.width(label) + 6.0, 9.0)
+	var r := Rect2(pos.round() + Vector2(0, -1), Vector2(w, 12))
+	ci.draw_rect(r.grow(1), Color(INK, 0.9 * a))
+	ci.draw_rect(r, Color(0.86, 0.82, 0.9, a))
+	ci.draw_rect(Rect2(r.position.x, r.end.y - 2, r.size.x, 2), Color(0.55, 0.5, 0.64, a))
+	ci.draw_rect(Rect2(r.position.x, r.position.y, r.size.x, 1), Color(1, 1, 1, a))
+	PixelText.draw(ci, Vector2(r.position.x + roundf((w - PixelText.width(label)) / 2.0), r.position.y + 1), label, Color(INK, a))
+	return w
+
+
+## Row of [key, label] hints. Returns the total width.
+static func hints(ci: CanvasItem, pos: Vector2, pairs: Array, a: float = 1.0) -> float:
+	var x := pos.x
+	for p in pairs:
+		x += keycap(ci, Vector2(x, pos.y), str(p[0]), a) + 3.0
+		PixelText.draw_outlined(ci, Vector2(x, pos.y + 1), str(p[1]), Color(CREAM, 0.9 * a), Color(INK, 0.85 * a))
+		x += PixelText.width(str(p[1])) + 9.0
+	return x - pos.x
+
+
+static func hints_width(pairs: Array) -> float:
+	var x := 0.0
+	for p in pairs:
+		x += maxf(PixelText.width(str(p[0])) + 6.0, 9.0) + 3.0 + PixelText.width(str(p[1])) + 9.0
+	return x - 9.0
+
+
+static func toggle(ci: CanvasItem, pos: Vector2, on: bool, a: float = 1.0) -> void:
+	var r := Rect2(pos.round(), Vector2(15, 7))
+	ci.draw_rect(r.grow(1), Color(INK, a))
+	ci.draw_rect(r, Color(Color("4fae5a") if on else Color("3a3448"), a))
+	var kx := r.position.x + (9.0 if on else 1.0)
+	ci.draw_rect(Rect2(kx, r.position.y + 1, 5, 5), Color(CREAM, a))
+	ci.draw_rect(Rect2(kx, r.position.y + 5, 5, 1), Color(MUTED.darkened(0.3), a))
+
+
+static func slider(ci: CanvasItem, pos: Vector2, v: float, a: float = 1.0) -> void:
+	var n := 10
+	var lit := int(round(v * n))
+	for i in n:
+		var r := Rect2(pos.x + i * 4, pos.y + 6 - (1 + i / 2), 3, 1 + i / 2)
+		r.size.y = 2 + i * 0.5
+		r.position.y = pos.y + 7 - r.size.y
+		ci.draw_rect(r.grow(1), Color(INK, a))
+		ci.draw_rect(r, Color(GOLD if i < lit else Color("3a3448"), a))
+
+
+## Diamond screen wipe. k: 0 clear .. 1 covered. dir flips the sweep.
+static func wipe(ci: CanvasItem, k: float, dir: float = 1.0, col: Color = Color("0d0a14")) -> void:
+	if k <= 0.0:
+		return
+	if k >= 1.0:
+		ci.draw_rect(Rect2(0, 0, 320, 180), col)
+		return
+	var size := 20.0
+	for gy in range(0, 11):
+		for gx in range(0, 18):
+			var cx := gx * size + (size / 2.0 if gy % 2 == 1 else 0.0)
+			var cy := gy * size
+			var order := (gx + gy) / 27.0 if dir > 0.0 else 1.0 - (gx + gy) / 27.0
+			var s := clampf((k * 1.6 - order * 0.6), 0.0, 1.0) * size * 0.75
+			if s < 0.75:
+				continue
+			ci.draw_colored_polygon(PackedVector2Array([Vector2(cx, cy - s), Vector2(cx + s, cy), Vector2(cx, cy + s), Vector2(cx - s, cy)]), col)
+
+
+## Little gold bell (used as an icon / on the logo cap tips).
+static func bell(ci: CanvasItem, c: Vector2, angle: float = 0.0, s: float = 1.0) -> void:
+	ci.draw_set_transform(c.round(), angle, Vector2(s, s))
+	ci.draw_circle(Vector2(0, 0.5), 3.4, INK)
+	ci.draw_circle(Vector2(0, 0), 2.6, GOLD)
+	ci.draw_rect(Rect2(-2.6, 0, 5.2, 2.2), GOLD_DK)
+	ci.draw_rect(Rect2(-1.5, -1.5, 1, 1), Color("fff4b0"))
+	ci.draw_rect(Rect2(-0.5, 2.2, 1, 1.2), INK)
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Procedural campfire: stones, crossed logs, three flickering flame tongues.
+static func campfire(ci: CanvasItem, base: Vector2, t: float) -> void:
+	var b := base.round()
+	# stones
+	for i in 5:
+		var sx := -9.0 + i * 4.5
+		ci.draw_rect(Rect2(b.x + sx - 1, b.y - 2, 4, 3), INK)
+		ci.draw_rect(Rect2(b.x + sx, b.y - 2, 3, 2), Color("6a6478"))
+		ci.draw_rect(Rect2(b.x + sx, b.y - 2, 2, 1), Color("9a94a8"))
+	# logs
+	for sgn in [-1.0, 1.0]:
+		var p0 := b + Vector2(-7 * sgn, -1)
+		var p1 := b + Vector2(5 * sgn, -5)
+		ci.draw_line(p0, p1, INK, 4.0)
+		ci.draw_line(p0, p1, Color("5a3420"), 2.0)
+		ci.draw_line(p0 + Vector2(0, -1), p1 + Vector2(0, -1), Color("8a5634"), 1.0)
+	# flames: outer, mid, core
+	var layers := [[Color("d8342a"), 1.0, 0.0], [Color("ff8a2a"), 0.72, 1.7], [Color("ffd860"), 0.45, 3.1], [Color("fffbe0"), 0.22, 4.4]]
+	for L in layers:
+		var col: Color = L[0]
+		var sc: float = L[1]
+		var ph: float = L[2]
+		var hgt := (13.0 + 2.5 * sin(t * 13.0 + ph) + 1.5 * sin(t * 21.0 + ph * 2.0)) * sc
+		var wid := 6.0 * sc + 0.6
+		var sway := sin(t * 7.0 + ph) * 1.6 * sc
+		var pts := PackedVector2Array()
+		var n := 10
+		for i in n + 1:
+			var a := PI * i / n
+			pts.append(b + Vector2(cos(a) * wid, -3.0 + sin(a) * 2.0 * sc))
+		pts.append(b + Vector2(-wid * 0.6 + sway * 0.4, -3.0 - hgt * 0.55))
+		pts.append(b + Vector2(sway, -3.0 - hgt))
+		pts.append(b + Vector2(wid * 0.55 + sway * 0.6, -3.0 - hgt * 0.5))
+		var out := PackedVector2Array()
+		for p in pts:
+			out.append(p.round())
+		ci.draw_colored_polygon(out, col)
+
+
+# ---------------------------------------------------------------- logo
+
+const LOGO_GLYPHS := {
+	"J": [
+		"..#######",
+		"..#######",
+		".....###.",
+		".....###.",
+		".....###.",
+		".....###.",
+		".....###.",
+		".....###.",
+		"##...###.",
+		"###.####.",
+		".######..",
+		"..####...",
+	],
+	"E": [
+		"#########",
+		"#########",
+		"###......",
+		"###......",
+		"###......",
+		"#######..",
+		"#######..",
+		"###......",
+		"###......",
+		"###......",
+		"#########",
+		"#########",
+	],
+	"S": [
+		"..######.",
+		".########",
+		"###....##",
+		"###......",
+		"####.....",
+		".#######.",
+		"..#######",
+		".....####",
+		"......###",
+		"##....###",
+		"########.",
+		".######..",
+	],
+	"T": [
+		"###########",
+		"###########",
+		"....###....",
+		"....###....",
+		"....###....",
+		"....###....",
+		"....###....",
+		"....###....",
+		"....###....",
+		"....###....",
+		"....###....",
+		"....###....",
+	],
+}
+
+const LOGO_SCALE := 2
+const LOGO_EXTRUDE := 3
+static var _logo: Array = []
+
+
+## Returns [{tex, w, h}] for J E S T E; each texture includes outline and
+## extrusion margins (2 px left/top, 2 + LOGO_EXTRUDE right/bottom).
+static func logo_letters() -> Array:
+	if not _logo.is_empty():
+		return _logo
+	var fill := [Color("ffffff"), Color("fff6dc"), Color("ffe7a0"), Color("f8cc5a"), Color("eaa83e"), Color("d8843a"), Color("b8602a")]
+	for ch in ["J", "E", "S", "T", "E"]:
+		var g: Array = LOGO_GLYPHS[ch]
+		var gw: int = (g[0] as String).length() * LOGO_SCALE
+		var gh: int = g.size() * LOGO_SCALE
+		var m := 2
+		var W := gw + m * 2 + LOGO_EXTRUDE
+		var H := gh + m * 2 + LOGO_EXTRUDE
+		var mask := PackedByteArray()
+		mask.resize(W * H)
+		for y in gh:
+			var row: String = g[y / LOGO_SCALE]
+			for x in gw:
+				if row[x / LOGO_SCALE] == "#":
+					mask[(y + m) * W + x + m] = 1
+		var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
+		img.fill(Color(0, 0, 0, 0))
+		var at := func(x: int, y: int) -> int:
+			if x < 0 or y < 0 or x >= W or y >= H:
+				return 0
+			return mask[y * W + x]
+		# extrusion (deep crimson, darker further back)
+		for e in range(LOGO_EXTRUDE, 0, -1):
+			for y in H:
+				for x in W:
+					if at.call(x - e, y - e) == 1 and at.call(x, y) == 0:
+						img.set_pixel(x, y, Color("5a1028") if e > 1 else Color("8a1e3a"))
+		# outline around letter + extrusion
+		var occ := func(x: int, y: int) -> bool:
+			if x < 0 or y < 0 or x >= W or y >= H:
+				return false
+			return img.get_pixel(x, y).a > 0.0 or mask[y * W + x] == 1
+		var outline := Image.create(W, H, false, Image.FORMAT_RGBA8)
+		outline.fill(Color(0, 0, 0, 0))
+		for y in H:
+			for x in W:
+				if occ.call(x, y):
+					continue
+				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+					if occ.call(x + d.x, y + d.y):
+						outline.set_pixel(x, y, INK)
+						break
+		# fill: vertical gradient with bevel highlight / shadow
+		for y in H:
+			for x in W:
+				if mask[y * W + x] == 0:
+					continue
+				var ty := float(y - m) / float(gh - 1)
+				var bay: int = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5][(y % 4) * 4 + (x % 4)]
+				var idx := int(floor(ty * 5.0 + bay / 16.0)) + 1
+				if at.call(x, y - 1) == 0:
+					idx = 0
+				elif at.call(x, y - 2) == 0:
+					idx = mini(idx, 1)
+				if at.call(x, y + 1) == 0:
+					idx = 6
+				elif at.call(x + 1, y) == 0:
+					idx = maxi(idx, 5)
+				elif at.call(x - 1, y) == 0:
+					idx = maxi(idx - 1, 1)
+				img.set_pixel(x, y, fill[clampi(idx, 0, 6)])
+		for y in H:
+			for x in W:
+				var o := outline.get_pixel(x, y)
+				if o.a > 0.0 and img.get_pixel(x, y).a == 0.0:
+					img.set_pixel(x, y, o)
+		_logo.append({"tex": ImageTexture.create_from_image(img), "w": gw, "h": gh, "m": m})
+	return _logo
+
+
+## Jester cap texture that sits on the J (two horns, red and gold).
+static var _cap_tex: Texture2D
+static func logo_cap() -> Texture2D:
+	if _cap_tex:
+		return _cap_tex
+	var W := 40
+	var H := 26
+	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var red := [Color("ff8a9a"), Color("e8506a"), Color("c22c48"), Color("8a1830")]
+	var gold := [Color("fff4b0"), Color("f8d060"), Color("d8a038"), Color("9a6420")]
+	var light := Vector2(-0.6, -0.8).normalized()
+	# two floppy points that rise and droop outward: (start, control, end, r0, r1, ramp)
+	var horns := [
+		[Vector2(23, 21), Vector2(33, -2), Vector2(38, 14), 5.0, 1.4, gold],
+		[Vector2(17, 21), Vector2(5, -3), Vector2(2, 14), 5.5, 1.4, red],
+	]
+	for hn in horns:
+		for i in 61:
+			var t := i / 60.0
+			var a0: Vector2 = hn[0]
+			var cc: Vector2 = hn[1]
+			var e: Vector2 = hn[2]
+			var p := a0.lerp(cc, t).lerp(cc.lerp(e, t), t)
+			var r: float = lerpf(hn[3], hn[4], t)
+			var ramp: Array = hn[5]
+			for y in range(int(p.y - r) - 1, int(p.y + r) + 2):
+				for x in range(int(p.x - r) - 1, int(p.x + r) + 2):
+					if x < 0 or y < 0 or x >= W or y >= H:
+						continue
+					var d := Vector2(x + 0.5 - p.x, y + 0.5 - p.y)
+					if d.length() > r:
+						continue
+					var nz := sqrt(maxf(0.0, 1.0 - d.length_squared() / (r * r)))
+					var lum := d.x / r * light.x + d.y / r * light.y + nz * 0.6
+					var k := 0 if lum > 0.85 else (1 if lum > 0.35 else (2 if lum > -0.1 else 3))
+					img.set_pixel(x, y, ramp[k])
+	# band across the base, diamonds alternating
+	for y in range(19, 25):
+		for x in range(9, 31):
+			var k := 0 if y == 19 else (1 if y < 23 else 3)
+			var c: Color = gold[k] if ((x - 9) / 4) % 2 == 0 else red[k]
+			img.set_pixel(x, y, c)
+	var out := img.duplicate()
+	for y in H:
+		for x in W:
+			if img.get_pixel(x, y).a > 0.0:
+				continue
+			for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+				var xx: int = x + d.x
+				var yy: int = y + d.y
+				if xx >= 0 and yy >= 0 and xx < W and yy < H and img.get_pixel(xx, yy).a > 0.0:
+					out.set_pixel(x, y, INK)
+					break
+	_cap_tex = ImageTexture.create_from_image(out)
+	return _cap_tex
+
+
+## Total logo width in pixels (letters + 2px spacing).
+static func logo_width() -> int:
+	var w := 0
+	for L in logo_letters():
+		w += int(L.w) + 2
+	return w - 2

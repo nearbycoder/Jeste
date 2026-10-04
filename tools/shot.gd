@@ -27,6 +27,25 @@ func _process(_d: float) -> void:
 		ev.action = "confirm"
 		ev.pressed = true
 		level.dialogue.handle_input(ev)
+	# SHOT_CALL="frame:method[,frame:method]" calls level methods (debug captures)
+	for c in OS.get_environment("SHOT_CALL").split(",", false):
+		var p := c.split(":")
+		if int(p[0]) == frames:
+			if p[1] == "pause":
+				level.paused = true
+				level.hud.open_pause()
+			elif p[1] == "down":
+				var ev := InputEventAction.new()
+				ev.action = "down"
+				ev.pressed = true
+				level.hud.handle_menu_input(ev)
+			elif p[1] == "confirm":
+				var ev := InputEventAction.new()
+				ev.action = "confirm"
+				ev.pressed = true
+				level.hud.handle_menu_input(ev)
+			else:
+				level.call(p[1])
 	if frames == target:
 		var img := get_viewport().get_texture().get_image()
 		if OS.get_cmdline_user_args().has("zoom"):

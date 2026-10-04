@@ -351,13 +351,17 @@ func _handle_event(ev: String) -> void:
 			var wall := feet + Vector2(-world.facing * 5, -5)
 			effects.dust(wall, world.facing, 5)
 			effects.ring(wall, Color(1, 1, 1, 0.8), 8.0, 0.2)
+			Game.rumble(0.15, 0.06)
 		"super", "hyper":
 			Sfx.play("jump", 0.85)
 			effects.dust(feet, world.facing, 8)
 			effects.ring(feet + Vector2(0, -3), player_view.cap_col.lightened(0.4), 14.0, 0.25)
+			Game.rumble(0.3, 0.1)
 		"land":
 			Sfx.play("land", 1.0, -4.0)
 			effects.land(feet, clampf(player_view.prev_vy / 200.0, 0.3, 1.2))
+			if player_view.prev_vy > 180.0:
+				Game.rumble(0.25, 0.07)
 		"dash", "launch":
 			Sfx.play("dash")
 			freeze = 3
@@ -366,6 +370,7 @@ func _handle_event(ev: String) -> void:
 			effects.ring(_pc(), player_view.cap_col.lightened(0.5), 18.0, 0.28)
 			look_kick = Vector2(world.dash_dir_x, world.dash_dir_y) * 6.0
 			post.pulse(0.6)
+			Game.rumble(0.35, 0.12)
 		"refill":
 			Sfx.play("refill", 1.0, -6.0)
 		"gem":
@@ -373,17 +378,20 @@ func _handle_event(ev: String) -> void:
 			effects.sparkle(_pc(), Color("8aff6e"), 10)
 			effects.ring(_pc(), Color("aaffb0"), 16.0, 0.3)
 			effects.burst(_pc(), Color("8aff6e"), 8, 50.0, 0.3)
+			Game.rumble(0.2, 0.08)
 		"spring":
 			room_view.notify_spring()
 			Sfx.play("spring")
 			effects.ring(feet, Color("f2c14e"), 12.0, 0.25)
 			effects.dust(feet, 0.0, 4)
+			Game.rumble(0.4, 0.12)
 		"crumble_back":
 			pass
 		"break":
 			Sfx.play("break")
 			_shake(0.2)
 			effects.debris(Rect2(_pc() - Vector2(12, 12), Vector2(24, 24)), Color("8a7a6a"), 18)
+			Game.rumble(0.6, 0.2)
 		"mask":
 			Sfx.play("mask", 1.0 if world.mask_active == 0 else 0.8)
 		"balloon":
@@ -394,12 +402,14 @@ func _handle_event(ev: String) -> void:
 			_shake(0.1)
 			effects.ring(_pc(), Color("8ab4ff"), 20.0, 0.3)
 			effects.burst(_pc(), Color("ffd27a"), 8, 70.0, 0.3)
+			Game.rumble(0.45, 0.15)
 		"zip_start":
 			Sfx.play("zip_start")
 		"zip_hit":
 			Sfx.play("zip_hit")
 			_shake(0.15)
 			effects.burst(_pc() + Vector2(0, 8), Color("ffd27a"), 10, 80.0, 0.3)
+			Game.rumble(0.5, 0.15)
 		"dream_in":
 			Sfx.play("curtain")
 			effects.sparkle(_pc(), Color("ffd27a"), 8)
@@ -414,6 +424,7 @@ func _handle_event(ev: String) -> void:
 			Sfx.play("door")
 			_shake(0.15)
 			effects.debris(Rect2(_pc() - Vector2(8, 10), Vector2(16, 20)), Color("6b7390"), 10)
+			Game.rumble(0.5, 0.2)
 		"crumble":
 			Sfx.play("crumble", 1.0, -3.0)
 			effects.dust(feet + Vector2(0, 2), 0.0, 3, Color("c8a070"))
@@ -438,6 +449,7 @@ func _handle_event(ev: String) -> void:
 				effects.ring(_pc() + Vector2(0, -10), Color("ffd27a"), 18.0, 0.35)
 				effects.popup(_pc() + Vector2(0, -18), "Sunberry!" if fresh else "Again!")
 				hud.show_berry(Game.berries_in_chapter(chapter_n), chapter.berry_count())
+				Game.rumble(0.3, 0.12)
 				Game.save()
 			elif ev.begins_with("bell:"):
 				var cid := ev.split(":", true, 1)[1]
@@ -447,6 +459,7 @@ func _handle_event(ev: String) -> void:
 				_shake(0.3)
 				hud.show_title("A Jester Bell", "Nana's lost bell rings out", 3.0)
 				effects.burst(_pc(), Color("ffd27a"), 20, 90.0, 0.8)
+				Game.rumble(0.8, 0.4)
 				Game.save()
 			elif ev.begins_with("trigger:"):
 				var sid := _trigger_script(ev.substr(8))
@@ -463,6 +476,7 @@ func _on_death() -> void:
 	mode = "dead"
 	timer = 0.0
 	deaths_this_chapter += 1
+	Game.rumble(0.8, 0.3)
 	if not Game.headless_test:
 		Game.data.total_deaths = int(Game.data.total_deaths) + 1
 		var cd := Game.chapter_data(chapter_n)

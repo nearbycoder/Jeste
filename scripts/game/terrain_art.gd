@@ -371,7 +371,8 @@ static func render(def: RoomDef, tileset: String) -> Dictionary:
 	var fake := Image.create(W, H, false, Image.FORMAT_RGBA8)
 	fg.fill(Color(0, 0, 0, 0))
 	fake.fill(Color(0, 0, 0, 0))
-	var white := _col(st.alt_ramp[6])
+	var cream := []
+	for c in ["3a2a2c", "6e5a5c", "a08c8c", "c8b6b2", "e2d6cc", "f4ece2", "ffffff"]: cream.append(_col(c))
 	for y in H:
 		for x in W:
 			var i := (y + PAD) * w + (x + PAD)
@@ -447,17 +448,22 @@ static func render(def: RoomDef, tileset: String) -> Dictionary:
 				ao = 2
 			s -= mini(ao, ao_max)
 			if pat == "stripe":
-				var stripe := ((x + y) / 4) % 2 == 0
-				var base: Color = r[clampi(s, 1, 5)] if stripe else white.darkened(0.08 * ao)
-				if d == 2 or dn <= 2:
-					base = base.darkened(0.2)
-				_put(fg, fake, m, x, y, base)
+				# glossy candy-cane: shaded red and cream bands with a specular streak
+				var band := posmod(x + y, 10)
+				var stripe := band < 5
+				var rr: Array = r if stripe else cream
+				var ss := s
+				if band == 0 or band == 5:
+					ss -= 1
+				if u <= 3 or (d <= 3 and posmod(x - y, 13) == 0):
+					ss += 1
+				_put(fg, fake, m, x, y, rr[clampi(ss, 1, 6)])
 				continue
 			s += _pattern(pat, x, y)
 			col = r[clampi(s, 1, 6)]
 			_put(fg, fake, m, x, y, col)
 	# --- background walls
-	var bg := _render_bg(def, st)
+	var bg := _render_bg(def, st, tileset)
 	# --- hanging decorations under ceilings
 	var deco := _render_hangers(def, st, solid, w, h, PAD)
 	return {"fg": fg, "fake": fake, "bg": bg, "deco": deco}
@@ -470,18 +476,36 @@ static func _put(fg: Image, fake: Image, m: int, x: int, y: int, c: Color) -> vo
 		fg.set_pixel(x, y, c)
 
 
-static func _render_bg(def: RoomDef, st: Dictionary) -> Image:
+## Interior style per tileset: structure (pillars / beams), windows that open
+## onto the backdrop, and per-style dressing (curtains, bunting, crystals...).
+const BG_STYLE := {
+	"meadow": {"kind": "cabin", "pillar": 96, "pw": 6, "window": "square", "wood": ["1a0e08", "2a170e", "3d2416", "52321e", "6a4428", "855834"]},
+	"town": {"kind": "timber", "pillar": 72, "pw": 5, "beam": 56, "window": "square", "wood": ["0e0a0c", "1a1214", "2a1c1a", "3c2a22", "54392b", "6e4c36"]},
+	"dream": {"kind": "curtain", "pillar": 0, "window": "", "trim": ["3a1a10", "8a5a1e", "f2c94e", "fff0a0"]},
+	"carnival": {"kind": "tent", "pillar": 0, "window": "", "trim": ["3a1a10", "8a5a1e", "f2c94e", "fff0a0"]},
+	"ridge": {"kind": "mine", "pillar": 88, "pw": 5, "window": "", "wood": ["140c06", "24160c", "382414", "4e341e", "684628", "845c36"]},
+	"cathedral": {"kind": "nave", "pillar": 64, "pw": 8, "window": "stained", "wood": ["0a1416", "16282c", "22393e", "324e54", "466a70", "60888e"]},
+	"undertow": {"kind": "cave", "pillar": 0, "window": ""},
+	"summit": {"kind": "ice", "pillar": 0, "window": ""},
+	"village": {"kind": "house", "pillar": 80, "pw": 5, "beam": 0, "window": "arch", "wood": ["160c08", "24140c", "362014", "4a2e1c", "623e26", "7c5232"]},
+}
+
+const BAYER4 := [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
+
+
+static func _render_bg(def: RoomDef, st: Dictionary, tileset: String = "") -> Image:
 	var W := def.w * T
 	var H := def.h * T
 	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
-	var br := []
-	for c in st.bg_ramp: br.append(_col(c))
+	var b0: Array = []
+	for c in st.bg_ramp: b0.append(_col(c))
+	# extended 6-step ramp: 0 deep outline .. 5 lit
+	var br := [b0[0].darkened(0.35), b0[0], b0[1], b0[2], b0[3], b0[3].lightened(0.16)]
 	var is_bg := func(cx: int, cy: int) -> bool:
 		if cx < 0 or cy < 0 or cx >= def.w or cy >= def.h:
 			return false
-		var t := def.cells[cy * def.w + cx]
-		return t == RoomDef.BGWALL or ((t == RoomDef.SOLID or t == RoomDef.SOLID_ALT) and false)
+		return def.cells[cy * def.w + cx] == RoomDef.BGWALL
 	var any := false
 	for t in def.cells:
 		if t == RoomDef.BGWALL:
@@ -489,6 +513,8 @@ static func _render_bg(def: RoomDef, st: Dictionary) -> Image:
 			break
 	if not any:
 		return img
+	var bs: Dictionary = BG_STYLE.get(tileset, {"kind": "", "pillar": 0, "window": ""})
+	var kind: String = bs.kind
 	var w := W
 	var h := H
 	var solid := PackedByteArray()
@@ -501,7 +527,6 @@ static func _render_bg(def: RoomDef, st: Dictionary) -> Image:
 			# bg walls continue behind solids and decorations
 			var on := t == RoomDef.BGWALL
 			if not on and t != RoomDef.EMPTY:
-				# fill behind solids/entities if a neighbour is a bg wall
 				for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 					if is_bg.call(cx + d.x, cy + d.y):
 						on = true
@@ -516,23 +541,304 @@ static func _render_bg(def: RoomDef, st: Dictionary) -> Image:
 					on = n >= 2
 			solid[y * w + x] = 1 if on else 0
 	var dist := _chamfer(solid, w, h, 8)
+	var up := PackedInt32Array()
+	up.resize(w * h)
+	var down := PackedInt32Array()
+	down.resize(w * h)
+	for x in w:
+		var run := 0
+		for y in h:
+			var i := y * w + x
+			run = run + 1 if solid[i] == 1 else 0
+			up[i] = run
+		run = 0
+		for y in range(h - 1, -1, -1):
+			var i := y * w + x
+			run = run + 1 if solid[i] == 1 else 0
+			down[i] = run
+	# ---- windows: placed only inside clean stretches of wall
+	var windows: Array = []   # [Rect2i px]
+	var wtype: String = bs.window
+	if wtype != "":
+		var ww := 2
+		var wh := 4 if wtype == "stained" else 3
+		if wtype == "round":
+			wh = 2
+		var sp: int = bs.get("pillar", 0)
+		for cy in range(1, def.h - wh - 1):
+			for cx in range(1, def.w - ww - 1):
+				var ok := true
+				for yy in range(cy - 1, cy + wh + 2):
+					for xx in range(cx - 1, cx + ww + 1):
+						if not is_bg.call(xx, yy):
+							ok = false
+							break
+					if not ok:
+						break
+				if not ok:
+					continue
+				var px := cx * T
+				if sp > 0:
+					# centred between two pillars
+					var centre := px + ww * T / 2
+					if absi(posmod(centre - sp / 2, sp) - 0) > 4 and absi(posmod(centre - sp / 2, sp) - sp) > 4:
+						continue
+				elif _h(cx, cy, 131) % 4 != 0:
+					continue
+				var r := Rect2i(px, cy * T, ww * T, wh * T)
+				var clash := false
+				for o in windows:
+					var orr: Rect2i = o
+					if orr.grow(T * 3).intersects(r):
+						clash = true
+						break
+				if not clash:
+					windows.append(r)
+	var wood: Array = []
+	for c in bs.get("wood", []): wood.append(_col(c))
+	var sp2: int = bs.get("pillar", 0)
+	var pw: int = bs.get("pw", 6)
+	var beam: int = bs.get("beam", 0)
 	for y in h:
 		for x in w:
 			var i := y * w + x
 			if solid[i] == 0:
 				continue
 			var d := dist[i]
-			var s := 2
+			var u := up[i]
+			var dn := down[i]
+			var bay: int = BAYER4[(y % 4) * 4 + (x % 4)]
+			var s := 3
+			var pal: Array = br
+			var p := 0
+			match kind:
+				"curtain":
+					# heavy velvet folds
+					var f := sin(x * TAU / 12.0 + sin(y * 0.045 + x * 0.01) * 0.8)
+					p = roundi(f * 1.3)
+					if f < -0.85:
+						p = -2
+				"tent":
+					var stripe := (x / 10) % 2 == 0
+					var f := sin(x * TAU / 10.0)
+					p = (0 if stripe else 1) + (1 if f > 0.7 else 0) - (1 if f < -0.8 else 0)
+				"cave":
+					p = _pattern("stone", x, y)
+					if p < -1: p = -1
+				_:
+					p = _pattern(st.bg_pattern, x, y)
+					if p < -1: p = -2
+					elif p > 0: p = 1
+			s += clampi(p, -2, 1)
+			# light falls off toward the ceiling, dithered
+			var t := float(y) / float(H)
+			if t < 0.45 and bay < int((0.45 - t) / 0.45 * 13.0):
+				s -= 1
+			# ceiling shadow and floor shadow
+			if u <= 6 and bay < (7 - u) * 2:
+				s -= 1
+			if dn <= 3:
+				s -= 1
+			# frame edges
 			if d == 1:
 				s = 0
 			elif d == 2:
-				s = 1
-			var p := _pattern(st.bg_pattern, x, y)
-			if p < -1:
-				s -= 1
-			elif p > 0 and d > 2:
-				s += 1
-			img.set_pixel(x, y, br[clampi(s, 0, 3)])
+				s = mini(s, 1)
+			# beams (timber)
+			if beam > 0 and d > 2:
+				var by := posmod(y - 12, beam)
+				if by < 4:
+					pal = wood
+					s = [5, 4, 3, 1][by]
+					if x % 23 == 0 and by in [1, 2]:
+						s = 2
+			# pillars / posts
+			if sp2 > 0 and d > 1 and wood.size() == 6:
+				var xp := posmod(x - sp2 / 2 + pw / 2 - sp2 / 2, sp2)
+				var cap := u <= 3 or dn <= 3
+				if xp < pw or (cap and (xp == sp2 - 1 or xp == pw)):
+					pal = wood
+					var shade := [4, 5, 4, 3, 3, 2, 2, 1]
+					s = shade[clampi(xp if xp < pw else (0 if xp == sp2 - 1 else pw - 1), 0, 7)]
+					if xp >= pw:
+						s = 1
+					if cap:
+						s = 4 if (u == 3 or dn == 4) else 2
+						if u == 1 or dn == 1:
+							s = 0
+					elif kind == "nave" and xp > 0 and xp < pw - 1 and (x + y) % 3 == 0 and xp % 2 == 1:
+						s -= 1   # fluting
+					elif kind != "nave" and _pattern("plank", y, x) < -1:
+						s -= 1   # grain
+				elif xp == pw or xp == pw + 1:
+					s -= 1 if xp == pw or bay < 8 else 0   # cast shadow
+			# light spill below windows
+			for o in windows:
+				if wtype != "stained":
+					break
+				var r: Rect2i = o
+				if x >= r.position.x - 2 and x < r.end.x + 2 and y >= r.end.y + 2 and y < r.end.y + 26:
+					var k := 1.0 - float(y - r.end.y - 2) / 24.0
+					if bay < int(k * 10.0):
+						s += 1
+			img.set_pixel(x, y, pal[clampi(s, 0, 5)])
+	# ---- window panes
+	var frame_ramp: Array = wood if wood.size() == 6 else [br[0], br[1], br[2], br[3], br[4], br[5]]
+	var glass := [_col("e8506a"), _col("4f8ad8"), _col("f2c94e"), _col("4fc8a0"), _col("a066d8")]
+	for o in windows:
+		var r: Rect2i = o
+		var cxw := r.position.x + r.size.x / 2.0 - 0.5
+		var rad := r.size.x / 2.0
+		for y in range(r.position.y - 1, r.end.y + 2):
+			for x in range(r.position.x - 1, r.end.x + 1):
+				var inside: bool
+				var lx := x - r.position.x
+				var ly := y - r.position.y
+				if wtype == "round":
+					var cyw := r.position.y + r.size.y / 2.0 - 0.5
+					var dd := Vector2(x - cxw, y - cyw).length()
+					inside = dd <= rad - 1.0
+					if dd > rad + 0.5:
+						continue
+					if not inside:
+						img.set_pixel(x, y, frame_ramp[1 if dd > rad else (5 if y < cyw else 3)])
+						continue
+				else:
+					var arch := wtype == "arch" or wtype == "stained"
+					var top_ok := true
+					if arch and ly < rad:
+						top_ok = Vector2(x - cxw, y - (r.position.y + rad)).length() <= rad - 0.5
+					inside = lx >= 0 and ly >= 0 and lx < r.size.x and ly < r.size.y and top_ok
+					var outer := lx >= -1 and ly >= -1 and lx <= r.size.x and ly <= r.size.y
+					if arch and ly < rad:
+						outer = Vector2(x - cxw, y - (r.position.y + rad)).length() <= rad + 0.7
+					if not outer:
+						continue
+					if not inside:
+						img.set_pixel(x, y, frame_ramp[1])
+						continue
+					# frame inner rim
+					var rim := lx == 0 or lx == r.size.x - 1 or ly == r.size.y - 1
+					if arch and ly < rad:
+						rim = Vector2(x - cxw, y - (r.position.y + rad)).length() > rad - 1.6
+					elif ly == 0:
+						rim = true
+					if rim:
+						img.set_pixel(x, y, frame_ramp[5] if (lx == 0 or ly <= 1) else frame_ramp[3])
+						continue
+				# pane content
+				if wtype == "stained":
+					var cell := ((lx + ly) / 4 + (lx - ly + 64) / 4) % glass.size()
+					var lead := (lx + ly) % 4 == 0 or (lx - ly + 64) % 4 == 0 or lx == r.size.x / 2
+					if lead:
+						img.set_pixel(x, y, _col("141018"))
+					else:
+						var gc: Color = glass[cell]
+						if (lx + ly * 2) % 7 == 0:
+							gc = gc.lightened(0.35)
+						img.set_pixel(x, y, Color(gc, 0.88))
+				else:
+					var mull := lx == r.size.x / 2 or (wtype != "round" and ly == r.size.y / 2 + (1 if wtype == "arch" else 0))
+					if mull:
+						img.set_pixel(x, y, frame_ramp[3])
+					else:
+						# open glass: mostly clear, a faint diagonal reflection
+						var refl := (lx + ly) % 9 == 0 or (lx + ly) % 9 == 1
+						img.set_pixel(x, y, Color(1, 1, 1, 0.16) if refl else Color(0, 0, 0, 0))
+		# sill
+		if wtype != "round":
+			for x in range(r.position.x - 2, r.end.x + 2):
+				if x >= 0 and x < W and r.end.y + 1 < H:
+					img.set_pixel(x, r.end.y, frame_ramp[5])
+					img.set_pixel(x, r.end.y + 1, frame_ramp[2])
+	# ---- dressing
+	var setb := func(x: int, y: int, c: Color) -> void:
+		if x >= 0 and y >= 0 and x < W and y < H and solid[y * w + x] == 1:
+			img.set_pixel(x, y, c)
+	match kind:
+		"curtain", "tent":
+			# scalloped valance with gold fringe along the top of each wall
+			var trim: Array = []
+			for c in bs.trim: trim.append(_col(c))
+			for x in w:
+				for y in h:
+					var i := y * w + x
+					if solid[i] == 0 or up[i] != 1:
+						continue
+					var depth := 6 + roundi(2.5 * absf(sin(x * PI / 12.0)))
+					for k in depth + 2:
+						var yy := y + k
+						if yy >= h or solid[yy * w + x] == 0:
+							break
+						var c: Color = br[4] if k < 2 else br[3]
+						if k == depth:
+							c = trim[2] if x % 2 == 0 else trim[1]
+						elif k == depth + 1:
+							c = trim[1] if x % 2 == 0 else Color(0, 0, 0, 0)
+							if c.a == 0.0:
+								continue
+						elif k == 0:
+							c = br[1]
+						img.set_pixel(x, yy, c)
+			if kind == "tent":
+				# bunting strung across the hall
+				var hr: Array = []
+				for c in st.hang_ramp: hr.append(_col(c))
+				for x in w:
+					for y in h:
+						var i := y * w + x
+						if solid[i] == 0 or up[i] != 16:
+							continue
+						var tt := posmod(x, 56) / 56.0
+						var yy := y + roundi(sin(tt * PI) * 6.0)
+						setb.call(x, yy, br[0])
+						if posmod(x, 7) == 3:
+							var fc: Color = hr[(x / 7) % hr.size()]
+							for k in range(1, 5):
+								var half: int = [2, 2, 1, 0][k - 1]
+								for dx in range(-half, half + 1):
+									setb.call(x + dx, yy + k, fc if dx <= 0 else fc.darkened(0.25))
+		"cave":
+			# glowing crystal clusters and wet streaks
+			var cr: Array = []
+			for c in st.cap_ramp: cr.append(_col(c))
+			for x in w:
+				if _h(x, 0, 151) % 19 == 0:
+					var y0 := _h(x, 1, 151) % h
+					var ln := 10 + _h(x, 2, 151) % 30
+					for y in range(y0, mini(h, y0 + ln)):
+						var i := y * w + x
+						if solid[i] == 1 and dist[i] > 2 and (y + x) % 3 != 0:
+							img.set_pixel(x, y, br[4])
+			for cy in def.h:
+				for cx in def.w:
+					if not is_bg.call(cx, cy) or _h(cx, cy, 157) % 17 != 0:
+						continue
+					var bx := cx * T + 2 + _h(cx, cy, 158) % 4
+					var by := cy * T + 7
+					for k in 3:
+						var hgt: int = [5, 3, 4][k]
+						var ox: int = [0, -2, 2][k]
+						for yy in hgt:
+							var c: Color = cr[3] if yy > hgt - 3 else cr[2]
+							if yy == 0:
+								c = cr[0]
+							setb.call(bx + ox, by - yy, c)
+							if yy < hgt - 1:
+								setb.call(bx + ox + 1, by - yy, cr[4])
+		"ice":
+			# frozen fracture lines
+			for n in 6:
+				var x := _h(n, def.w, 161) % maxi(W, 1)
+				var y := _h(n, def.h, 163) % maxi(H, 1)
+				for k in 40:
+					if x < 0 or y < 0 or x >= W or y >= H:
+						break
+					var i := y * w + x
+					if solid[i] == 1 and dist[i] > 2:
+						img.set_pixel(x, y, br[5])
+					x += 1 if _h(n, k, 167) % 3 != 0 else 0
+					y += 1 if _h(n, k, 169) % 2 == 0 else 0
 	return img
 
 

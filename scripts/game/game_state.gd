@@ -204,7 +204,7 @@ func default_settings() -> Dictionary:
 	return {
 		"music": 0.7, "sfx": 0.8, "fullscreen": false, "screen_shake": true,
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
-		"invincible": false,
+		"invincible": false, "rumble": true,
 	}
 
 
@@ -236,6 +236,14 @@ func apply_settings() -> void:
 	Engine.time_scale = float(settings.game_speed)
 	var bus := AudioServer.get_bus_index("Master")
 	AudioServer.set_bus_volume_db(bus, 0.0)
+
+
+## Gamepad vibration (weak/strong motors scaled together), if enabled.
+func rumble(strength: float, duration: float) -> void:
+	if headless_test or not bool(settings.get("rumble", true)):
+		return
+	for pad in Input.get_connected_joypads():
+		Input.start_joy_vibration(pad, clampf(strength, 0.0, 1.0), clampf(strength * 0.7, 0.0, 1.0), duration)
 
 
 # ---------------------------------------------------------------- flow

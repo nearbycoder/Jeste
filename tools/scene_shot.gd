@@ -12,6 +12,11 @@ func _ready() -> void:
 	out = a[1]
 	target = int(a[2])
 	for i in range(3, a.size()):
+		if a[i] == "unlock":
+			Game.data = Game.default_save()
+			Game.data.unlocked = 8
+			Game.data.chapters = {"1": {"complete": true, "deaths": 31, "best_time": 512.4, "golden": true}}
+			continue
 		var p := a[i].split("@")
 		presses[int(p[1])] = p[0]
 	node = load(a[0]).instantiate()

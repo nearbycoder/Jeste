@@ -44,6 +44,17 @@ static func draw(ci: CanvasItem, pos: Vector2, text: String, color: Color = Colo
 		x += char_width(c) + 1
 
 
+## Text with a 1px outline on all sides (readable over any background).
+static func draw_outlined(ci: CanvasItem, pos: Vector2, text: String, color: Color, outline: Color) -> void:
+	for d in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1), Vector2(1, 1)]:
+		draw(ci, pos + d, text, outline)
+	draw(ci, pos, text, color)
+
+
+static func draw_centered_outlined(ci: CanvasItem, center_x: float, y: float, text: String, color: Color, outline: Color) -> void:
+	draw_outlined(ci, Vector2(roundi(center_x - width(text) / 2.0), y), text, color, outline)
+
+
 static func draw_centered(ci: CanvasItem, center_x: float, y: float, text: String, color: Color = Color.WHITE, shadow: Color = Color(0, 0, 0, 0)) -> void:
 	draw(ci, Vector2(roundi(center_x - width(text) / 2.0), y), text, color, shadow)
 

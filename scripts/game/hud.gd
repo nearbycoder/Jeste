@@ -31,11 +31,17 @@ var wipe_dir := 1.0
 
 # Pause menu
 var paused := false
-var pause_items := ["Resume", "Retry Room", "Assist", "Return to Map"]
+var pause_items := ["Resume", "Retry Room", "Assist", "Options", "Return to Map"]
 var pause_sel := 0
+var pause_k := 0.0
+var row_k: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var assist_open := false
 var assist_items := ["Game Speed", "Infinite Stamina", "Invincibility", "Back"]
 var assist_sel := 0
+var options_open := false
+var option_items := ["Music Volume", "Sound Volume", "Screen Shake", "Rumble", "Speedrun Timer", "Back"]
+var option_sel := 0
+var results_ticks := 0
 
 # Results
 var results := false
@@ -55,8 +61,21 @@ func _process(delta: float) -> void:
 	room_title_t += delta
 	flash = maxf(flash - delta * 3.0, 0.0)
 	wipe = move_toward(wipe, wipe_target, wipe_speed * delta)
+	pause_k = move_toward(pause_k, 1.0 if paused else 0.0, delta * 7.0)
+	var cur := pause_sel
+	if assist_open:
+		cur = assist_sel
+	elif options_open:
+		cur = option_sel
+	for i in row_k.size():
+		row_k[i] = move_toward(row_k[i], 1.0 if i == cur else 0.0, delta * 9.0)
 	if results:
 		results_t += delta
+		# a soft tick as each stat row lands
+		var n := int(clampf((results_t - 0.55) / 0.25, -1.0, 6.0)) + 1
+		if n > results_ticks and n <= _result_rows().size():
+			results_ticks = n
+			Sfx.play("menu_move", 1.0 + n * 0.08)
 	queue_redraw()
 
 
@@ -82,6 +101,7 @@ func open_pause() -> void:
 	paused = true
 	pause_sel = 0
 	assist_open = false
+	options_open = false
 
 
 func close_pause() -> void:
@@ -92,6 +112,7 @@ func show_results(d: Dictionary) -> void:
 	results = true
 	results_data = d
 	results_t = 0.0
+	results_ticks = 0
 
 
 func handle_menu_input(ev: InputEvent) -> bool:
@@ -131,6 +152,39 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		elif ev.is_action_pressed("back"):
 			assist_open = false
 		return true
+	if options_open:
+		if ev.is_action_pressed("up"):
+			option_sel = (option_sel + option_items.size() - 1) % option_items.size()
+			Sfx.play("menu_move")
+		elif ev.is_action_pressed("down"):
+			option_sel = (option_sel + 1) % option_items.size()
+			Sfx.play("menu_move")
+		elif ev.is_action_pressed("confirm") or ev.is_action_pressed("left") or ev.is_action_pressed("right"):
+			var dir := -1 if ev.is_action_pressed("left") else 1
+			match option_items[option_sel]:
+				"Music Volume":
+					Game.settings.music = clampf(snappedf(float(Game.settings.music) + 0.1 * dir, 0.1), 0.0, 1.0)
+					Sfx.refresh_volume()
+				"Sound Volume":
+					Game.settings.sfx = clampf(snappedf(float(Game.settings.sfx) + 0.1 * dir, 0.1), 0.0, 1.0)
+				"Screen Shake":
+					Game.settings.screen_shake = not Game.settings.screen_shake
+				"Rumble":
+					Game.settings.rumble = not bool(Game.settings.get("rumble", true))
+					if Game.settings.rumble:
+						Game.rumble(0.6, 0.15)
+				"Speedrun Timer":
+					Game.settings.show_timer = not Game.settings.show_timer
+					show_timer = Game.settings.show_timer
+				"Back":
+					if ev.is_action_pressed("confirm"):
+						options_open = false
+			Game.save_settings()
+			Sfx.play("menu_select")
+		elif ev.is_action_pressed("back"):
+			options_open = false
+			Game.save_settings()
+		return true
 	if ev.is_action_pressed("up"):
 		pause_sel = (pause_sel + pause_items.size() - 1) % pause_items.size()
 		Sfx.play("menu_move")
@@ -143,6 +197,9 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		if item == "Assist":
 			assist_open = true
 			assist_sel = 0
+		elif item == "Options":
+			options_open = true
+			option_sel = 0
 		else:
 			pause_choice.emit(item)
 	elif ev.is_action_pressed("back") or ev.is_action_pressed("pause"):
@@ -201,26 +258,48 @@ func _draw() -> void:
 	if wipe > 0.0:
 		_draw_wipe(wipe)
 	# Pause menu
-	if paused:
-		draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.55))
-		if assist_open:
-			_draw_assist()
-		else:
-			var r := Rect2(100, 50, 120, 22 + pause_items.size() * 14)
-			_panel(r)
-			PixelText.draw_centered(self, 160, r.position.y + 6, "PAUSED", Color("f2c14e"))
-			for i in pause_items.size():
-				var sel := i == pause_sel
-				var col := Color.WHITE if sel else Color(0.7, 0.7, 0.8)
-				var txt: String = pause_items[i]
-				if sel:
-					txt = "> " + txt + " <"
-				PixelText.draw_centered(self, 160, r.position.y + 20 + i * 14, txt, col)
-			if level:
-				var info := "Deaths: %d" % level.deaths_this_chapter
-				PixelText.draw_centered(self, 160, r.end.y + 6, info, Color(0.8, 0.8, 0.9), Color(0, 0, 0, 0.8))
+	if pause_k > 0.0:
+		_draw_pause(ease(pause_k, 0.4))
 	if results:
 		_draw_results()
+
+
+func _draw_pause(e: float) -> void:
+	draw_rect(Rect2(0, 0, 320, 180), Color(0.02, 0.01, 0.04, 0.6 * e))
+	if assist_open:
+		_draw_assist(e)
+		return
+	if options_open:
+		_draw_options(e)
+		return
+	var r := Rect2(108, 44 + (1.0 - e) * 10.0, 104, 14 + pause_items.size() * 14)
+	UIKit.panel(self, r, e)
+	UIKit.panel_title(self, r, "PAUSED", e)
+	for i in pause_items.size():
+		UIKit.menu_row(self, r.position.x + 6, r.position.y + 10 + i * 14, r.size.x - 12, pause_items[i], row_k[i], time, e, true)
+	if level:
+		var info := "%s   Deaths %d" % [str(level.chapter.name), level.deaths_this_chapter]
+		PixelText.draw_centered_outlined(self, 160, r.end.y + 8, info, Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
+	var pairs := [["C", "Select"], ["X", "Resume"]]
+	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
+
+
+func _draw_options(e: float) -> void:
+	var r := Rect2(88, 40, 144, 14 + option_items.size() * 12)
+	UIKit.panel(self, r, e)
+	UIKit.panel_title(self, r, "OPTIONS", e)
+	for i in option_items.size():
+		var y := r.position.y + 10 + i * 12
+		UIKit.menu_row(self, r.position.x + 12, y, 120, option_items[i], row_k[i], time, e)
+		var right := Vector2(r.end.x - 10, y)
+		match option_items[i]:
+			"Music Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.music), e)
+			"Sound Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.sfx), e)
+			"Screen Shake": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), e)
+			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
+			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)
+	var pairs := [["Arrows", "Change"], ["X", "Back"]]
+	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
 
 
 func _draw_wipe(k: float) -> void:
@@ -237,47 +316,81 @@ func _draw_wipe(k: float) -> void:
 			draw_colored_polygon(pts, Color("0d0a14"))
 
 
-func _draw_assist() -> void:
-	var r := Rect2(70, 46, 180, 86)
-	_panel(r)
-	PixelText.draw_centered(self, 160, r.position.y + 6, "ASSIST MODE", Color("f2c14e"))
-	var vals := [
-		"%d%%" % int(float(Game.settings.game_speed) * 100.0),
-		"On" if Game.settings.infinite_stamina else "Off",
-		"On" if Game.settings.invincible else "Off",
-		"",
-	]
+func _draw_assist(e: float = 1.0) -> void:
+	var r := Rect2(78, 46, 164, 14 + assist_items.size() * 13)
+	UIKit.panel(self, r, e)
+	UIKit.panel_title(self, r, "ASSIST MODE", e)
 	for i in assist_items.size():
-		var sel := i == assist_sel
-		var col := Color.WHITE if sel else Color(0.7, 0.7, 0.8)
-		var y := r.position.y + 22 + i * 14
-		PixelText.draw(self, Vector2(r.position.x + 12, y), ("> " if sel else "  ") + assist_items[i], col)
-		if vals[i] != "":
-			PixelText.draw(self, Vector2(r.end.x - 12 - PixelText.width(vals[i]), y), vals[i], Color("8ab4ff"))
-	PixelText.draw_centered(self, 160, r.end.y + 6, "Play the way that feels right.", Color(0.8, 0.8, 0.9), Color(0, 0, 0, 0.8))
+		var y := r.position.y + 10 + i * 13
+		UIKit.menu_row(self, r.position.x + 12, y, 140, assist_items[i], row_k[i], time, e)
+		var right := Vector2(r.end.x - 10, y)
+		match i:
+			0:
+				var v := "%d%%" % int(float(Game.settings.game_speed) * 100.0)
+				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
+			1: UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.infinite_stamina), e)
+			2: UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.invincible), e)
+	PixelText.draw_centered_outlined(self, 160, r.end.y + 8, "Play the way that feels right.", Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
+
+
+func _result_rows() -> Array:
+	var d := results_data
+	var rows := []
+	if int(d.get("berry_total", 0)) > 0:
+		rows.append(["berry0", "Sunberries", "%d / %d" % [d.get("berries", 0), d.get("berry_total", 0)]])
+	rows.append(["", "Deaths", str(d.get("deaths", 0))])
+	rows.append(["", "Time", str(d.get("time", ""))])
+	if d.get("has_bell", false):
+		rows.append(["bell0" if d.get("bell", false) else "bell_ghost", "Jester Bell", "Found!" if d.get("bell", false) else "---"])
+	if d.get("golden", false):
+		rows.append(["gold0", "Golden Sunberry", "Carried!"])
+	return rows
 
 
 func _draw_results() -> void:
 	var a := clampf(results_t * 2.0, 0.0, 1.0)
-	draw_rect(Rect2(0, 0, 320, 180), Color(0.04, 0.03, 0.07, 0.85 * a))
+	draw_rect(Rect2(0, 0, 320, 180), Color(0.03, 0.02, 0.06, 0.8 * a))
 	var d := results_data
-	var y := 30.0
-	PixelText.draw_centered(self, 160, y, str(d.get("subtitle", "")), Color(0.95, 0.76, 0.3, a))
-	PixelText.draw_centered(self, 160, y + 12, str(d.get("title", "")), Color(1, 1, 1, a))
-	y += 40
-	var rows := []
-	if int(d.get("berry_total", 0)) > 0:
-		rows.append(["Sunberries", "%d / %d" % [d.get("berries", 0), d.get("berry_total", 0)]])
-	rows.append(["Deaths", str(d.get("deaths", 0))])
-	rows.append(["Time", str(d.get("time", ""))])
-	if d.get("has_bell", false):
-		rows.append(["Jester Bell", "Found!" if d.get("bell", false) else "---"])
-	if d.get("golden", false):
-		rows.append(["Golden Sunberry", "Carried to the end!"])
+	# header: ribbon + chapter name in large type
+	var hk := ease(clampf(results_t * 2.5, 0.0, 1.0), 0.3)
+	var name := str(d.get("title", ""))
+	var sc := 2.0
+	var nw := PixelText.width(name) * sc
+	var hy := 22.0 + (1.0 - hk) * -20.0
+	PixelText.draw_centered_outlined(self, 160, hy, str(d.get("subtitle", "")), Color(UIKit.GOLD, hk), Color(UIKit.INK, hk))
+	draw_set_transform(Vector2(roundf(160 - nw / 2.0), hy + 12), 0, Vector2(sc, sc))
+	PixelText.draw(self, Vector2(1, 1), name, Color(UIKit.INK, hk))
+	PixelText.draw(self, Vector2.ZERO, name, Color(UIKit.CREAM, hk))
+	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+	var lw := (nw + 30.0) * hk
+	draw_rect(Rect2(160 - lw / 2.0, hy + 34, lw, 1), Color(UIKit.GOLD, 0.8 * hk))
+	UIKit.diamond(self, Vector2(160 - lw / 2.0, hy + 34), 2.0, Color(UIKit.GOLD, hk))
+	UIKit.diamond(self, Vector2(160 + lw / 2.0, hy + 34), 2.0, Color(UIKit.GOLD, hk))
+	# stats panel
+	var rows := _result_rows()
+	var pr := Rect2(76, 70, 168, 12 + rows.size() * 15)
+	var pk := clampf((results_t - 0.3) * 3.0, 0.0, 1.0)
+	if pk > 0.0:
+		UIKit.panel(self, pr, pk)
 	for i in rows.size():
-		var reveal := clampf((results_t - 0.4 - i * 0.25) * 4.0, 0.0, 1.0)
-		PixelText.draw(self, Vector2(80, y + i * 14), rows[i][0], Color(0.8, 0.8, 0.9, reveal))
-		PixelText.draw(self, Vector2(240 - PixelText.width(rows[i][1]), y + i * 14), rows[i][1], Color(1, 1, 1, reveal))
-	if results_t > 1.0:
-		var blink := 0.5 + 0.5 * sin(time * 5.0)
-		PixelText.draw_centered(self, 160, 160, "Press Jump to continue", Color(1, 1, 1, blink))
+		var reveal := clampf((results_t - 0.55 - i * 0.25) * 4.0, 0.0, 1.0)
+		if reveal <= 0.0:
+			continue
+		var y := pr.position.y + 9 + i * 15
+		var x := pr.position.x + 10 + (1.0 - ease(reveal, 0.3)) * 16.0
+		var icon: String = rows[i][0]
+		if icon != "":
+			var pop := 1.0 + maxf(0.0, 1.0 - reveal * 1.5) * 0.6
+			draw_set_transform(Vector2(x + 6, y + 3), 0, Vector2(pop, pop))
+			draw_texture_rect_region(Art.objects(), Rect2(-8, -8, 16, 16), Art.obj_rect(icon), Color(1, 1, 1, reveal))
+			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+		else:
+			UIKit.diamond(self, Vector2(x + 6, y + 3), 2.0, Color(UIKit.GOLD, reveal))
+		PixelText.draw(self, Vector2(x + 18, y), rows[i][1], Color(UIKit.MUTED, reveal))
+		var v: String = rows[i][2]
+		var vc := UIKit.GOLD if icon == "gold0" else Color.WHITE
+		PixelText.draw_outlined(self, Vector2(pr.end.x - 10 - PixelText.width(v), y), v, Color(vc, reveal), Color(UIKit.INK, reveal))
+	if results_t > 1.0 + rows.size() * 0.25:
+		var blink := 0.65 + 0.35 * sin(time * 5.0)
+		var pairs := [["C", "Continue"]]
+		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 162), pairs, blink)
