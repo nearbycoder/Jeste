@@ -1,33 +1,38 @@
 # Jeste level verification report
 
-Generated 2026-10-03 23:59:36
+Generated 2026-10-04 00:06:48
 
-## Chapter 6: Undertow - PASS
+## Chapter 7: The Summit - PASS
 - End reachable from start: yes
-- Collectibles proven: 9/9
+- Collectibles proven: 14/14
 
 ## Route robustness
 Share of random 1-frame timing slips that still clear each task (lower = tighter timing).
 
 | task | frames | robustness |
 |---|---|---|
-| `6_6-01_s0_collect` | 121 | 17% |
-| `6_6-04s_s0_collect` | 294 | 21% |
-| `6_6-02_s0_collect` | 195 | 33% |
-| `6_6-06_s0_collect` | 159 | 46% |
-| `6_6-06_s0_to_6-07` | 187 | 46% |
-| `6_6-03_s0_collect` | 231 | 54% |
-| `6_6-02_s0_to_6-03` | 152 | 67% |
-| `6_6-01_s0_to_6-02` | 106 | 75% |
-| `6_6-03_s0_to_6-04` | 104 | 75% |
-| `6_6-07_s0_to_end` | 200 | 83% |
-| `6_6-04_s0_collect` | 163 | 100% |
-| `6_6-04_s0_to_6-04s` | 10 | 100% |
-| `6_6-04_s0_to_6-05` | 138 | 100% |
-| `6_6-04s_s0_to_6-04` | 4 | 100% |
-| `6_6-05_s0_to_6-06` | 120 | 100% |
+| `7_7-09_s0_to_end` | 65 | 33% |
+| `7_7-08_s0_collect` | 218 | 38% |
+| `7_7-06_s0_collect` | 177 | 42% |
+| `7_7-05_s0_to_7-06` | 119 | 46% |
+| `7_7-03_s0_collect` | 199 | 50% |
+| `7_7-01_s0_collect` | 180 | 54% |
+| `7_7-04_s0_collect` | 219 | 62% |
+| `7_7-01_s0_to_7-02` | 99 | 71% |
+| `7_7-02_s0_collect` | 152 | 71% |
+| `7_7-08_s0_to_7-09` | 197 | 71% |
+| `7_7-07_s0_to_7-08` | 93 | 75% |
+| `7_7-07_s0_collect` | 102 | 83% |
+| `7_7-05_s0_to_7-05s` | 76 | 92% |
+| `7_7-05s_s0_collect` | 167 | 96% |
+| `7_7-02_s0_to_7-03` | 128 | 100% |
+| `7_7-03_s0_to_7-04` | 154 | 100% |
+| `7_7-04_s0_to_7-05` | 137 | 100% |
+| `7_7-05_s0_collect` | 137 | 100% |
+| `7_7-05s_s0_to_7-05` | 11 | 100% |
+| `7_7-06_s0_to_7-07` | 85 | 100% |
 
 ## End-to-end playthroughs
-- Chapter 6: PASS - 9 room visits, 1493 frames (24.9s), deaths 0, collected 8, golden carried to the end
+- Chapter 7: PASS - 11 room visits, 1692 frames (28.2s), deaths 0, collected 13, golden carried to the end
 
 **Overall: PASS**  (2s)

@@ -252,11 +252,11 @@ func _draw_results() -> void:
 	PixelText.draw_centered(self, 160, y, str(d.get("subtitle", "")), Color(0.95, 0.76, 0.3, a))
 	PixelText.draw_centered(self, 160, y + 12, str(d.get("title", "")), Color(1, 1, 1, a))
 	y += 40
-	var rows := [
-		["Sunberries", "%d / %d" % [d.get("berries", 0), d.get("berry_total", 0)]],
-		["Deaths", str(d.get("deaths", 0))],
-		["Time", str(d.get("time", ""))],
-	]
+	var rows := []
+	if int(d.get("berry_total", 0)) > 0:
+		rows.append(["Sunberries", "%d / %d" % [d.get("berries", 0), d.get("berry_total", 0)]])
+	rows.append(["Deaths", str(d.get("deaths", 0))])
+	rows.append(["Time", str(d.get("time", ""))])
 	if d.get("has_bell", false):
 		rows.append(["Jester Bell", "Found!" if d.get("bell", false) else "---"])
 	if d.get("golden", false):

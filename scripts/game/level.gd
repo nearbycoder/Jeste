@@ -402,7 +402,9 @@ func _on_death() -> void:
 		_respawn()
 		return
 	Sfx.play("death")
-	effects.death(_pc(), player_view.cap_col)
+	var dp := _pc()
+	dp.y = minf(dp.y, room.h * 8.0 - 10.0)
+	effects.death(dp, player_view.cap_col)
 	player_view.visible_player = false
 	_shake(0.3)
 
