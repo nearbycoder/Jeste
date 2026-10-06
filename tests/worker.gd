@@ -69,24 +69,35 @@ func _replay(def: RoomDef, spawn: int, dashes: int, inputs: PackedByteArray) -> 
 	return {"dead": wd.dead, "exited": wd.exited, "exit_target": wd.exit_target, "end": wd.end_reached, "collected": collected, "tech": tech}
 
 
-## Share of 1-frame timing slips (a frame inserted somewhere in the route)
-## that still clear the task. Low values flag routes needing precise timing.
-func _robustness(def: RoomDef, job: Dictionary, dashes: int, inputs: PackedByteArray) -> float:
+## Timing-slip scores for a route. "robustness": share of 1-frame slips (a
+## frame inserted somewhere) that still clear the task; low values flag routes
+## needing precise timing, though an open-loop replay can't correct course the
+## way a player does. "lethal": share of slips (a frame inserted or dropped)
+## that kill, i.e. how close the route runs to hazards.
+func _robustness(def: RoomDef, job: Dictionary, dashes: int, inputs: PackedByteArray) -> Dictionary:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(str(job.id))
 	var ok := 0
+	var dead := 0
 	var trials := 24
-	for t in trials:
-		var at := rng.randi_range(0, maxi(inputs.size() - 1, 0))
-		var mod := inputs.slice(0, at)
-		mod.append(inputs[at] if at < inputs.size() else 0)
-		mod.append_array(inputs.slice(at))
-		# allow a few extra frames to finish
-		for k in 30:
-			mod.append(inputs[inputs.size() - 1] if not inputs.is_empty() else 0)
-		if _check(job, _replay(def, int(job.spawn), dashes, mod)):
-			ok += 1
-	return float(ok) / trials
+	for drop in [false, true]:
+		for t in trials:
+			var at := rng.randi_range(0, maxi(inputs.size() - 1, 0))
+			var mod := inputs.slice(0, at)
+			if drop:
+				mod.append_array(inputs.slice(at + 1))
+			else:
+				mod.append(inputs[at] if at < inputs.size() else 0)
+				mod.append_array(inputs.slice(at))
+			# allow a few extra frames to finish
+			for k in 30:
+				mod.append(inputs[inputs.size() - 1] if not inputs.is_empty() else 0)
+			var rep := _replay(def, int(job.spawn), dashes, mod)
+			if rep.dead:
+				dead += 1
+			elif not drop and _check(job, rep):
+				ok += 1
+	return {"robustness": float(ok) / trials, "lethal": float(dead) / (trials * 2)}
 
 
 func _run(job: Dictionary, verify_only: bool, budget: int) -> Dictionary:
@@ -106,7 +117,7 @@ func _run(job: Dictionary, verify_only: bool, budget: int) -> Dictionary:
 			res.frames = inputs.size()
 			res.exit_target = "end" if rep.end else rep.exit_target
 			res.collected = rep.collected
-			res.robustness = _robustness(def, job, ch.dashes, inputs)
+			res.merge(_robustness(def, job, ch.dashes, inputs))
 			return res
 	if verify_only:
 		res["error"] = "no valid cached solution"
@@ -133,7 +144,7 @@ func _run(job: Dictionary, verify_only: bool, budget: int) -> Dictionary:
 			res.frames = s.solution.size()
 			res.exit_target = "end" if rep.end else rep.exit_target
 			res.collected = rep.collected
-			res.robustness = _robustness(def, job, ch.dashes, s.solution)
+			res.merge(_robustness(def, job, ch.dashes, s.solution))
 		else:
 			res["error"] = "solution failed replay: " + JSON.stringify(rep)
 	else:

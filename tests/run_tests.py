@@ -362,20 +362,22 @@ def main():
                 print(f"     missing: {cid}")
                 lines.append(f"  - NOT PROVEN: `{cid}`")
     lines.append("")
-    brob = sorted(((r.get("robustness", 1.0), r["id"], r.get("frames", 0)) for r in basic_results.values()
+    brob = sorted(((-r.get("lethal", 0.0), r.get("robustness", 1.0), r["id"], r.get("frames", 0)) for r in basic_results.values()
                    if r.get("ok") and "_to_" in r["id"]))
     if brob:
         lines.append("### Room traversals, basic-moveset routes")
-        lines.append("Robustness of the route through each room (start to exit, no collectibles) with the basic moveset. "
-                     "This is the difficulty proxy used for tuning: the lowest rows are the rooms most likely to feel tight.")
+        lines.append("Each room's route from entry to exit (no collectibles) with the basic moveset, under random 1-frame "
+                     "timing slips. *Lethal* is the share of slips that kill: how close the route runs to hazards, and the "
+                     "difficulty proxy used for tuning. *Clears* is the share of inserted-frame slips that still finish "
+                     "without correction (an open-loop replay can't steer the way a player does).")
         lines.append("")
-        lines.append("| task | frames | robustness |")
-        lines.append("|---|---|---|")
-        for v, tid, fr in brob:
-            lines.append(f"| `{tid}` | {fr} | {v * 100:.0f}% |")
+        lines.append("| task | frames | lethal | clears |")
+        lines.append("|---|---|---|---|")
+        for nl, v, tid, fr in brob:
+            lines.append(f"| `{tid}` | {fr} | {-nl * 100:.0f}% | {v * 100:.0f}% |")
         lines.append("")
-        avg = sum(v for v, _, _ in brob) / len(brob)
-        print(f"  basic traversal robustness: average {avg * 100:.0f}%, tightest {brob[0][1]} {brob[0][0] * 100:.0f}%")
+        avg = sum(-nl for nl, _, _, _ in brob) / len(brob)
+        print(f"  basic traversal lethality: average {avg * 100:.0f}%, highest {brob[0][2]} {-brob[0][0] * 100:.0f}%")
     for r in basic_results.values():
         if not r.get("ok"):
             print(f"  unsolved (basic): {r['id']}: {r.get('error', '')}")

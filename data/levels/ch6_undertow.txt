@@ -195,7 +195,7 @@ triggers = 1:ch6_find
 ; The Grin gives chase - lashing out, terrified of being let go.
 === 6-06
 exits = top[2-7]:6-07
-chase = 45
+chase = 60
 music = chase
 title = Don't look back
 ---

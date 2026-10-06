@@ -227,7 +227,7 @@ data/story/        cutscene scripts
 assets/            generated art (PNG) and audio (Ogg / WAV), see tools/
 tools/             art + audio generators, debug renderers, demo reel
 tools/trailer/     trailer pipeline: shot recorder, cards, caption plates, ffmpeg assembly
-tests/             verification suite, cached solver solutions, proven routes
+tests/             verification suite, cached solver solutions (fastest and basic-moveset), proven routes
 docs/media/        trailer, teaser, poster and screenshots used by this README
 ```
 
@@ -261,7 +261,9 @@ Room headers set `exits` (e.g. `right:1-02 top[3-8]:1-03b`), `wind`, `dashes`, `
   across parallel headless Godot workers. The suite then proves that every chapter's end is
   reachable and that every collectible can be taken on a route that still finishes. It
   plays each chapter end-to-end through the real `Level` scene with zero deaths, which also
-  proves every golden run. It also scores each route's tolerance to 1-frame timing slips.
+  proves every golden run. It repeats the proofs with the basic moveset only, since the
+  solver's fastest routes lean on supers and hypers the game never teaches, and scores each
+  room's route for how often a 1-frame timing slip is fatal (`tools/slip_deaths.gd` shows where).
 - **Procedural art.** Characters are rigged "paper dolls": hand-drawn ASCII heads and
   torsos with procedurally posed limbs, 34 animation frames each. Terrain is painted per
   pixel from the collision map on worker threads, with bevel, ambient occlusion, material
@@ -295,9 +297,11 @@ and credits. It is a first release, so expect rough edges.
 - **Gamepad support** (bindings, prompts, rumble, analog-stick menu navigation) was exercised
   with simulated input, not on a range of physical controllers. Controller families are
   recognised by the name the pad reports, so an unusual pad may show Xbox button names.
-- **Difficulty was tuned against a bot.** Every room is proven possible, but human-feel
-  playtesting has been light, so some rooms may feel tighter than intended. Assist mode is
-  there for that.
+- **Difficulty was tuned against a bot.** Every room is proven possible, now also with the
+  basic moveset alone (no supers, hypers or wall-bounces, which the game never teaches), and
+  the three rooms where small timing slips were most often fatal were eased (2-03, 6-06,
+  7-05; the trailer predates these edits). Human-feel playtesting is still light, so some rooms may feel tighter than intended.
+  Assist mode is there for that.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
   default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
