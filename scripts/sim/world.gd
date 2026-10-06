@@ -253,6 +253,16 @@ var chase_delay: int = 0
 var chase_hist := PackedInt32Array()   # x,y pairs per frame since room start
 var chase_active := false
 
+# View only (never read by the simulation): positions as they were one physics
+# tick ago, so the renderer can draw between steps (Smooth Motion). The level
+# calls snap_prev() once per tick before stepping; view_alpha is how far the
+# current frame is between that snapshot (0) and the latest step (1).
+var prev_x: int = 0
+var prev_y: int = 0
+var prev_zip := PackedInt32Array()
+var prev_chaser := Vector2i(-1000, -1000)
+var view_alpha := 1.0
+
 
 # ======================================================================
 # Room loading
@@ -429,6 +439,7 @@ func reset_room() -> void:
 	events = PackedStringArray()
 	chase_hist = PackedInt32Array()
 	chase_active = false
+	snap_prev()
 
 
 func _rebuild_dynamic_solids() -> void:
@@ -1768,6 +1779,35 @@ func _carry_y(m: int) -> bool:
 # ======================================================================
 # Queries for rendering / tests
 # ======================================================================
+
+func snap_prev() -> void:
+	prev_x = x
+	prev_y = y
+	prev_zip = zip_px.duplicate()
+	prev_chaser = chaser_pos()
+
+
+## Where to draw the player relative to the simulated position (zero when
+## Smooth Motion is off, or when the frame lines up with a step).
+func view_offset() -> Vector2:
+	if view_alpha >= 1.0:
+		return Vector2.ZERO
+	return Vector2(prev_x - x, prev_y - y) * (1.0 - view_alpha)
+
+
+func zip_view_pos(i: int) -> Vector2:
+	var cur := Vector2(zip_px[i * 2], zip_px[i * 2 + 1])
+	if view_alpha >= 1.0 or prev_zip.size() != zip_px.size():
+		return cur
+	return Vector2(prev_zip[i * 2], prev_zip[i * 2 + 1]).lerp(cur, view_alpha)
+
+
+func chaser_view_pos() -> Vector2:
+	var cur := Vector2(chaser_pos())
+	if view_alpha >= 1.0 or prev_chaser.x <= -1000:
+		return cur
+	return Vector2(prev_chaser).lerp(cur, view_alpha)
+
 
 func player_center() -> Vector2:
 	return Vector2(x + PW * 0.5 + rx, y + PH * 0.5 + ry)

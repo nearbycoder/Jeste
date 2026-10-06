@@ -148,7 +148,7 @@ func reset_tails() -> void:
 func _feet() -> Vector2:
 	if is_grin:
 		return ghost_pos + Vector2(4, 11)
-	return Vector2(world.x + 4, world.y + 11 + settle_y)
+	return Vector2(world.x + 4, world.y + 11 + settle_y) + world.view_offset()
 
 
 func _facing() -> int:

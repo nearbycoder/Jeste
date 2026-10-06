@@ -11,6 +11,7 @@ var wait := 0
 var failed := ""
 var music_before := 0.0
 var skip_id := ""
+var speed_from := 0
 
 
 func _ready() -> void:
@@ -61,6 +62,10 @@ func _ready() -> void:
 		["check", "window_auto", 0],
 		["press", "right", 4], ["check", "window_2x", 0],
 		["press", "left", 4], ["check", "window_auto", 0],
+		["press", "down", 4], ["check", "smooth_auto", 0],       # Smooth Motion: Auto -> On -> Off -> Auto
+		["press", "right", 4], ["check", "smooth_on", 0],
+		["press", "right", 4], ["check", "smooth_off", 0],
+		["press", "right", 4], ["check", "smooth_auto", 0],
 		["press", "down", 4], ["press", "confirm", 4],           # toggles Screen Shake
 		["press", "down", 4], ["press", "confirm", 4],           # Reduce Flashing
 		["check", "reduced_flashing", 0],
@@ -115,6 +120,8 @@ func _ready() -> void:
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
 		["check", "unpaused", 0],
 		["check", "ghost_running", 0],
+		["speed", "0.5", 40], ["check", "half_speed", 0],        # Game Speed 50% = half the simulation steps
+		["speed", "1.0", 40], ["check", "full_speed", 0],
 		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost off
 		["check", "ghost_off", 0],
@@ -249,6 +256,10 @@ func _process(_d: float) -> void:
 				wait = 2
 		"hold_wait":
 			pass
+		"speed":
+			get_node("/root/Game").settings.game_speed = float(s[1])
+			Engine.time_scale = float(s[1])
+			speed_from = cur.world.frame
 		"set_opt0":
 			cur.opt_sel = 0
 		"mark_music":
@@ -269,6 +280,11 @@ func _process(_d: float) -> void:
 				"title_sel_1": ok = cur.sel == 1
 				"reduced_flashing": ok = bool(get_node("/root/Game").settings.reduce_flashing) and is_equal_approx(get_node("/root/Game").flash_scale(), 0.2)
 				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
+				"smooth_auto": ok = cur.OPTIONS[cur.opt_sel] == "Smooth Motion" and str(get_node("/root/Game").settings.smooth_motion) == "auto" \
+					and get_node("/root/Game").smooth_motion_label().begins_with("Auto")
+				"smooth_on": ok = get_node("/root/Game").smooth_motion() and get_node("/root/Game").smooth_motion_label() == "On" \
+					and is_zero_approx(Engine.physics_jitter_fix)
+				"smooth_off": ok = not get_node("/root/Game").smooth_motion() and get_node("/root/Game").smooth_motion_label() == "Off"
 				"window_2x": ok = int(get_node("/root/Game").settings.window_scale) == 2 and get_node("/root/Game").window_scale_label() == "2x"
 				"title_sel_0": ok = cur.sel == 0
 				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
@@ -285,6 +301,8 @@ func _process(_d: float) -> void:
 					skip_id = cur.dialogue.script_id
 				"skipped": ok = not cur.dialogue.active and cur.mode == "play" and skip_id != "" and get_node("/root/Game").has_seen(skip_id) and not cur.paused
 				"held_down": ok = Input.is_action_pressed("down") and cur.sel == 1
+				"half_speed": ok = absi(cur.world.frame - speed_from - 20) <= 1 and cur.mode == "play"
+				"full_speed": ok = absi(cur.world.frame - speed_from - 40) <= 1 and cur.mode == "play"
 				"pause_sel_1": ok = cur.hud.pause_sel == 1
 				"music_one_step": ok = is_equal_approx(float(get_node("/root/Game").settings.music), minf(music_before + 0.1, 1.0))
 				"helpers":
@@ -295,7 +313,11 @@ func _process(_d: float) -> void:
 						and g.pad_button_name(JOY_BUTTON_X, "playstation") == "Square" and g.pad_label("grab") == "RB" \
 						and g.fit_scales(Vector2i(3840, 2160)) == [11, 9] and g.fit_scales(Vector2i(1920, 1080)) == [5, 4] \
 						and g.fit_scales(Vector2i(1366, 768)) == [4, 3] and g.fit_scales(Vector2i(2560, 1440)) == [7, 6] \
-						and g.fit_scales(Vector2i(800, 600)) == [2, 2] and g.fit_scales(Vector2i(500, 300)) == [1, 1]
+						and g.fit_scales(Vector2i(800, 600)) == [2, 2] and g.fit_scales(Vector2i(500, 300)) == [1, 1] \
+						and g.smooth_wanted("auto", 144.0, 1.0) and g.smooth_wanted("auto", 165.0, 1.0) and g.smooth_wanted("auto", 75.0, 1.0) \
+						and not g.smooth_wanted("auto", 60.0, 1.0) and not g.smooth_wanted("auto", 119.98, 1.0) and not g.smooth_wanted("auto", 59.94, 1.0) \
+						and not g.smooth_wanted("auto", 240.0, 1.0) and not g.smooth_wanted("auto", -1.0, 1.0) and g.smooth_wanted("auto", 60.0, 0.5) \
+						and g.smooth_wanted("on", 60.0, 1.0) and not g.smooth_wanted("off", 144.0, 0.5)
 				"controls": ok = cur.screen == "controls"
 				"jump_is_n": ok = get_node("/root/Game").key_label("jump") == "N"
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"

@@ -423,7 +423,7 @@ func default_settings() -> Dictionary:
 		"music": 0.7, "sfx": 0.8, "fullscreen": false, "screen_shake": true,
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
-		"reduce_flashing": false, "route_ghost": false,
+		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto",
 	}
 
 
@@ -455,6 +455,8 @@ func apply_settings() -> void:
 		if not OS.has_feature("web"):
 			_apply_window_size()
 	Engine.time_scale = float(settings.game_speed)
+	update_refresh_rate()
+	apply_smooth_motion()
 	var bus := AudioServer.get_bus_index("Master")
 	AudioServer.set_bus_volume_db(bus, 0.0)
 
@@ -523,6 +525,58 @@ func _apply_window_size() -> void:
 	DisplayServer.window_set_size(want)
 	var scr := DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen())
 	DisplayServer.window_set_position(scr.position + (scr.size - want) / 2)
+
+
+# ---------------------------------------------------------------- smooth motion
+
+const SMOOTH_MODES := ["auto", "on", "off"]
+var refresh_rate := -1.0       # display refresh in Hz (-1 = unknown), see update_refresh_rate()
+
+
+func update_refresh_rate() -> void:
+	refresh_rate = -1.0
+	if DisplayServer.get_name() != "headless":
+		refresh_rate = DisplayServer.screen_get_refresh_rate(DisplayServer.window_get_current_screen())
+
+
+## Whether to draw between the 60 Hz simulation steps. Auto does it only when
+## steps can't land evenly on frames: a refresh rate that isn't a multiple of
+## 60 Hz (144, 165, 75...) or a Game Speed below 100%. On 60/120/240 Hz screens
+## at full speed every step already gets the same number of frames, so drawing
+## the latest step as-is stays smooth and adds no latency.
+static func smooth_wanted(mode: String, refresh: float, speed: float) -> bool:
+	match mode:
+		"on": return true
+		"off": return false
+	if speed < 0.999:
+		return true
+	if refresh <= 0.0:
+		return false
+	var k := refresh / 60.0
+	return absf(k - roundf(k)) > 0.02 or k < 0.98
+
+
+func smooth_motion() -> bool:
+	return smooth_wanted(str(settings.get("smooth_motion", "auto")), refresh_rate, float(settings.get("game_speed", 1.0)))
+
+
+func smooth_motion_label() -> String:
+	var m := str(settings.get("smooth_motion", "auto"))
+	if m == "auto":
+		return "Auto (%s)" % ("On" if smooth_motion() else "Off")
+	return m.capitalize()
+
+
+func step_smooth_motion(d: int) -> void:
+	var i := SMOOTH_MODES.find(str(settings.get("smooth_motion", "auto")))
+	settings.smooth_motion = SMOOTH_MODES[posmod(maxi(i, 0) + d, SMOOTH_MODES.size())]
+	apply_smooth_motion()
+
+
+## Godot's jitter fix nudges ticks onto frame boundaries, which helps when the
+## latest step is drawn as-is but fights interpolation, so it's only on then.
+func apply_smooth_motion() -> void:
+	Engine.physics_jitter_fix = 0.0 if smooth_motion() else 0.5
 
 
 ## Multiplier for full-screen flashes and the impact shimmer (accessibility).

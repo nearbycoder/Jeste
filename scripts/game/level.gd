@@ -61,6 +61,8 @@ var nudged := {}
 const GHOST_NUDGE_DEATHS := 10
 static var _hints := {}
 var full_run := true            # started at the chapter start in this session (may set Best)
+var sim_acc := 0.0              # Game Speed: simulation steps owed (one per 1.0)
+var tap_hold := 0               # jump / dash presses seen between two steps
 
 
 func _ready() -> void:
@@ -80,6 +82,8 @@ func _ready() -> void:
 	_load_room(start_room, Game.pending_spawn if Game.pending_room != "" else 0)
 	cam_center = _cam_target()
 	if not fast:
+		Game.update_refresh_rate()   # the window may have moved to another screen
+		Game.apply_smooth_motion()
 		if start_room == chapter.start:
 			hud.show_title(chapter.name, Game.CHAPTER_TITLES[chapter_n] if chapter_n < Game.CHAPTER_TITLES.size() else "")
 		Sfx.play_music(chapter.music)
@@ -354,10 +358,26 @@ func cutscene_command(cmd: String, args: Array) -> float:
 # ---------------------------------------------------------------- main loop
 
 func _physics_process(_delta: float) -> void:
-	if fast or paused:
+	if fast:
 		return
+	if paused:
+		_snap_views()
+		sim_acc = 0.0
+		return
+	# Godot keeps ticking physics at 60 Hz whatever Engine.time_scale is (only
+	# the delta shrinks), so Game Speed is applied here: at 50% the simulation
+	# steps on every other tick. Presses that start and end between two steps
+	# are carried to the next one so a quick tap isn't lost.
+	var inp := Game.read_input()
+	tap_hold |= inp & (World.IN_JUMP | World.IN_DASH)
+	sim_acc += clampf(Engine.time_scale, 0.05, 1.0)
+	if sim_acc < 1.0:
+		return
+	sim_acc -= 1.0
+	_snap_views()
+	inp |= tap_hold
+	tap_hold = 0
 	if mode == "play":
-		var inp := Game.read_input()
 		if freeze > 0:
 			freeze -= 1
 			return
@@ -365,6 +385,14 @@ func _physics_process(_delta: float) -> void:
 			inp = replay[replay_pos]
 			replay_pos += 1
 		sim_tick(inp)
+
+
+## Smooth Motion draws between this snapshot and the next step. Taken before
+## every step (stepped or not), so anything that doesn't move holds still.
+func _snap_views() -> void:
+	world.snap_prev()
+	if ghost_world:
+		ghost_world.snap_prev()
 
 
 ## One fixed simulation step with the given input bits.
@@ -707,6 +735,7 @@ func _on_pause_choice(choice: String) -> void:
 			if bool(Game.settings.get("route_ghost", false)) != (ghost_world != null):
 				_reset_ghost()
 			Engine.time_scale = float(Game.settings.game_speed)
+			Game.apply_smooth_motion()
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -728,7 +757,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 # ---------------------------------------------------------------- per-frame visuals
 
 func _cam_target() -> Vector2:
-	var pc := _pc() + look_ahead
+	var pc := _pc() + world.view_offset() + look_ahead
 	var w := room.w * 8.0
 	var h := room.h * 8.0
 	var tx := w / 2.0 if w <= 320.0 else clampf(pc.x, 160.0, w - 160.0)
@@ -739,6 +768,13 @@ func _cam_target() -> Vector2:
 func _process(delta: float) -> void:
 	if fast:
 		return
+	# how far this frame is between the last two steps, in simulation steps
+	var alpha := 1.0
+	if Game.smooth_motion() and not paused:
+		alpha = minf(sim_acc + Engine.get_physics_interpolation_fraction() * clampf(Engine.time_scale, 0.05, 1.0), 1.0)
+	world.view_alpha = alpha
+	if ghost_world:
+		ghost_world.view_alpha = alpha
 	if not paused:
 		if pending_script != "":
 			script_delay -= delta
@@ -891,14 +927,13 @@ func _update_grin() -> void:
 	if room == null or room.chase_delay <= 0 or not world.chase_active or mode == "dead":
 		grin_view.visible = false
 		return
-	var p := world.chaser_pos()
 	var n := vis_hist.size()
 	var i := n - 1 - room.chase_delay
 	if i < 0:
 		grin_view.visible = false
 		return
 	grin_view.visible = true
-	grin_view.ghost_pos = Vector2(p)
+	grin_view.ghost_pos = world.chaser_view_pos()
 	grin_view.ghost_frame = vis_hist[i] >> 1
 	grin_view.ghost_flip = (vis_hist[i] & 1) == 1
 	grin_view.position = player_view.position

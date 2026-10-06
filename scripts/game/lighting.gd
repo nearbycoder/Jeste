@@ -57,7 +57,7 @@ func _draw() -> void:
 	var flick := 0.85 + 0.15 * sin(time * 11.0) * sin(time * 7.3)
 	# player
 	if player_view and player_view.visible_player:
-		var pc := world.player_center() + player_view.position - position
+		var pc := world.player_center() + world.view_offset() + player_view.position - position
 		var dashing := world.state == World.ST_DASH or world.state == World.ST_DREAM
 		_light(pc, 26.0 if dashing else 18.0, player_view.cap_col, 0.30 if dashing else 0.14)
 		if player_view.flash > 0.1:

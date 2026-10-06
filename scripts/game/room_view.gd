@@ -537,8 +537,9 @@ func _draw_zips() -> void:
 		draw_line(a + Vector2(0, 1), b + Vector2(0, 1), Color("1c1424"), 1.0)
 		draw_circle(a, 3, Color("3a3f52"))
 		draw_circle(b, 3, Color("3a3f52"))
-		var x := world.zip_px[i * 2]
-		var y := world.zip_px[i * 2 + 1]
+		var zp := world.zip_view_pos(i).round()
+		var x := zp.x
+		var y := zp.y
 		var moving := world.zip_phase[i] != World.Z_IDLE
 		var body := Rect2(x, y, zw, zh)
 		draw_rect(body, Color("1c1424"))
