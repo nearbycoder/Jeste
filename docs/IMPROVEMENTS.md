@@ -252,3 +252,43 @@ Not picked:
   key, swapping on conflicts. Prompts show the bound button.
 - **Accept and verify:** ui_flow rebinds Jump to a pad button with a simulated press, then
   checks the InputMap and the prompt label, and that Reset Defaults restores the pad defaults.
+
+## Round 2 results (2026-10-06)
+
+All commits are on `improvements-2`; nothing has been pushed. The full suite passes after every
+item: fastest-route and basic-moveset proofs for all 9 chapters, golden runs, end-to-end
+playthroughs, the menu flow and the new hint replay check. Screenshots are in
+`docs/media/improvements/round2/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Hold-to-repeat in menus | Done | `8c50afc` | ui_flow holds a D-pad button, a key and the stick for 40 frames (4–6 steps each) and checks a tap is exactly one step. It fails with repeat disabled (one step). The round-1 single-push stick checks still pass. |
+| B. Hold Pause to skip a cutscene | Done | `a660d55` | ui_flow holds Esc in the first cutscene, checks it is still running at 10 frames and back in play, unpaused, at 50. Skipping runs the same path as fast mode, which the end-to-end playthroughs exercise in every chapter. Screenshot: `cutscene_hold_to_skip.png`. |
+| C. Route Ghost assist | Done | `26150dc` | The suite writes `data/hints.json` (71 entries, every reachable room/spawn) and fails on a gap. `tests/hints_check.gd` replays every shipped hint to its exit with no advanced tech, and flags a deliberately corrupted entry. ui_flow turns it on, checks the ghost is visible and advancing in its own World, then turns it off. The exported Linux PCK stores `res://data/hints.json`. Screenshots: `route_ghost_2-03.png`, `route_ghost_7-05.png`. |
+| D. Next most lethal rooms | **No change** | none | See below. |
+| E. Pad rebinding (stretch) | Done | `0fb7ebe` | ui_flow binds Jump to X with a simulated button press, checks the D-pad is refused, A swapped to Dash and the label reads X, and that Reset Defaults restores A/Y and X/B. Screenshot: `controls_pad_rebinding.png`. **Simulated input only.** |
+
+### D: why no rooms changed
+`tools/slip_deaths.gd` on the basic-moveset routes:
+- **7-04 (33% of slips fatal):** deaths cluster below the comedy block that vanishes when Mira
+  dashes. That swap is the room's mechanic. A safe floor there would let a player wall-climb
+  the right side to the exit and skip the puzzle.
+- **4-05 from the secret room (35%):** deaths are on the spike strip atop the exit block, where
+  tailwind jumps land. Turning 2 spikes into floor left it at 35%, and turning 3 into floor
+  only got it to 24%. Each removal just moved the deaths one tile along as slipped landings
+  slid further in the wind, so it's the hazard working as designed, not a fixable hotspot.
+  The main-path route through 4-05 (from the left) is already 0% lethal. Reverted.
+- **7-03 (29%):** deaths are on the lower-left wall spikes. Removing them would open a climb
+  straight up to the exit ledge, bypassing the curtains.
+
+These rooms are left as designed. Route Ghost (C) now gives players who get stuck there a
+proven way through. A human playtest is still the right next signal.
+
+### Still open
+- **Frame pacing on 144/165 Hz displays (#7):** this monitor is 120 Hz, which divides evenly by
+  the 60 Hz sim, so judder can't be observed here.
+- **Route Ghost in rooms with moving parts:** the ghost's own gondolas, crumbling boards and
+  chaser aren't drawn, so it can look like it rides thin air. Drawing a second set of
+  moving objects is possible but was out of scope.
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, physical-controller testing.
