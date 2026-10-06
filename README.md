@@ -65,14 +65,17 @@ is always one menu away.
 - Menus repeat when you hold a direction (keys, D-pad or stick).
 - **Hold Pause** (Esc or Start) during a cutscene to skip the rest of it. Tapping jump or dash still advances line by line.
 - **Options → Controls** rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
+- **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
+- **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.
 - **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
-- **Pause → Assist** offers slower game speed (50–100%), infinite stamina and invincibility. Your progress counts the same.
+- **Pause → Assist** offers slower game speed (50–100%, which slows the whole game, controls included), infinite stamina and invincibility. Your progress counts the same.
 - **Pause → Assist → Route Ghost** shows a translucent Mira running the room the way the
   automated solver proved it can be done, using only the moves the game teaches. She loops,
-  restarts with you when you respawn, and changes nothing. After 10 deaths in a room the game
-  points you to it, once. The ghost runs in a simulation of its own, so in rooms with
-  gondolas, crumbling boards or a chaser you'll see her react to things that aren't drawn
-  for her.
+  restarts with you when you respawn, and changes nothing. She runs in a simulation of her
+  own, so her gondolas, crumbling boards, gates, mask blocks and Grin are drawn in her tint
+  wherever they differ from yours. A strip at the bottom left lights up the buttons she's
+  pressing, named by your own bindings. After 10 deaths in a room the game points you to
+  her, once.
 
 ## Features
 
@@ -133,7 +136,7 @@ parallax backdrops, a glow pass, bloom and per-chapter colour grading.
 
 A title screen with a campfire and a juggling Mira. Chapter select shows living
 postcards rendered from each chapter's real opening room. Results screens show berries,
-deaths, time, bells and golden runs. Options cover volume, fullscreen, window size, screen shake,
+deaths, time, bells and golden runs. Options cover volume, fullscreen, window size, smooth motion, screen shake,
 reduced flashing, rumble, an optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
 and *Continue* returns you to the last room you entered.
 
@@ -228,6 +231,13 @@ godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/
 godot --path . --rendering-method mobile res://tools/demo.tscn                         # self-playing demo reel
 ```
 
+**Smooth Motion probe.** Replays a room's Route Ghost route at a forced frame rate and logs
+where Mira is drawn each frame (no display needed):
+
+```sh
+godot --headless --path . --fixed-fps 144 res://tools/motion_probe.tscn -- 1 1-01 1.0 on build/motion.csv   # chapter room speed on|off out.csv
+```
+
 ## Project structure
 
 ```
@@ -316,10 +326,19 @@ and credits. It is a first release, so expect rough edges.
   the three rooms where small timing slips were most often fatal were eased (2-03, 6-06,
   7-05; the trailer predates these edits). Human-feel playtesting is still light, so some rooms may feel tighter than intended.
   Assist mode is there for that, including the Route Ghost.
+- **Game Speed in v0.1.0 didn't slow gameplay.** In the released build the 50–90% settings
+  only slowed animations and timers; Mira moved at full speed. This is fixed on `main` (the
+  game now steps its simulation at the chosen speed) but not yet in a release.
+- **Route Ghost limits:** her own moving parts are drawn only where they are solid for her and
+  not for you. A board or mask block that is solid for you but not for her is still drawn
+  normally, so she can appear to pass through it.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
   default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
   monitor under Wayland. On this machine's X11 (XWayland) session, game windows launched from a
   script started minimised regardless of these settings, so X11 was not checked by eye.
+  *Smooth Motion* was checked by measuring where Mira is drawn on every frame at a forced
+  144 fps and at 50% Game Speed, plus captured frames from a real window. Nobody has watched
+  it on a real 144 or 165 Hz display yet, and Auto relies on the refresh rate the system reports.
 - **No license has been chosen yet.** Until a `LICENSE` file is added, all rights are
   reserved by the author.

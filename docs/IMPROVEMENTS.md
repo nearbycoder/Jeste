@@ -356,3 +356,65 @@ Not picked:
   the next press. Hold mode is unchanged.
 - **Verify:** ui_flow drives a press/release sequence through `Game.read_input()` in both modes,
   and checks the setting persists and survives Reset Defaults as documented. Full suite.
+
+## Round 3 results (2026-10-06)
+
+All commits are on `improvements-3`; nothing has been pushed. The full suite passes after every
+item: fastest-route and basic-moveset proofs for all 9 chapters, golden runs, end-to-end
+playthroughs, hint replays and the menu flow. Every run used a throwaway user-data directory
+under `build/`. The real save's checksum was the same before and after. Screenshots and the
+chart are in `docs/media/improvements/round3/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Game Speed fix + Smooth Motion | Done | `5adab0c` | See below. |
+| B. Ghost's moving parts | Done | `21ae5c5` | ui_flow: in 1-03, only boards are drawn for the ghost, and only after the player breaks them; in 4-02 her gondola leaves the player's idle one; her Grin hides with her. Screenshots of a gondola, a chase, crumbling boards and mask blocks: `route_ghost_moving_parts.png`. Affects 28 of the 69 hinted rooms. |
+| C. Ghost button strip | Done | `45e463f` | ui_flow follows the strip for 150 frames against the ghost's input stream (held buttons fully lit, buttons released over 30 frames ago dark). Screenshot during a dash: `route_ghost_buttons.png`. |
+| D. Grab Mode: Hold / Toggle | Done | `81e3612` | ui_flow toggles it on the Controls screen and drives press/release sequences through `Game.read_input()` in both modes. It checks that a death releases the latch and that Reset Defaults keeps the mode. Screenshot: `controls_grab_mode.png`. |
+
+### A: what was found, and the numbers
+- **Game Speed never slowed gameplay.** The probe showed that in Godot 4, `Engine.time_scale`
+  shrinks the physics delta but not the number of physics ticks. The level stepped its
+  fixed-step simulation once per tick, so at "50%" Mira still moved at full speed; only
+  animations and timers slowed. This has been true since v0.1.0. The level now steps when a
+  whole step is owed (every other tick at 50%) and carries jump/dash taps that land between
+  steps. Measured on 1-01's route: 0.45 steps per tick at 50% vs 0.90 at 100% (dash freeze
+  frames make up the rest). ui_flow counts 20 steps in 40 ticks at 50% and 40 at 100%; that
+  check fails with the old loop.
+- **Smooth Motion** (Options, Auto/On/Off) draws between the last two steps. The scope's
+  premise that judder at 50% speed "can be seen here" turned out to be wrong: before the
+  fix, 50% didn't change the step rate at all. With the fix, 50% does run at 30 steps a
+  second, which is what Smooth Motion now smooths. `tools/motion_probe.tscn` replays a route
+  at a forced frame rate. Per-frame movement of Mira's drawn position during steady
+  horizontal runs in 0-02 (spread = standard deviation of per-frame steps):
+
+  | Case | Off: spread, frames that don't move, pixel steps | On |
+  |---|---|---|
+  | 144 fps, 100% speed | 0.70 px, 74%, 0–2 px | 0.19 px, 30%, 0–1 px |
+  | 60 fps, 50% speed | 0.76 px, 68%, 0–2 px | 0.25 px, 29%, 0–1 px |
+  | 60 fps, 100% speed | 0.50 px, 0%, 1–2 px | unchanged (Auto keeps it off) |
+
+  On 1-01's dash-heavy route at 144 fps the spread goes from 1.42 to 0.59 px and the largest
+  per-frame jump from 4 to 2 px. Chart: `smooth_motion_trace.svg`. Not verified: watching it
+  on a real 144/165 Hz display (this one is 120 Hz, where Auto stays off).
+- Cached route files show changes only because `world.gd` is part of their hash. The routes are
+  unchanged and were re-verified.
+
+### Deviations and limits
+- Grab Mode's latch is **not** cleared on room change (the scope said it would be). Clearing it
+  would drop a player who climbs up into the next room. It clears on death and at chapter start.
+  While it's latched, a small "Grab on" prompt shows bottom right.
+- The ghost's parts are drawn only where they're solid for her and not for the player. A block
+  that is solid for the player but not for her is still drawn, so she can appear to pass
+  through it (seen in 3-02 when her mask blocks have swapped and the player's haven't).
+- ui_flow now resets settings to defaults at start. A `route_ghost: true` settings file had
+  made it fail, which also means a developer's own settings could break the test.
+
+### Still open
+- Checkpoint select (start a chapter from any room reached), still unranked against content.
+- A human playtest at 50% speed now that it really slows the game, and a look at Smooth Motion
+  on a real 144/165 Hz display.
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, physical-controller testing. One new
+  point: v0.1.0's Game Speed assist doesn't slow gameplay, and the fix reaches players only
+  in a new release.
