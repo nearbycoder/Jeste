@@ -16,7 +16,20 @@ var pending_room := ""
 var pending_spawn := 0
 var headless_test := false     # set by test harness: no saving to disk
 var using_pad := false         # last input came from a gamepad (prompts show pad buttons)
-const PAD_LABELS := {"jump": "A", "dash": "X", "grab": "RB", "up": "Up", "down": "Down", "left": "Left", "right": "Right"}
+var pad_device := 0            # gamepad that sent the last pad input (for button names)
+## Button names per controller family. Godot maps face buttons by position
+## (JOY_BUTTON_A is always the bottom one), so only the names differ.
+const PAD_LABELS := {
+	"xbox": {"jump": "A", "dash": "X", "grab": "RB"},
+	"playstation": {"jump": "Cross", "dash": "Square", "grab": "R1"},
+	"nintendo": {"jump": "B", "dash": "Y", "grab": "R"},
+}
+const PAD_DIRS := {"up": "Up", "down": "Down", "left": "Left", "right": "Right"}
+## Stick hysteresis for menus: an axis counts as pushed past STICK_PRESS and
+## released again below STICK_RELEASE.
+const STICK_PRESS := 0.5
+const STICK_RELEASE := 0.3
+var _axis_dir := {}            # (device, axis) -> -1, 0 or 1
 
 
 func _ready() -> void:
@@ -34,8 +47,47 @@ func _exit_tree() -> void:
 func _input(ev: InputEvent) -> void:
 	if ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and absf((ev as InputEventJoypadMotion).axis_value) > 0.5):
 		using_pad = true
+		pad_device = ev.device
 	elif ev is InputEventKey or ev is InputEventMouseButton:
 		using_pad = false
+	# A stick push sends a stream of motion events, and every one past the
+	# deadzone reads as a fresh action press. Menus react to events, so pass on
+	# only the event where the stick first crosses the threshold. Gameplay polls
+	# Input state, which this doesn't touch.
+	if ev is InputEventJoypadMotion and not stick_edge(ev) and is_inside_tree():
+		get_viewport().set_input_as_handled()
+
+
+## True when this motion event pushes its axis into a new direction.
+func stick_edge(ev: InputEventJoypadMotion) -> bool:
+	var key := ev.device * 64 + ev.axis
+	var prev: int = _axis_dir.get(key, 0)
+	var d := prev
+	if absf(ev.axis_value) >= STICK_PRESS:
+		d = 1 if ev.axis_value > 0.0 else -1
+	elif absf(ev.axis_value) < STICK_RELEASE:
+		d = 0
+	_axis_dir[key] = d
+	return d != 0 and d != prev
+
+
+## Controller family from the device name reported by SDL.
+static func pad_family(joy_name: String) -> String:
+	var n := joy_name.to_lower()
+	for k in ["playstation", "dualshock", "dualsense", "ps3", "ps4", "ps5", "sony"]:
+		if k in n:
+			return "playstation"
+	for k in ["nintendo", "switch", "joy-con", "joycon", "pro controller"]:
+		if k in n:
+			return "nintendo"
+	return "xbox"
+
+
+func pad_label(action: String) -> String:
+	if PAD_DIRS.has(action):
+		return PAD_DIRS[action]
+	var fam := pad_family(Input.get_joy_name(pad_device))
+	return PAD_LABELS[fam].get(action, "?")
 
 
 ## Label for the movement prompt ("Arrows" on keyboard, "Stick" on a pad).
@@ -94,7 +146,7 @@ func kb_label(action: String) -> String:
 
 func key_label(action: String) -> String:
 	if using_pad:
-		return PAD_LABELS.get(action, "?")
+		return pad_label(action)
 	var ks := keys_for(action)
 	if ks.is_empty():
 		return "?"

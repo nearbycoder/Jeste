@@ -9,6 +9,7 @@ var steps: Array = []
 var idx := 0
 var wait := 0
 var failed := ""
+var music_before := 0.0
 
 
 func _ready() -> void:
@@ -30,8 +31,22 @@ func _ready() -> void:
 	steps = [
 		["scene", "res://scenes/main.tscn", 90],
 		["expect", "Title", 0],
+		["check", "pad_labels", 0],
+		["stick", "down", 6],                                     # one stick push = one row
+		["check", "title_sel_1", 0],
+		["stick", "up", 6],
+		["check", "title_sel_0", 0],
+		["stick_hold", "down", 4],                                # gameplay still sees a held stick
+		["check", "held_down", 0],
+		["stick_hold", "", 4],
+		["press", "up", 6],
+		["check", "title_sel_0", 0],
 		["press", "down", 6], ["press", "confirm", 20],          # Options
 		["check", "options", 0],
+		["mark_music", "", 0],
+		["stick", "right", 6],                                    # one stick push = one slider step
+		["check", "music_one_step", 0],
+		["stick", "left", 6],
 		["press", "right", 4], ["press", "down", 4], ["press", "left", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],  # toggles
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Controls
@@ -56,6 +71,9 @@ func _ready() -> void:
 		["skip_dialogue", "", 60],
 		["press", "pause", 20],
 		["check", "paused", 0],
+		["stick", "down", 4],
+		["check", "pause_sel_1", 0],
+		["stick", "up", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
 		["check", "assist", 0],
 		["press", "down", 4], ["press", "confirm", 4], ["press", "confirm", 4], ["press", "back", 10],
@@ -130,6 +148,26 @@ func _process(_d: float) -> void:
 				_fail("step %d: expected scene %s, got %s" % [idx, s[1], cur.name if cur else "none"])
 		"press":
 			_press(s[1])
+		"stick":
+			# a realistic push: the axis ramps through the deadzone, wobbles at
+			# the rim, then springs back to centre
+			var axis := JOY_AXIS_LEFT_Y if s[1] in ["up", "down"] else JOY_AXIS_LEFT_X
+			var sgn := -1.0 if s[1] in ["up", "left"] else 1.0
+			for v in [0.2, 0.35, 0.45, 0.6, 0.75, 0.9, 1.0, 0.95, 1.0, 0.6, 0.2, 0.0]:
+				var ev := InputEventJoypadMotion.new()
+				ev.device = 0
+				ev.axis = axis
+				ev.axis_value = v * sgn
+				Input.parse_input_event(ev)
+		"stick_hold":
+			for v in ([0.3, 0.6, 0.9] if s[1] == "down" else [0.4, 0.1, 0.0]):
+				var ev := InputEventJoypadMotion.new()
+				ev.device = 0
+				ev.axis = JOY_AXIS_LEFT_Y
+				ev.axis_value = v
+				Input.parse_input_event(ev)
+		"mark_music":
+			music_before = float(get_node("/root/Game").settings.music)
 		"key":
 			var ev := InputEventKey.new()
 			ev.physical_keycode = OS.find_keycode_from_string(s[1])
@@ -143,6 +181,16 @@ func _process(_d: float) -> void:
 			var ok := true
 			match s[1]:
 				"options": ok = cur.screen == "options"
+				"title_sel_1": ok = cur.sel == 1
+				"title_sel_0": ok = cur.sel == 0
+				"held_down": ok = Input.is_action_pressed("down") and cur.sel == 1
+				"pause_sel_1": ok = cur.hud.pause_sel == 1
+				"music_one_step": ok = is_equal_approx(float(get_node("/root/Game").settings.music), minf(music_before + 0.1, 1.0))
+				"pad_labels":
+					var g: Node = get_node("/root/Game")
+					ok = g.pad_family("Xbox Series Controller") == "xbox" and g.pad_family("PS5 Controller") == "playstation" \
+						and g.pad_family("Sony DualSense") == "playstation" and g.pad_family("Nintendo Switch Pro Controller") == "nintendo" \
+						and g.pad_family("") == "xbox" and g.PAD_LABELS.nintendo.jump == "B"
 				"controls": ok = cur.screen == "controls"
 				"jump_is_n": ok = get_node("/root/Game").key_label("jump") == "N"
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"

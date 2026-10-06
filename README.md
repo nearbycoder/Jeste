@@ -62,7 +62,7 @@ is always one menu away.
 - **Hold jump** to jump higher. **Jump off a wall** to kick away from it.
 - **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
-- **Options → Controls** rebinds every key, swapping on conflicts. On-screen prompts follow whichever device you used last.
+- **Options → Controls** rebinds every key, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Pause → Assist** offers slower game speed (50–100%), infinite stamina and invincibility. Your progress counts the same.
 
 ## Features
@@ -291,8 +291,9 @@ Jeste **v0.1.0** is a complete, playable game, from the prologue through the epi
 and credits. It is a first release, so expect rough edges.
 
 - **Linux only** for now. Other platforms should export cleanly but haven't been tested.
-- **Gamepad support** (bindings, prompts, rumble) was exercised with simulated input, not on
-  a range of physical controllers.
+- **Gamepad support** (bindings, prompts, rumble, analog-stick menu navigation) was exercised
+  with simulated input, not on a range of physical controllers. Controller families are
+  recognised by the name the pad reports, so an unusual pad may show Xbox button names.
 - **Difficulty was tuned against a bot.** Every room is proven possible, but human-feel
   playtesting has been light, so some rooms may feel tighter than intended. Assist mode is
   there for that.
