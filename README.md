@@ -315,7 +315,7 @@ and credits. It is a first release, so expect rough edges.
   basic moveset alone (no supers, hypers or wall-bounces, which the game never teaches), and
   the three rooms where small timing slips were most often fatal were eased (2-03, 6-06,
   7-05; the trailer predates these edits). Human-feel playtesting is still light, so some rooms may feel tighter than intended.
-  Assist mode is there for that.
+  Assist mode is there for that, including the Route Ghost.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
   default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
