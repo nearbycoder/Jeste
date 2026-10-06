@@ -18,6 +18,7 @@ const TAIL_SEG := 2.0
 var world: World
 var effects: Effects
 var is_grin := false
+var silent := false            # Route Ghost: animates like Mira but makes no sound
 var visible_player := true
 var anim_time := 0.0
 var run_dist := 0.0
@@ -290,7 +291,7 @@ func _update_player(delta: float) -> void:
 		var before := int(climb_dist / 6.0)
 		climb_dist += absf(world.vy) * delta
 		if int(climb_dist / 6.0) != before and visible_player:
-			Sfx.play("climb", randf_range(0.9, 1.15), -11.0)
+			_sfx("climb", randf_range(0.9, 1.15), -11.0)
 	land_timer = maxf(land_timer - delta, 0.0)
 	if not grounded:
 		air_time += delta
@@ -331,7 +332,7 @@ func _update_player(delta: float) -> void:
 		var phase := int(run_dist / 3.2) % 8
 		if (phase == 0 or phase == 4) and phase != step_phase:
 			effects.puff(_feet() + Vector2(-_facing() * 2, 0), Vector2(-signf(world.vx) * 18.0, -6.0), Color("e8e0d8"), 1)
-			Sfx.play("step%d" % (randi() % 4), randf_range(0.92, 1.08), -9.0)
+			_sfx("step%d" % (randi() % 4), randf_range(0.92, 1.08), -9.0)
 		step_phase = phase
 	# skid dust
 	if effects and frame_name == "skid" and int(anim_time * 60.0) % 3 == 0:
@@ -344,7 +345,7 @@ func _update_player(delta: float) -> void:
 			effects.puff(_feet() + Vector2(_facing() * 5, -6), Vector2(0, -12), Color("d8d0c8"), 1)
 			slide_snd = not slide_snd
 			if slide_snd:
-				Sfx.play("slide", randf_range(0.9, 1.1), -13.0)
+				_sfx("slide", randf_range(0.9, 1.1), -13.0)
 	# tired: flash red while climbing out of stamina
 	if world.state == World.ST_CLIMB and world.stamina < World.CLIMB_TIRED:
 		flash = 0.45 if int(anim_time * 12.0) % 2 == 0 else 0.0
@@ -474,3 +475,8 @@ func _draw() -> void:
 	draw_texture_rect_region(_tex(), Rect2(-12, -24, 24, 24), Rect2(last_frame * FS, 0, FS, FS), mod)
 	draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	_draw_tails(false)
+
+
+func _sfx(name: String, pitch: float = 1.0, vol: float = 0.0) -> void:
+	if not silent:
+		Sfx.play(name, pitch, vol)

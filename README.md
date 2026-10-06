@@ -67,6 +67,12 @@ is always one menu away.
 - **Options → Controls** rebinds every key, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
 - **Pause → Assist** offers slower game speed (50–100%), infinite stamina and invincibility. Your progress counts the same.
+- **Pause → Assist → Route Ghost** shows a translucent Mira running the room the way the
+  automated solver proved it can be done, using only the moves the game teaches. She loops,
+  restarts with you when you respawn, and changes nothing. After 10 deaths in a room the game
+  points you to it, once. The ghost runs in a simulation of its own, so in rooms with
+  gondolas, crumbling boards or a chaser you'll see her react to things that aren't drawn
+  for her.
 
 ## Features
 

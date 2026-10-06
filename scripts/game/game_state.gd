@@ -377,7 +377,7 @@ func default_settings() -> Dictionary:
 		"music": 0.7, "sfx": 0.8, "fullscreen": false, "screen_shake": true,
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
-		"reduce_flashing": false,
+		"reduce_flashing": false, "route_ghost": false,
 	}
 
 

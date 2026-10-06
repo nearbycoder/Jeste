@@ -1,6 +1,6 @@
 # Jeste level verification report
 
-Generated 2026-10-06 07:26:24
+Generated 2026-10-06 11:37:14
 
 ## Chapter 0: The Foot of Jeste - PASS
 - End reachable from start: yes
@@ -190,6 +190,9 @@ The same proofs with supers, hypers and wall-bounces forbidden (the game never t
 - Chapter 7 The Summit: end reachable, collectibles 14/14 - PASS
 - Chapter 8 The Show: end reachable, collectibles 0/0 - PASS
 
+- Route Ghost hints: 71 room entries (`data/hints.json`), each a proven basic-moveset traversal.
+
+- `data/hints.json` replays to every exit: PASS
 ### Room traversals, basic-moveset routes
 Each room's route from entry to exit (no collectibles) with the basic moveset, under random 1-frame timing slips. *Lethal* is the share of slips that kill: how close the route runs to hazards, and the difficulty proxy used for tuning. *Clears* is the share of inserted-frame slips that still finish without correction (an open-loop replay can't steer the way a player does).
 
@@ -290,4 +293,4 @@ Each room's route from entry to exit (no collectibles) with the basic moveset, u
 ## Menu flow
 - PASS - UI FLOW PASS
 
-**Overall: PASS**  (109s)
+**Overall: PASS**  (53s)

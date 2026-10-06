@@ -36,7 +36,7 @@ var pause_sel := 0
 var pause_k := 0.0
 var row_k: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var assist_open := false
-var assist_items := ["Game Speed", "Infinite Stamina", "Invincibility", "Back"]
+var assist_items := ["Game Speed", "Infinite Stamina", "Invincibility", "Route Ghost", "Back"]
 var assist_sel := 0
 var options_open := false
 var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Back"]
@@ -144,6 +144,8 @@ func handle_menu_input(ev: InputEvent) -> bool:
 				2:
 					Game.settings.invincible = not Game.settings.invincible
 				3:
+					Game.settings.route_ghost = not bool(Game.settings.get("route_ghost", false))
+				4:
 					if ev.is_action_pressed("confirm"):
 						assist_open = false
 			Game.save_settings()
@@ -350,6 +352,7 @@ func _draw_assist(e: float = 1.0) -> void:
 				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
 			1: UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.infinite_stamina), e)
 			2: UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.invincible), e)
+			3: UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("route_ghost", false)), e)
 	PixelText.draw_centered_outlined(self, 160, r.end.y + 8, "Play the way that feels right.", Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
 
 

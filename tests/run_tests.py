@@ -286,6 +286,33 @@ def build_route(rep):
     return list(reversed(chunks))
 
 
+def build_hints(rep, results):
+    """Route Ghost hints: for every reachable (room, spawn), the basic-moveset
+    traversal toward the exit with the fewest rooms left to the chapter end."""
+    edges = rep["edges"]
+    rev = {}
+    for u, lst in edges.items():
+        for v, _ in lst:
+            rev.setdefault(v, []).append(u)
+    dist = {"END": 0}
+    q = deque(["END"])
+    while q:
+        u = q.popleft()
+        for v in rev.get(u, []):
+            if v not in dist:
+                dist[v] = dist[u] + 1
+                q.append(v)
+    hints = {}
+    for node, lst in edges.items():
+        if node not in rep["reach"]:
+            continue
+        best = min(lst, key=lambda e: (dist.get(e[0], 1 << 20), results[e[1]["id"]].get("frames", 0)))
+        t = best[1]
+        hints[f"{node[0]}:{node[1]}"] = {"exit": t["exit"], "inputs": results[t["id"]]["solution"]}
+    missing = sorted(f"{n[0]}:{n[1]}" for n in rep["reach"] if n != "END" and f"{n[0]}:{n[1]}" not in hints)
+    return hints, missing
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--chapters", nargs="*", type=int, default=[])
@@ -362,6 +389,31 @@ def main():
                 print(f"     missing: {cid}")
                 lines.append(f"  - NOT PROVEN: `{cid}`")
     lines.append("")
+    hints = {}
+    for chs in sorted(basic_report, key=int):
+        h, missing = build_hints(basic_report[chs], basic_results)
+        hints[chs] = h
+        if missing:
+            all_ok = False
+            print(f"  Chapter {chs}: no Route Ghost hint for {missing}")
+            lines.append(f"- Chapter {chs}: no Route Ghost hint for {', '.join(missing)} (FAIL)")
+    n_hints = sum(len(h) for h in hints.values())
+    print(f"  Route Ghost hints: {n_hints} room entries")
+    lines.append(f"- Route Ghost hints: {n_hints} room entries (`data/hints.json`), each a proven basic-moveset traversal.")
+    lines.append("")
+    if not args.chapters:
+        with open(os.path.join(ROOT, "data", "hints.json"), "w") as f:
+            json.dump(hints, f, separators=(",", ":"), sort_keys=True)
+    hp = godot(["res://tests/hints_check.gd"], timeout=600)
+    hout = hp.stdout + hp.stderr
+    hok = "HINTS PASS" in hout and hp.returncode == 0
+    all_ok &= hok
+    for l in hout.splitlines():
+        if l.startswith("HINTS FAIL:"):
+            print("  " + l)
+            lines.append(f"  - {l}")
+    print(f"  data/hints.json replays: {'PASS' if hok else 'FAIL'}")
+    lines.append(f"- `data/hints.json` replays to every exit: {'PASS' if hok else 'FAIL'}")
     brob = sorted(((-r.get("lethal", 0.0), r.get("robustness", 1.0), r["id"], r.get("frames", 0)) for r in basic_results.values()
                    if r.get("ok") and "_to_" in r["id"]))
     if brob:

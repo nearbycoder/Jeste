@@ -48,6 +48,18 @@ var death_burst_done := true
 var script_delay := 0.0
 var replay := PackedByteArray()  # optional scripted input (demo / screenshots)
 var replay_pos := 0
+var room_spawn := 0
+# Route Ghost (assist): a silent, translucent Mira replaying the proven
+# basic-moveset route for this room in a simulation of its own.
+var ghost_world: World
+var ghost_view: PlayerView
+var ghost_inputs := PackedByteArray()
+var ghost_i := 0
+var ghost_hold := 0
+var room_deaths := 0
+var nudged := {}
+const GHOST_NUDGE_DEATHS := 10
+static var _hints := {}
 var full_run := true            # started at the chapter start in this session (may set Best)
 
 
@@ -125,6 +137,15 @@ func _build_nodes() -> void:
 	grin_view.world = world
 	grin_view.visible = false
 	stage.add_child(grin_view)
+	var ghost_fx := Effects.new()
+	ghost_fx.visible = false
+	stage.add_child(ghost_fx)
+	ghost_view = PlayerView.new()
+	ghost_view.silent = true
+	ghost_view.effects = ghost_fx
+	ghost_view.visible = false
+	ghost_view.modulate = Color(0.7, 0.9, 1.0, 0.5)
+	stage.add_child(ghost_view)
 	player_view = PlayerView.new()
 	player_view.world = world
 	stage.add_child(player_view)
@@ -209,6 +230,8 @@ func _load_room(id: String, spawn: int, view: RoomView = null) -> void:
 		return
 	_apply_assists()
 	world.load_room(room, spawn, chapter.dashes, Game.data.collected)
+	room_spawn = spawn
+	room_deaths = 0
 	# Triggers whose scripts were already seen are pre-fired.
 	world.trigger_fired = 0
 	for i in world.trigger_keys.size():
@@ -230,6 +253,7 @@ func _load_room(id: String, spawn: int, view: RoomView = null) -> void:
 	player_view.override_facing = 0
 	vis_hist = PackedInt32Array()
 	grin_view.visible = false
+	_reset_ghost()
 	if not fast and not Game.headless_test:
 		Game.data.resume = {"chapter": chapter_n, "room": id, "time": chapter_time, "deaths": deaths_this_chapter}
 		Game.save()
@@ -351,6 +375,7 @@ func sim_tick(inp: int) -> void:
 		freeze -= 1
 		return
 	world.step(inp)
+	_ghost_tick()
 	chapter_time += World.DT
 	if room.chase_delay > 0:
 		vis_hist.append(player_view.current_frame() * 2 + (1 if world.facing < 0 else 0))
@@ -524,6 +549,10 @@ func _on_death() -> void:
 	if fast:
 		_respawn()
 		return
+	room_deaths += 1
+	if room_deaths == GHOST_NUDGE_DEATHS and not bool(Game.settings.get("route_ghost", false)) and not nudged.has(room_id) and _hint(room_id, room_spawn).size() > 0:
+		nudged[room_id] = true
+		hud.show_room_title("Stuck? Pause > Assist > Route Ghost")
 	Sfx.play("death")
 	player_view.flash = 1.0
 	player_view.flash_col = Color.WHITE
@@ -540,6 +569,7 @@ func _respawn() -> void:
 	else:
 		world.reset_room()
 		_apply_assists()
+		_reset_ghost()
 	vis_hist = PackedInt32Array()
 	grin_view.visible = false
 	player_view.reset_tails()
@@ -674,6 +704,8 @@ func _on_pause_choice(choice: String) -> void:
 			Game.goto_chapter_select()
 		"assist_changed":
 			_apply_assists()
+			if bool(Game.settings.get("route_ghost", false)) != (ghost_world != null):
+				_reset_ghost()
 			Engine.time_scale = float(Game.settings.game_speed)
 
 
@@ -763,6 +795,7 @@ func _process(delta: float) -> void:
 	backdrop.wind = Vector2(world.wind_x, world.wind_y)
 	hud.timer_value = chapter_time
 	_update_grin()
+	ghost_view.visible = ghost_world != null and mode in ["play", "dialogue"]
 	_update_cutscene_pose(delta)
 
 
@@ -797,6 +830,61 @@ func _update_cutscene_pose(delta: float) -> void:
 				effects.land(_pc() + Vector2(0, 5.5 + floor_gap), 0.6)
 		else:
 			player_view.settle_v = 0.0
+
+
+# ---------------------------------------------------------------- route ghost
+
+static func _hint(rid: String, spawn: int, chapter_key: String = "") -> Dictionary:
+	if _hints.is_empty() and FileAccess.file_exists("res://data/hints.json"):
+		var parsed = JSON.parse_string(FileAccess.get_file_as_string("res://data/hints.json"))
+		if parsed is Dictionary:
+			_hints = parsed
+	for ch in _hints:
+		if chapter_key != "" and ch != chapter_key:
+			continue
+		var h: Dictionary = _hints[ch]
+		if h.has("%s:%d" % [rid, spawn]):
+			return h["%s:%d" % [rid, spawn]]
+	return {}
+
+
+## Restarts the ghost at the room's spawn (or removes it when the assist is off).
+func _reset_ghost() -> void:
+	ghost_world = null
+	ghost_inputs = PackedByteArray()
+	if fast or ghost_view == null or room == null or not bool(Game.settings.get("route_ghost", false)):
+		if ghost_view:
+			ghost_view.visible = false
+		return
+	var h := _hint(room_id, room_spawn, str(chapter_n))
+	if h.is_empty():
+		ghost_view.visible = false
+		return
+	ghost_world = World.new()
+	ghost_world.load_room(room, room_spawn, chapter.dashes)
+	ghost_inputs = Solver.decode(str(h.inputs))
+	ghost_i = 0
+	ghost_hold = 0
+	ghost_view.world = ghost_world
+	ghost_view.reset_tails()
+	ghost_view.trail.clear()
+	ghost_view.visible = true
+
+
+func _ghost_tick() -> void:
+	if ghost_world == null:
+		return
+	if ghost_hold > 0:
+		ghost_hold -= 1
+		if ghost_hold == 0:
+			_reset_ghost()
+		return
+	ghost_world.step(ghost_inputs[ghost_i])
+	ghost_i += 1
+	for ev in ghost_world.events:
+		ghost_view.on_event(ev)
+	if ghost_world.dead or ghost_world.exited or ghost_world.end_reached or ghost_i >= ghost_inputs.size():
+		ghost_hold = 45   # pause at the exit, then loop
 
 
 func _update_grin() -> void:

@@ -97,11 +97,20 @@ func _ready() -> void:
 		["stick", "up", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
 		["check", "assist", 0],
-		["press", "down", 4], ["press", "confirm", 4], ["press", "confirm", 4], ["press", "back", 10],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost on
+		["check", "ghost_on", 0],
+		["press", "up", 4], ["press", "up", 4],
+		["press", "confirm", 4], ["press", "confirm", 4], ["press", "back", 10],
 		["press", "down", 4], ["press", "confirm", 10],          # Options
 		["check", "options_open", 0],
 		["press", "right", 4], ["press", "left", 4], ["press", "back", 10],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
+		["check", "unpaused", 0],
+		["check", "ghost_running", 0],
+		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost off
+		["check", "ghost_off", 0],
+		["press", "back", 10], ["press", "back", 20],
 		["check", "unpaused", 0],
 		["press", "pause", 20],
 		["press", "up", 4], ["press", "confirm", 40],           # Retry Room (wraps to last = Return to Map? no: up from Resume = Return to Map)
@@ -240,6 +249,9 @@ func _process(_d: float) -> void:
 				"title_sel_0": ok = cur.sel == 0
 				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
 				"one_step": ok = cur.opt_sel == 1
+				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null
+				"ghost_running": ok = cur.ghost_world != null and cur.ghost_view.visible and cur.ghost_i >= 5 and cur.ghost_world != cur.world
+				"ghost_off": ok = not bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world == null
 				"skip_not_yet":
 					ok = cur.dialogue.active and cur.mode == "dialogue"
 					skip_id = cur.dialogue.script_id
