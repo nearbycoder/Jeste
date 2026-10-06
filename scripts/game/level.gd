@@ -286,6 +286,8 @@ func _on_dialogue_finished(_id: String) -> void:
 
 
 func cutscene_command(cmd: String, args: Array) -> float:
+	if dialogue.skipping and cmd in ["shake", "flash", "sfx"]:
+		return 0.0   # a skipped scene shouldn't fire its effects all at once
 	match cmd:
 		"wait":
 			return 0.0 if fast else float(args[0])

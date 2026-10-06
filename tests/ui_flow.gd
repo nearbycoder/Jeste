@@ -10,6 +10,7 @@ var idx := 0
 var wait := 0
 var failed := ""
 var music_before := 0.0
+var skip_id := ""
 
 
 func _ready() -> void:
@@ -83,6 +84,11 @@ func _ready() -> void:
 		["press", "left", 10], ["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
 		["press", "confirm", 120],                               # Prologue
 		["expect", "Level", 0],
+		["wait_dialogue", "", 20],
+		["hold", "pause_key", 10], ["check", "skip_not_yet", 0],  # holding Esc skips the scene
+		["hold_wait", "", 40],
+		["release", "pause_key", 10],
+		["check", "skipped", 0],
 		["skip_dialogue", "", 60],
 		["press", "pause", 20],
 		["check", "paused", 0],
@@ -189,6 +195,11 @@ func _process(_d: float) -> void:
 					ev = InputEventJoypadButton.new()
 					ev.button_index = JOY_BUTTON_DPAD_DOWN
 					ev.pressed = down
+				"pause_key":
+					ev = InputEventKey.new()
+					ev.physical_keycode = KEY_ESCAPE
+					ev.keycode = KEY_ESCAPE
+					ev.pressed = down
 				"key_down":
 					ev = InputEventKey.new()
 					ev.physical_keycode = KEY_DOWN
@@ -199,6 +210,12 @@ func _process(_d: float) -> void:
 					ev.axis = JOY_AXIS_LEFT_Y
 					ev.axis_value = 1.0 if down else 0.0
 			Input.parse_input_event(ev)
+		"wait_dialogue":
+			if not cur.dialogue.active:
+				idx -= 1
+				wait = 2
+		"hold_wait":
+			pass
 		"set_opt0":
 			cur.opt_sel = 0
 		"mark_music":
@@ -223,6 +240,10 @@ func _process(_d: float) -> void:
 				"title_sel_0": ok = cur.sel == 0
 				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
 				"one_step": ok = cur.opt_sel == 1
+				"skip_not_yet":
+					ok = cur.dialogue.active and cur.mode == "dialogue"
+					skip_id = cur.dialogue.script_id
+				"skipped": ok = not cur.dialogue.active and cur.mode == "play" and skip_id != "" and get_node("/root/Game").has_seen(skip_id) and not cur.paused
 				"held_down": ok = Input.is_action_pressed("down") and cur.sel == 1
 				"pause_sel_1": ok = cur.hud.pause_sel == 1
 				"music_one_step": ok = is_equal_approx(float(get_node("/root/Game").settings.music), minf(music_before + 0.1, 1.0))

@@ -18,10 +18,17 @@ var box_open := 0.0
 var blip_timer := 0
 var wrapped := PackedStringArray()
 const CPS := 45.0
+## Holding Pause for SKIP_HOLD seconds skips the rest of the scene.
+const SKIP_HOLD := 0.6
+var skip_t := 0.0
+var skip_armed := false        # Pause was pressed during this scene (not held over from before)
+var skipping := false          # running the remaining lines instantly
 const BOX := Rect2(8, 11, 304, 48)
 
 
 func play(id: String) -> void:
+	skip_t = 0.0
+	skip_armed = false
 	lines = Story.get_script_lines(id)
 	script_id = id
 	idx = -1
@@ -61,11 +68,14 @@ func _finish() -> void:
 	finished.emit(script_id)
 
 
-## Runs the remaining lines instantly (fast / test mode).
+## Runs the remaining lines instantly (fast / test mode, or a held skip).
+## Commands still run, so the scene leaves the world exactly as reading it would.
 func skip_all() -> void:
+	skipping = true
 	while active:
 		wait = 0.0
 		_next()
+	skipping = false
 
 
 func _total_chars() -> int:
@@ -82,6 +92,17 @@ func _process(delta: float) -> void:
 	if not active:
 		queue_redraw()
 		return
+	if skip_armed and Input.is_action_pressed("pause"):
+		skip_t += delta / maxf(Engine.time_scale, 0.01)
+		if skip_t >= SKIP_HOLD:
+			skip_t = 0.0
+			skip_armed = false
+			Sfx.play("text_next")
+			skip_all()
+			queue_redraw()
+			return
+	else:
+		skip_t = maxf(skip_t - delta * 3.0, 0.0)
 	if wait > 0.0:
 		wait -= delta
 		if wait <= 0.0:
@@ -101,6 +122,9 @@ func _process(delta: float) -> void:
 func handle_input(ev: InputEvent) -> bool:
 	if not active:
 		return false
+	if ev.is_action_pressed("pause"):
+		skip_armed = true
+		return true
 	if cur.is_empty():
 		return true
 	if ev.is_action_pressed("confirm") or ev.is_action_pressed("dash"):
@@ -113,6 +137,8 @@ func handle_input(ev: InputEvent) -> bool:
 
 
 func _draw() -> void:
+	if active and box_open > 0.5:
+		_draw_skip_hint(clampf((box_open - 0.5) * 2.0, 0.0, 1.0))
 	if box_open <= 0.0 or cur.is_empty():
 		return
 	var who: String = cur.who
@@ -192,6 +218,21 @@ func _draw() -> void:
 	if not typing:
 		var bob2 := int(time * 4.0) % 2
 		draw_colored_polygon(PackedVector2Array([Vector2(r.end.x - 11, r.end.y - 9 + bob2), Vector2(r.end.x - 5, r.end.y - 9 + bob2), Vector2(r.end.x - 8, r.end.y - 6 + bob2)]), Color("f2c14e"))
+
+
+## "Hold Esc  Skip" under the box, with a ring that fills while held.
+func _draw_skip_hint(a: float) -> void:
+	var key := "Start" if Game.using_pad else "Esc"
+	var label := "Hold to skip"
+	var w := PixelText.width(label)
+	var x := BOX.end.x - w - 4
+	var y := BOX.end.y + 5
+	UIKit.keycap(self, Vector2(x - PixelText.width(key) - 12, y), key, a * 0.75)
+	PixelText.draw_outlined(self, Vector2(x, y), label, Color(UIKit.CREAM, a * 0.75), Color(UIKit.INK, a * 0.75))
+	if skip_t > 0.0:
+		var c := Vector2(x - PixelText.width(key) - 22, y + 5)
+		draw_arc(c, 5.0, 0.0, TAU, 20, Color(UIKit.INK, a), 4.0)
+		draw_arc(c, 5.0, -PI / 2.0, -PI / 2.0 + TAU * clampf(skip_t / SKIP_HOLD, 0.0, 1.0), 20, Color(UIKit.GOLD, a), 2.0)
 
 
 func _exit_tree() -> void:
