@@ -2,6 +2,9 @@ extends SceneTree
 ## Solver / verifier worker.
 ## godot --headless --path . --script res://tests/worker.gd -- jobs.json results.json [--verify-only] [--budget N]
 ##
+## Jobs with "basic": true must be cleared without supers, hypers or
+## wall-bounces (the solver prunes them and replays reject them).
+##
 ## jobs.json: array of tasks (see list_tasks.gd), optionally with "solution"
 ## (RLE inputs). Cached solutions are replayed first; only failures are solved.
 
@@ -28,6 +31,8 @@ func _init() -> void:
 func _check(job: Dictionary, rep: Dictionary) -> bool:
 	if rep.dead:
 		return false
+	if job.get("basic", false) and rep.tech > 0:
+		return false
 	var exit: String = job.exit
 	if exit == "end":
 		if not rep.end:
@@ -48,8 +53,11 @@ func _replay(def: RoomDef, spawn: int, dashes: int, inputs: PackedByteArray) -> 
 	var wd := World.new()
 	wd.load_room(def, spawn, dashes)
 	var collected: Array = []
+	var tech := 0
 	for inp in inputs:
 		wd.step(inp)
+		if Solver.uses_tech(wd.events):
+			tech += 1
 		for e in wd.events:
 			if e.begins_with("berry:") or e.begins_with("bell:"):
 				collected.append(e.split(":", true, 1)[1])
@@ -58,7 +66,7 @@ func _replay(def: RoomDef, spawn: int, dashes: int, inputs: PackedByteArray) -> 
 					collected.append("%s:golden%d" % [def.id, i])
 		if wd.dead or wd.exited or wd.end_reached:
 			break
-	return {"dead": wd.dead, "exited": wd.exited, "exit_target": wd.exit_target, "end": wd.end_reached, "collected": collected}
+	return {"dead": wd.dead, "exited": wd.exited, "exit_target": wd.exit_target, "end": wd.end_reached, "collected": collected, "tech": tech}
 
 
 ## Share of 1-frame timing slips (a frame inserted somewhere in the route)
@@ -110,6 +118,7 @@ func _run(job: Dictionary, verify_only: bool, budget: int) -> Dictionary:
 			collect.append(c)
 	s.setup(def, int(job.spawn), ch.dashes, job.exit, collect)
 	s.goal_golden = false
+	s.forbid_tech = job.get("basic", false)
 	for c in job.collect:
 		if str(c).contains(":golden"):
 			s.goal_golden = true

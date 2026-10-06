@@ -8,7 +8,11 @@ Jeste automated level verification.
 3. Builds the room graph and proves, for every chapter, that
      - the chapter end is reachable from the start, and
      - every collectible can be collected on a route that still reaches the end.
-4. Plays every chapter end-to-end through the real Level scene, chaining the
+4. Repeats steps 2-3 with the basic moveset only (no supers, hypers or
+   wall-bounces, which the game never teaches), caching those routes in
+   tests/solutions_basic/, and scores their timing robustness. That is the
+   closer proxy for how hard a room is for a player.
+5. Plays every chapter end-to-end through the real Level scene, chaining the
    proven room solutions, and checks every collectible lands in the save file
    with zero deaths (which also proves each Golden Sunberry run).
 
@@ -26,6 +30,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOL_DIR = os.path.join(ROOT, "tests", "solutions")
+BASIC_DIR = os.path.join(ROOT, "tests", "solutions_basic")
 GODOT = os.environ.get("GODOT", "godot")
 
 
@@ -49,12 +54,12 @@ def list_tasks(chapters):
     return data
 
 
-def sol_path(tid):
-    return os.path.join(SOL_DIR, tid + ".json")
+def sol_path(tid, sol_dir=SOL_DIR):
+    return os.path.join(sol_dir, tid + ".json")
 
 
-def load_cached(task):
-    path = sol_path(task["id"])
+def load_cached(task, sol_dir=SOL_DIR):
+    path = sol_path(task["id"], sol_dir)
     if not os.path.exists(path):
         return None
     try:
@@ -100,18 +105,23 @@ def run_worker(jobs, budget, verify_only=False, timeout=None):
     return results
 
 
-def solve_all(tasks, jobs_n, budget, resolve):
-    os.makedirs(SOL_DIR, exist_ok=True)
+def solve_all(tasks, jobs_n, budget, resolve, basic=False):
+    sol_dir = BASIC_DIR if basic else SOL_DIR
+    os.makedirs(sol_dir, exist_ok=True)
     results = {}
     verify, need = [], []
     for t in tasks:
-        c = None if resolve else load_cached(t)
+        c = None if resolve else load_cached(t, sol_dir)
+        if basic and not (c and c.get("solution")) and not resolve:
+            c = load_cached(t)   # the regular route may already avoid advanced tech
+            if c:
+                c = dict(c, hash=None)
         if c and c.get("hash") == t["hash"] and c.get("solution"):
-            j = dict(t)
+            j = dict(t, basic=basic)
             j["solution"] = c["solution"]
             verify.append(j)
         else:
-            j = dict(t)
+            j = dict(t, basic=basic)
             if c and c.get("solution"):
                 j["solution"] = c["solution"]   # may still replay fine
             need.append(j)
@@ -148,7 +158,7 @@ def solve_all(tasks, jobs_n, budget, resolve):
     for tid, r in results.items():
         if r.get("ok") and r.get("solution"):
             t = by_id[tid]
-            with open(sol_path(tid), "w") as f:
+            with open(sol_path(tid, sol_dir), "w") as f:
                 json.dump({"hash": t["hash"], "solution": r["solution"], "exit_target": r.get("exit_target"),
                            "collected": r.get("collected", []), "frames": r.get("frames")}, f)
     return results
@@ -333,7 +343,43 @@ def main():
         lines.append("")
         avg = sum(v for v, _, _ in rob) / len(rob)
         print(f"  route robustness: average {avg * 100:.0f}%, tightest {rob[0][1]} {rob[0][0] * 100:.0f}%")
-    failed = [r for r in results.values() if not r.get("ok")]
+    print("== Basic moveset only (no supers, hypers or wall-bounces)")
+    basic_results = solve_all(data["tasks"], args.jobs, args.budget, args.resolve, basic=True)
+    basic_report = analyse(data, basic_results)
+    lines.append("## Basic moveset only")
+    lines.append("The same proofs with supers, hypers and wall-bounces forbidden (the game never teaches them).")
+    lines.append("")
+    for chs in sorted(basic_report, key=int):
+        rep = basic_report[chs]
+        cols = rep["collectibles"]
+        got = sum(1 for v in cols.values() if v)
+        ok = rep["end_reachable"] and got == len(cols)
+        all_ok &= ok
+        print(f"  Chapter {chs} {rep['name']}: end {'reachable' if rep['end_reachable'] else 'NOT reachable'}, collectibles {got}/{len(cols)} -> {'PASS' if ok else 'FAIL'}")
+        lines.append(f"- Chapter {chs} {rep['name']}: end {'reachable' if rep['end_reachable'] else 'NOT reachable'}, collectibles {got}/{len(cols)} - {'PASS' if ok else 'FAIL'}")
+        for cid, v in sorted(cols.items()):
+            if not v:
+                print(f"     missing: {cid}")
+                lines.append(f"  - NOT PROVEN: `{cid}`")
+    lines.append("")
+    brob = sorted(((r.get("robustness", 1.0), r["id"], r.get("frames", 0)) for r in basic_results.values()
+                   if r.get("ok") and "_to_" in r["id"]))
+    if brob:
+        lines.append("### Room traversals, basic-moveset routes")
+        lines.append("Robustness of the route through each room (start to exit, no collectibles) with the basic moveset. "
+                     "This is the difficulty proxy used for tuning: the lowest rows are the rooms most likely to feel tight.")
+        lines.append("")
+        lines.append("| task | frames | robustness |")
+        lines.append("|---|---|---|")
+        for v, tid, fr in brob:
+            lines.append(f"| `{tid}` | {fr} | {v * 100:.0f}% |")
+        lines.append("")
+        avg = sum(v for v, _, _ in brob) / len(brob)
+        print(f"  basic traversal robustness: average {avg * 100:.0f}%, tightest {brob[0][1]} {brob[0][0] * 100:.0f}%")
+    for r in basic_results.values():
+        if not r.get("ok"):
+            print(f"  unsolved (basic): {r['id']}: {r.get('error', '')}")
+    failed = [r for r in results.values() if not r.get("ok")] + [dict(r, id=r["id"] + " (basic)") for r in basic_results.values() if not r.get("ok")]
     if failed:
         lines.append("## Unsolved tasks")
         for r in sorted(failed, key=lambda r: r["id"]):

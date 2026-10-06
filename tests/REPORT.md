@@ -1,6 +1,6 @@
 # Jeste level verification report
 
-Generated 2026-10-04 17:46:20
+Generated 2026-10-06 07:07:35
 
 ## Chapter 0: The Foot of Jeste - PASS
 - End reachable from start: yes
@@ -177,6 +177,105 @@ Share of random 1-frame timing slips that still clear each task (lower = tighter
 | `8_8-01_s0_to_8-02` | 93 | 100% |
 | `8_8-02_s0_to_end` | 35 | 100% |
 
+## Basic moveset only
+The same proofs with supers, hypers and wall-bounces forbidden (the game never teaches them).
+
+- Chapter 0 The Foot of Jeste: end reachable, collectibles 0/0 - PASS
+- Chapter 1 Lantern Town: end reachable, collectibles 14/14 - PASS
+- Chapter 2 The Hollow Stage: end reachable, collectibles 8/8 - PASS
+- Chapter 3 The Grand Carnival: end reachable, collectibles 11/11 - PASS
+- Chapter 4 Whistling Ridge: end reachable, collectibles 11/11 - PASS
+- Chapter 5 Mirror Cathedral: end reachable, collectibles 8/8 - PASS
+- Chapter 6 Undertow: end reachable, collectibles 9/9 - PASS
+- Chapter 7 The Summit: end reachable, collectibles 14/14 - PASS
+- Chapter 8 The Show: end reachable, collectibles 0/0 - PASS
+
+### Room traversals, basic-moveset routes
+Robustness of the route through each room (start to exit, no collectibles) with the basic moveset. This is the difficulty proxy used for tuning: the lowest rows are the rooms most likely to feel tight.
+
+| task | frames | robustness |
+|---|---|---|
+| `0_0-06_s0_to_end` | 134 | 25% |
+| `6_6-02_s0_to_6-03` | 128 | 33% |
+| `7_7-09_s0_to_end` | 65 | 33% |
+| `3_3-03_s0_to_3-04` | 142 | 38% |
+| `1_1-05_s1_to_1-06` | 274 | 42% |
+| `4_4-01_s0_to_4-02` | 213 | 46% |
+| `6_6-06_s0_to_6-07` | 187 | 46% |
+| `7_7-04_s0_to_7-05` | 150 | 46% |
+| `7_7-05_s0_to_7-06` | 119 | 46% |
+| `1_1-05_s1_to_1-05s` | 287 | 54% |
+| `1_1-05_s0_to_1-06` | 126 | 58% |
+| `4_4-05_s1_to_4-06` | 148 | 58% |
+| `5_5-03_s0_to_5-04` | 85 | 62% |
+| `1_1-03_s0_to_1-04` | 183 | 67% |
+| `2_2-06_s0_to_2-07` | 165 | 67% |
+| `7_7-08_s0_to_7-09` | 197 | 71% |
+| `0_0-01_s0_to_0-02` | 200 | 75% |
+| `1_1-09_s0_to_1-10` | 163 | 75% |
+| `1_1-01_s0_to_1-02` | 159 | 79% |
+| `6_6-03_s0_to_6-04` | 113 | 83% |
+| `6_6-07_s0_to_end` | 200 | 83% |
+| `7_7-07_s0_to_7-08` | 110 | 88% |
+| `2_2-04_s0_to_2-05` | 168 | 92% |
+| `3_3-01_s0_to_3-02` | 200 | 92% |
+| `5_5-05_s0_to_5-06` | 120 | 92% |
+| `7_7-01_s0_to_7-02` | 116 | 92% |
+| `7_7-05_s0_to_7-05s` | 83 | 92% |
+| `1_1-07_s0_to_1-08` | 226 | 96% |
+| `1_1-08_s0_to_1-09` | 155 | 96% |
+| `2_2-03_s0_to_2-04` | 127 | 96% |
+| `4_4-03_s0_to_4-04` | 109 | 96% |
+| `5_5-01_s0_to_5-02` | 123 | 96% |
+| `6_6-01_s0_to_6-02` | 113 | 96% |
+| `0_0-02_s0_to_0-03` | 248 | 100% |
+| `0_0-03_s0_to_0-04` | 270 | 100% |
+| `0_0-04_s0_to_0-05` | 180 | 100% |
+| `0_0-05_s0_to_0-06` | 194 | 100% |
+| `1_1-02_s0_to_1-03` | 150 | 100% |
+| `1_1-04_s0_to_1-05` | 152 | 100% |
+| `1_1-05_s0_to_1-05s` | 21 | 100% |
+| `1_1-05s_s0_to_1-05` | 6 | 100% |
+| `1_1-06_s0_to_1-07` | 107 | 100% |
+| `1_1-10_s0_to_end` | 78 | 100% |
+| `2_2-01_s0_to_2-02` | 122 | 100% |
+| `2_2-02_s0_to_2-03` | 158 | 100% |
+| `2_2-04_s0_to_2-04s` | 18 | 100% |
+| `2_2-04s_s0_to_2-04` | 6 | 100% |
+| `2_2-05_s0_to_2-06` | 123 | 100% |
+| `2_2-07_s0_to_2-08` | 171 | 100% |
+| `2_2-08_s0_to_end` | 66 | 100% |
+| `3_3-02_s0_to_3-03` | 154 | 100% |
+| `3_3-04_s0_to_3-04s` | 21 | 100% |
+| `3_3-04_s0_to_3-05` | 152 | 100% |
+| `3_3-04s_s0_to_3-04` | 4 | 100% |
+| `3_3-05_s0_to_3-06` | 155 | 100% |
+| `3_3-06_s0_to_3-07` | 119 | 100% |
+| `3_3-07_s0_to_end` | 82 | 100% |
+| `4_4-02_s0_to_4-03` | 100 | 100% |
+| `4_4-04_s0_to_4-05` | 164 | 100% |
+| `4_4-05_s0_to_4-05s` | 41 | 100% |
+| `4_4-05_s0_to_4-06` | 123 | 100% |
+| `4_4-05_s1_to_4-05s` | 53 | 100% |
+| `4_4-05s_s0_to_4-05` | 32 | 100% |
+| `4_4-06_s0_to_4-07` | 100 | 100% |
+| `4_4-07_s0_to_end` | 50 | 100% |
+| `5_5-02_s0_to_5-03` | 139 | 100% |
+| `5_5-04_s0_to_5-04s` | 24 | 100% |
+| `5_5-04_s0_to_5-05` | 95 | 100% |
+| `5_5-04s_s0_to_5-04` | 11 | 100% |
+| `5_5-06_s0_to_end` | 66 | 100% |
+| `6_6-04_s0_to_6-04s` | 10 | 100% |
+| `6_6-04_s0_to_6-05` | 138 | 100% |
+| `6_6-04s_s0_to_6-04` | 4 | 100% |
+| `6_6-05_s0_to_6-06` | 131 | 100% |
+| `7_7-02_s0_to_7-03` | 128 | 100% |
+| `7_7-03_s0_to_7-04` | 150 | 100% |
+| `7_7-05s_s0_to_7-05` | 11 | 100% |
+| `7_7-06_s0_to_7-07` | 85 | 100% |
+| `8_8-01_s0_to_8-02` | 98 | 100% |
+| `8_8-02_s0_to_end` | 39 | 100% |
+
 ## End-to-end playthroughs
 - Chapter 0: PASS - 6 room visits, 1222 frames (20.4s), deaths 0, collected 0
 - Chapter 1: PASS - 12 room visits, 2787 frames (46.5s), deaths 0, collected 13, golden carried to the end
@@ -191,4 +290,4 @@ Share of random 1-frame timing slips that still clear each task (lower = tighter
 ## Menu flow
 - PASS - UI FLOW PASS
 
-**Overall: PASS**  (33s)
+**Overall: PASS**  (90s)

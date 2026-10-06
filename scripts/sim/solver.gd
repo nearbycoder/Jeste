@@ -21,6 +21,10 @@ var goal_berries := PackedInt32Array()   # indices into world.berry_* that must 
 var goal_bells := PackedInt32Array()
 var goal_keys := PackedInt32Array()
 var goal_golden := false
+## Prune any branch that uses a technique the game never teaches (supers,
+## hypers, wall-bounces), to prove rooms with the basic moveset alone.
+var forbid_tech := false
+const TECH_EVENTS := ["super", "hyper", "wallbounce"]
 
 # Search params
 var frames_per_action := 4
@@ -621,6 +625,9 @@ func solve() -> bool:
 			for inp in inputs:
 				world.step(inp)
 				used.append(inp)
+				if forbid_tech and uses_tech(world.events):
+					res = -1
+					break
 				res = _goal_reached()
 				if res != 0:
 					break
@@ -667,6 +674,13 @@ func solve() -> bool:
 	solved = true
 	_n_state = []
 	return true
+
+
+static func uses_tech(events: Array) -> bool:
+	for e in events:
+		if e in TECH_EVENTS:
+			return true
+	return false
 
 
 ## Solves with progressively finer settings until one succeeds.
