@@ -63,9 +63,10 @@ Considered and not ranked: a performance pass (no measured problem; revisit if t
 build is slow) and audio (all music and sfx are generated and were not judged by ear in
 this pass).
 
-## Proposed scope for round 2
+## Round 1 scope
 
 Items 1–6, in this order (smallest and safest first; item 2 depends on an owner decision).
+(Planned in phase 1 as "round 2"; implemented and merged as round 1.)
 
 ### A. Gamepad menu fix and device-aware prompts (#1)
 - **Do:** add one shared `Game.menu_pressed(ev, action)` helper. It treats joypad motion as a
@@ -147,7 +148,7 @@ Items 1–6, in this order (smallest and safest first; item 2 depends on an owne
    owner wants it re-recorded later.
 4. **License** (#10) is still unchosen and blocks any third-party distribution such as itch.io.
 
-## Round 2 outcome (2026-10-06)
+## Round 1 results (2026-10-06)
 
 All commits are on `improvements`; nothing has been pushed. The full suite passes after every
 item: fastest-route and basic-moveset proofs for all 9 chapters, golden runs, end-to-end
@@ -191,3 +192,63 @@ playthroughs and the menu flow. Screenshots are in `docs/media/improvements/`.
   fresh Linux export also needs templates installed.
 - Publishing or hosting any build, license choice, signing and notarization.
 - Physical-controller testing, and a human playtest of the tuned rooms.
+
+## Round 2 scope (2026-10-06)
+
+Picked from the ranked list and from what round 1 turned up. Everything here can be verified
+on this machine with the existing suite, ui_flow and screenshots.
+
+Not picked:
+- **#7 frame pacing:** this monitor runs at 119.98 Hz, an exact multiple of the 60 Hz sim, so
+  the uneven judder of 144/165 Hz displays can't be observed or verified here.
+- **#2 / #11 builds:** these still need export templates (an owner decision).
+- **#12 content:** too large for this pass.
+
+### A. Hold-to-repeat in menus
+- **Do:** holding a direction (keyboard, D-pad or stick) repeats menu moves after 0.35 s, then
+  every 0.09 s. This covers the title, options, controls, chapter select, pause, assist and
+  results screens. Gameplay input is untouched.
+- **Accept:** a tap still moves exactly one step. Holding for about 1 s moves several steps at
+  a steady rate. Releasing stops repeats immediately. Holding a non-direction action never
+  repeats.
+- **Verify:** ui_flow holds a D-pad button, a key and the stick for a fixed number of frames
+  and checks the step counts. The existing single-push stick checks must still pass.
+
+### B. Skip a whole cutscene
+- **Do:** hold Pause during a cutscene (Esc / Enter / P, or Start) to fill a small
+  "Hold to skip" ring. A full ring skips to the end of the scene and still runs its
+  commands, so NPC visibility, music and seen-flags end up exactly as if it had been read.
+  Tapping keeps advancing line by line.
+- **Accept:** about 0.6 s of holding skips the rest of the scene. The end state (mode,
+  seen-flags, NPC visibility) matches reading it through. End-of-chapter scenes still lead
+  to the results screen.
+- **Verify:** ui_flow holds pause during the prologue's opening scene and checks that the
+  level is back in play mode with `pro_arrive` marked seen. A screenshot shows the skip ring.
+
+### C. Route Ghost (opt-in assist hint)
+- **Do:** add Pause → Assist → **Route Ghost**. When on, a translucent Mira replays the
+  suite's proven basic-moveset route for the current room from the spawn she used, looping,
+  and restarting with her on each respawn. Routes ship in `data/hints.json`, generated from
+  `tests/solutions_basic/` by the suite. The ghost is purely visual: it uses its own
+  simulation, collects nothing and makes no sound. After 10 deaths in one room, the HUD
+  shows a one-line nudge pointing to it (shown once per room).
+- **Accept:** every room and spawn on a chapter's main path has a hint, and replaying it in a
+  fresh World clears the room. Toggling the ghost on shows it moving along the route, off
+  hides it. The player's save, berries and deaths are unaffected.
+- **Verify:** the suite checks hint coverage and that each hint replays to its exit. ui_flow
+  toggles the assist and checks the ghost is visible and advancing. Screenshots of the ghost in
+  two rooms.
+
+### D. Gentle pass on the next most lethal rooms
+- **Do:** use `tools/slip_deaths.gd` on 7-04, 4-05 (spawn 1) and 7-03, and apply a small
+  geometry or parameter change where one hotspot dominates. Keep each room's idea.
+- **Accept:** lethality of each tuned room drops on the same route. Every proof stays green:
+  fastest and basic moveset, collectibles, golden runs, e2e and menu flow. Rooms without a
+  clear single hotspot are left alone and reported.
+- **Verify:** before/after slip-death numbers, the full suite, and before/after screenshots.
+
+### E. Gamepad rebinding (stretch, only if A–D land cleanly)
+- **Do:** in Options → Controls, the Jump, Dash and Grab rows accept a pad button as well as a
+  key, swapping on conflicts. Prompts show the bound button.
+- **Accept and verify:** ui_flow rebinds Jump to a pad button with a simulated press, then
+  checks the InputMap and the prompt label, and that Reset Defaults restores the pad defaults.
