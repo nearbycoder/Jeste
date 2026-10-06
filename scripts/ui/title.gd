@@ -412,7 +412,10 @@ func _draw_controls() -> void:
 				PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width("press a key"), y), "press a key", Color(UIKit.GOLD, 0.6 + 0.4 * sin(time * 8.0)), UIKit.INK)
 			else:
 				UIKit.keycap(self, Vector2(r.end.x - 10 - w, y), lbl)
-	PixelText.draw_centered(self, 160, r.end.y - 11, "Pad: A jump  X dash  RB/RT grab", Color(UIKit.MUTED, 0.8))
+	var pad := "Pad: %s jump  %s dash  %s grab" % [Game.pad_label("jump"), Game.pad_label("dash"), Game.pad_label("grab")]
+	if PixelText.width(pad) > r.size.x - 8.0:
+		pad = pad.trim_prefix("Pad: ")
+	PixelText.draw_centered(self, 160, r.end.y - 11, pad, Color(UIKit.MUTED, 0.8))
 
 
 func _draw_opt_value(name: String, right: Vector2, a: float) -> void:

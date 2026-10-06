@@ -299,7 +299,7 @@ and credits. It is a first release, so expect rough edges.
   there for that.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
-  first launch sizes the window to about three quarters of the screen. Tested on one 4K
+  default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
   monitor under Wayland. On this machine's X11 (XWayland) session, game windows launched from a
   script started minimised regardless of these settings, so X11 was not checked by eye.
 - **No license has been chosen yet.** Until a `LICENSE` file is added, all rights are
