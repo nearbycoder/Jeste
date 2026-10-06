@@ -67,6 +67,8 @@ func _play(game: Node, n: int, chunks: Array) -> Dictionary:
 	if not res.has("error"):
 		if not level.finished:
 			res.error = "chapter not finished (ended in %s)" % level.room_id
+		elif float(game.chapter_data(n).get("best_time", 0.0)) <= 0.0:
+			res.error = "full run did not record a best time"
 		else:
 			res.ok = true
 	level.queue_free()

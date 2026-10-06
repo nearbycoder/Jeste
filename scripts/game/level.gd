@@ -48,6 +48,7 @@ var death_burst_done := true
 var script_delay := 0.0
 var replay := PackedByteArray()  # optional scripted input (demo / screenshots)
 var replay_pos := 0
+var full_run := true            # started at the chapter start in this session (may set Best)
 
 
 func _ready() -> void:
@@ -55,6 +56,7 @@ func _ready() -> void:
 	chapter = LevelDB.get_chapter(chapter_n)
 	_build_nodes()
 	var start_room := Game.pending_room if Game.pending_room != "" else chapter.start
+	_restore_resume(start_room)
 	if not fast:
 		# paint every room on worker threads; the first one is needed right away
 		var first: RoomDef = chapter.rooms.get(start_room)
@@ -74,6 +76,18 @@ func _ready() -> void:
 		hud.wipe_target = 0.0
 		hud.wipe_dir = -1.0
 	_on_room_enter()
+
+
+## Continuing a chapter carries its time and deaths over from the save, so the
+## results stay cumulative. Only runs started at the chapter start can set Best.
+func _restore_resume(start_room: String) -> void:
+	if start_room == chapter.start:
+		return
+	full_run = false
+	var r: Dictionary = Game.data.get("resume", {})
+	if int(r.get("chapter", -1)) == chapter_n and str(r.get("room", "")) == start_room:
+		chapter_time = float(r.get("time", 0.0))
+		deaths_this_chapter = int(r.get("deaths", 0))
 
 
 const AMBIENCE := {
@@ -217,7 +231,7 @@ func _load_room(id: String, spawn: int, view: RoomView = null) -> void:
 	vis_hist = PackedInt32Array()
 	grin_view.visible = false
 	if not fast and not Game.headless_test:
-		Game.data.resume = {"chapter": chapter_n, "room": id}
+		Game.data.resume = {"chapter": chapter_n, "room": id, "time": chapter_time, "deaths": deaths_this_chapter}
 		Game.save()
 
 
@@ -595,7 +609,7 @@ func _on_end() -> void:
 	var cd := Game.chapter_data(chapter_n)
 	cd.complete = true
 	var best := float(cd.best_time)
-	if best <= 0.0 or chapter_time < best:
+	if full_run and (best <= 0.0 or chapter_time < best):
 		cd.best_time = chapter_time
 	if world.golden_held:
 		cd.golden = true

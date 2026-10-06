@@ -74,6 +74,7 @@ func _ready() -> void:
 		["press", "confirm", 120],                               # Continue
 		["expect", "Level", 0],
 		["check", "resumed", 0],
+		["resume_end", "", 10],                                  # finishing a resumed run keeps Best
 		["scene", "res://scenes/level.tscn", 60],
 		["results", "", 120],
 		["press", "confirm", 90],
@@ -150,7 +151,7 @@ func _process(_d: float) -> void:
 				"assist": ok = cur.hud.assist_open
 				"options_open": ok = cur.hud.options_open
 				"unpaused": ok = not cur.paused
-				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02"
+				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02" and cur.chapter_time >= 100.0 and cur.deaths_this_chapter == 7 and not cur.full_run
 				"has_continue": ok = cur.items.size() > 0 and cur.items[0] == "Continue" and cur.sel == 0
 			if not ok:
 				_fail("step %d: check %s failed" % [idx, s[1]])
@@ -163,8 +164,14 @@ func _process(_d: float) -> void:
 					cur.dialogue.handle_input(ev)
 		"results":
 			cur._show_results()
+		"resume_end":
+			var cd: Dictionary = get_node("/root/Game").chapter_data(1)
+			cd.best_time = 300.0
+			cur._on_end()
+			if not is_equal_approx(float(cd.best_time), 300.0):
+				_fail("step %d: resumed run overwrote Best with %.2f" % [idx, float(cd.best_time)])
 		"seed_resume":
-			get_node("/root/Game").data.resume = {"chapter": 1, "room": "1-02"}
+			get_node("/root/Game").data.resume = {"chapter": 1, "room": "1-02", "time": 100.0, "deaths": 7}
 		"done":
 			print("UI FLOW PASS")
 			get_tree().quit(0)
