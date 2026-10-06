@@ -177,7 +177,7 @@ git clone https://github.com/nearbycoder/Jeste.git && cd Jeste
 godot --path .                      # play (or open the folder in the Godot editor and press F5)
 ```
 
-**Run the verification suite.** It needs no display and takes about 30 seconds with cached solutions:
+**Run the verification suite.** It needs no display and takes under two minutes with cached solutions (both route sets):
 
 ```sh
 python3 tests/run_tests.py                      # all chapters: lint, solve, prove, play end-to-end, menu flow

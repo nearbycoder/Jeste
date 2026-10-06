@@ -146,3 +146,48 @@ Items 1–6, in this order (smallest and safest first; item 2 depends on an owne
    out of date. The plan is to keep the trailer as is (it is a v0.1.0 trailer) unless the
    owner wants it re-recorded later.
 4. **License** (#10) is still unchosen and blocks any third-party distribution such as itch.io.
+
+## Round 2 outcome (2026-10-06)
+
+All commits are on `improvements`; nothing has been pushed. The full suite passes after every
+item: fastest-route and basic-moveset proofs for all 9 chapters, golden runs, end-to-end
+playthroughs and the menu flow. Screenshots are in `docs/media/improvements/`.
+
+| Item | Status | Commit(s) | Verified by |
+|---|---|---|---|
+| B. Continue keeps time, deaths and Best honest | Done | `6361f7c` | ui_flow resumes with seeded time and deaths, finishes, and asserts Best is untouched (fails without the fix). e2e asserts full runs record Best. |
+| A. Stick menus and pad button names | Done | `83a726d`, `83c7681` | ui_flow drives realistic stick pushes through the title, options slider and pause menu, expecting exactly one step each (fails without the fix), and checks a held stick still reads as held for gameplay. Family mapping is checked on sample device names. **Simulated input only; no physical pad.** |
+| E. Window Size, auto size, fullscreen in pause | Done | `5f87837` | ui_flow covers the option and the scale maths for 6 screen sizes. Real window checked under Wayland on a 4K display: Auto 9×, then 3×, fullscreen and back restores 3×. Under X11 (XWayland) here, windows launched from scripts started minimised even with plain Godot calls, so X11 was not checked by eye. Screenshots: `title_options_window_size.png`, `pause_options_display.png`. |
+| F. Reduce Flashing | Done | `cc4c914` | ui_flow toggles it. On 1-02, a bell-strength flash lifts mean frame luminance by 0.49 at full strength and by 0.09 when reduced (baseline 0.14). Screenshot: `flash_full_vs_reduced.png`. |
+| D. Human-difficulty pass | Done | `1a9749e`, `be7023c` | See below. |
+| C. Windows, web, macOS | **Presets only** | `9d590d2` | Godot parses all three presets, and export stops only on the missing 4.7.2 templates (outside the repo, not installed, per the orchestrator). No build was produced or run. The README says so. |
+
+### Item D details and deviations from the plan
+- The suite now solves a second, basic-moveset route per task (`tests/solutions_basic/`).
+  All 9 chapters and all 75 collectibles are proven without supers, hypers or wall-bounces.
+- **Metric change.** The planned tuning signal, robustness on basic routes, turned out
+  to mostly measure open-loop replay drift. In 0-06 (25%), none of the failing slips were
+  deaths; Mira just didn't reach the flag without steering. The suite now reports
+  **lethality** (the share of 1-frame slips, inserted or dropped, that kill), and
+  `tools/slip_deaths.gd` maps where they die.
+- **Rooms tuned by lethality, not chapter.** The plan preferred Chapters 1–3. The data put
+  the worst rooms elsewhere, so I tuned the three most lethal main-path rooms where one
+  fix addressed a clear hotspot, keeping each room's idea:
+  - 7-05: ledge extended 3 tiles, 73% → 29%.
+  - 6-06: chase delay 45 → 60 frames, 40% → 31%.
+  - 2-03: floor where Mira leaves the lower curtain, 35% → 4%.
+
+  Before/after shots: `room_2-03_before_after.png`, `room_7-05_before_after.png`.
+- Still the most lethal: 7-04 (35%), 4-05 s1 (35%) and 7-03 (33%). They are candidates for a
+  later pass, ideally after a human playtest.
+
+### Deviations in A
+- No hold-to-repeat for the stick. Keyboard and D-pad don't repeat in these menus either, so
+  one push equals one step everywhere.
+
+### Still open (owner decisions)
+- Export templates, plus running and checking the Windows, web and macOS builds. The Linux
+  template in the git-ignored `build/templates/` is not in Godot's standard path either, so a
+  fresh Linux export also needs templates installed.
+- Publishing or hosting any build, license choice, signing and notarization.
+- Physical-controller testing, and a human playtest of the tuned rooms.
