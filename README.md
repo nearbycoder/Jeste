@@ -160,7 +160,11 @@ Download **`Jeste-v0.1.0-linux-x86_64.zip`** from the
 `./Jeste.x86_64`. It's a single 64-bit binary and needs a Vulkan-capable GPU. Saves and
 settings are stored in `~/.local/share/godot/app_userdata/Jeste/`.
 
-Windows, macOS and web builds aren't published yet. You can export them yourself from source.
+Windows, macOS and web builds aren't published yet. `export_presets.cfg` has presets for all
+three (Windows x86_64, a single-threaded web build, and an ad-hoc-signed, un-notarized
+universal macOS app with bundle id `com.nearbycoder.jeste`), but none of them has been
+exported or run yet: this machine has only the Linux export template. Treat them as untested
+starting points.
 
 ## Build from source
 
@@ -192,11 +196,13 @@ python3 -m venv .venv && .venv/bin/pip install numpy
 .venv/bin/python tools/gen_audio.py ch3 sfx                  # or just some of them
 ```
 
-**Export a Linux build.** Install the 4.7.2 export templates first (*Editor → Manage Export Templates*):
+**Export a build.** Install the 4.7.2 export templates first (*Editor → Manage Export Templates*):
 
 ```sh
 mkdir -p build/linux
 godot --headless --path . --export-release "Linux" build/linux/Jeste.x86_64
+# untested presets: "Windows Desktop" (build/windows/Jeste.exe), "Web" (build/web/index.html),
+# "macOS" (build/macos/Jeste.zip, not notarized, so Gatekeeper will warn)
 ```
 
 **Rebuild the trailer, teaser, poster and screenshots.** This needs a display, because Godot's Movie Maker renders the footage:

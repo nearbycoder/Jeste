@@ -375,7 +375,8 @@ func apply_settings() -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		_apply_window_size()
+		if not OS.has_feature("web"):
+			_apply_window_size()
 	Engine.time_scale = float(settings.game_speed)
 	var bus := AudioServer.get_bus_index("Master")
 	AudioServer.set_bus_volume_db(bus, 0.0)
@@ -412,12 +413,16 @@ func window_scale() -> int:
 
 
 func window_scale_label() -> String:
+	if OS.has_feature("web"):
+		return "Browser"   # the page sizes the canvas
 	var s := int(settings.get("window_scale", 0))
 	return "Auto %dx" % window_scale() if s <= 0 else "%dx" % window_scale()
 
 
 ## Steps through Auto, 2x .. the largest scale that fits (wrapping).
 func step_window_scale(d: int) -> void:
+	if OS.has_feature("web"):
+		return
 	var opts := [0]
 	for k in range(2, max_window_scale() + 1):
 		opts.append(k)
