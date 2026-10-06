@@ -95,7 +95,7 @@ func setup(chapter: int) -> void:
 
 
 func pulse(amount: float = 1.0) -> void:
-	shimmer = maxf(shimmer, amount)
+	shimmer = maxf(shimmer, amount * Game.flash_scale())
 
 
 func _process(delta: float) -> void:

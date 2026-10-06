@@ -21,7 +21,7 @@ var logo_mat: ShaderMaterial
 var jingled := false
 var bell_swing := 0.0
 
-const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Screen Shake", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
+const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
 const CONTROLS := ["jump", "dash", "grab", "up", "down", "left", "right", "Reset Defaults", "Back"]
 var ctl_sel := 0
 var ctl_k: Array = []
@@ -263,6 +263,8 @@ func _change_option(d: int, confirm: bool) -> void:
 			Game.step_window_scale(d)
 		"Screen Shake":
 			Game.settings.screen_shake = not Game.settings.screen_shake
+		"Reduce Flashing":
+			Game.settings.reduce_flashing = not bool(Game.settings.get("reduce_flashing", false))
 		"Rumble":
 			Game.settings.rumble = not bool(Game.settings.get("rumble", true))
 			if Game.settings.rumble:
@@ -367,7 +369,7 @@ func _draw() -> void:
 	# options / confirm panel
 	if panel_k > 0.0:
 		var e := ease(panel_k, 0.3)
-		var r := Rect2(84, 20 + (1.0 - e) * 12.0, 152, 16 + OPTIONS.size() * 12)
+		var r := Rect2(84, 10 + (1.0 - e) * 12.0, 152, 16 + OPTIONS.size() * 12)
 		if screen == "controls":
 			e = 0.0   # the controls panel replaces the options panel
 		UIKit.panel(self, r, e)
@@ -431,6 +433,8 @@ func _draw_opt_value(name: String, right: Vector2, a: float) -> void:
 			PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), right.y), v, Color(UIKit.GOLD, a), Color(UIKit.INK, a))
 		"Screen Shake":
 			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), a)
+		"Reduce Flashing":
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), a)
 		"Rumble":
 			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), a)
 		"Speedrun Timer":

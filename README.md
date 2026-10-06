@@ -63,6 +63,7 @@ is always one menu away.
 - **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
 - **Options → Controls** rebinds every key, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
+- **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
 - **Pause → Assist** offers slower game speed (50–100%), infinite stamina and invincibility. Your progress counts the same.
 
 ## Features
@@ -125,7 +126,7 @@ parallax backdrops, a glow pass, bloom and per-chapter colour grading.
 A title screen with a campfire and a juggling Mira. Chapter select shows living
 postcards rendered from each chapter's real opening room. Results screens show berries,
 deaths, time, bells and golden runs. Options cover volume, fullscreen, window size, screen shake,
-rumble, an optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
+reduced flashing, rumble, an optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
 and *Continue* returns you to the last room you entered.
 
 ## Content overview

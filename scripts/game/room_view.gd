@@ -521,7 +521,7 @@ func _draw_masks() -> void:
 		if active and not ghost:
 			_tile(col, 5, Vector2(cx * T, cy * T))
 			if mask_flash > 0.0:
-				draw_rect(Rect2(cx * T, cy * T, T, T), Color(1, 1, 1, 0.6 * mask_flash))
+				draw_rect(Rect2(cx * T, cy * T, T, T), Color(1, 1, 1, 0.6 * mask_flash * Game.flash_scale()))
 		else:
 			_tile(col + 1, 5, Vector2(cx * T, cy * T), Color(1, 1, 1, 0.8 if active else 0.55))
 

@@ -53,6 +53,9 @@ func _ready() -> void:
 		["press", "right", 4], ["check", "window_2x", 0],
 		["press", "left", 4], ["check", "window_auto", 0],
 		["press", "down", 4], ["press", "confirm", 4],           # toggles Screen Shake
+		["press", "down", 4], ["press", "confirm", 4],           # Reduce Flashing
+		["check", "reduced_flashing", 0],
+		["press", "confirm", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Controls
 		["check", "controls", 0],
 		["press", "confirm", 6],                                  # rebind Jump
@@ -186,6 +189,7 @@ func _process(_d: float) -> void:
 			match s[1]:
 				"options": ok = cur.screen == "options"
 				"title_sel_1": ok = cur.sel == 1
+				"reduced_flashing": ok = bool(get_node("/root/Game").settings.reduce_flashing) and is_equal_approx(get_node("/root/Game").flash_scale(), 0.2)
 				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
 				"window_2x": ok = int(get_node("/root/Game").settings.window_scale) == 2 and get_node("/root/Game").window_scale_label() == "2x"
 				"title_sel_0": ok = cur.sel == 0

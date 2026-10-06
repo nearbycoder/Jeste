@@ -248,7 +248,7 @@ func _draw_postcard(r: Rect2, n: int, a: float) -> void:
 	UIKit.frame(self, r.grow(2), Color(UIKit.GOLD, a))
 	UIKit.frame(self, r.grow(3), Color(UIKit.INK, a))
 	if card_flash > 0.0:
-		draw_rect(r, Color(1, 1, 1, card_flash * 0.25))
+		draw_rect(r, Color(1, 1, 1, card_flash * 0.25 * Game.flash_scale()))
 
 
 func _draw_lock(c: Vector2, a: float) -> void:

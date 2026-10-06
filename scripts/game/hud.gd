@@ -39,7 +39,7 @@ var assist_open := false
 var assist_items := ["Game Speed", "Infinite Stamina", "Invincibility", "Back"]
 var assist_sel := 0
 var options_open := false
-var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Screen Shake", "Rumble", "Speedrun Timer", "Back"]
+var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Back"]
 var option_sel := 0
 var results_ticks := 0
 
@@ -174,6 +174,8 @@ func handle_menu_input(ev: InputEvent) -> bool:
 					Game.step_window_scale(dir)
 				"Screen Shake":
 					Game.settings.screen_shake = not Game.settings.screen_shake
+				"Reduce Flashing":
+					Game.settings.reduce_flashing = not bool(Game.settings.get("reduce_flashing", false))
 				"Rumble":
 					Game.settings.rumble = not bool(Game.settings.get("rumble", true))
 					if Game.settings.rumble:
@@ -266,7 +268,7 @@ func _draw() -> void:
 			draw_colored_polygon(d, Color(0.85, 0.2, 0.35, a * s2))
 	# Flash
 	if flash > 0.0:
-		draw_rect(Rect2(0, 0, 320, 180), Color(1, 1, 1, flash * 0.6))
+		draw_rect(Rect2(0, 0, 320, 180), Color(1, 1, 1, flash * 0.6 * Game.flash_scale()))
 	# Wipe (diamond pattern like a curtain falling)
 	if wipe > 0.0:
 		_draw_wipe(wipe)
@@ -298,7 +300,7 @@ func _draw_pause(e: float) -> void:
 
 
 func _draw_options(e: float) -> void:
-	var r := Rect2(88, 30, 144, 14 + option_items.size() * 12)
+	var r := Rect2(88, 24, 144, 14 + option_items.size() * 12)
 	UIKit.panel(self, r, e)
 	UIKit.panel_title(self, r, "OPTIONS", e)
 	for i in option_items.size():
@@ -313,6 +315,7 @@ func _draw_options(e: float) -> void:
 				var v := Game.window_scale_label()
 				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
 			"Screen Shake": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), e)
+			"Reduce Flashing": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), e)
 			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
 			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)
 	var pairs := [[Game.move_label(), "Change"], [Game.key_label("dash"), "Back"]]

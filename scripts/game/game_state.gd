@@ -346,6 +346,7 @@ func default_settings() -> Dictionary:
 		"music": 0.7, "sfx": 0.8, "fullscreen": false, "screen_shake": true,
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
+		"reduce_flashing": false,
 	}
 
 
@@ -440,6 +441,11 @@ func _apply_window_size() -> void:
 	DisplayServer.window_set_size(want)
 	var scr := DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen())
 	DisplayServer.window_set_position(scr.position + (scr.size - want) / 2)
+
+
+## Multiplier for full-screen flashes and the impact shimmer (accessibility).
+func flash_scale() -> float:
+	return 0.2 if bool(settings.get("reduce_flashing", false)) else 1.0
 
 
 ## Gamepad vibration (weak/strong motors scaled together), if enabled.
