@@ -345,7 +345,7 @@ func default_settings() -> Dictionary:
 	return {
 		"music": 0.7, "sfx": 0.8, "fullscreen": false, "screen_shake": true,
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
-		"invincible": false, "rumble": true,
+		"invincible": false, "rumble": true, "window_scale": 0,
 	}
 
 
@@ -374,9 +374,72 @@ func apply_settings() -> void:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 	else:
 		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		_apply_window_size()
 	Engine.time_scale = float(settings.game_speed)
 	var bus := AudioServer.get_bus_index("Master")
 	AudioServer.set_bus_volume_db(bus, 0.0)
+
+
+# ---------------------------------------------------------------- window size
+
+const BASE := Vector2i(320, 180)
+
+
+## Integer scales for a screen: [largest that fits, default]. The default is
+## the largest scale that covers at most 75% of the screen in each direction.
+static func fit_scales(screen: Vector2i) -> Array:
+	var most := maxi(1, mini(screen.x / BASE.x, (screen.y - 48) / BASE.y))   # room for a title bar
+	var auto := mini(int(screen.x * 0.75) / BASE.x, int(screen.y * 0.75) / BASE.y)
+	return [most, clampi(auto, mini(2, most), most)]
+
+
+func _screen_size() -> Vector2i:
+	if DisplayServer.get_name() == "headless":
+		return Vector2i(1920, 1080)
+	return DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen()).size
+
+
+func max_window_scale() -> int:
+	return fit_scales(_screen_size())[0]
+
+
+## Window scale in use: the saved choice (0 = automatic), capped to the screen.
+func window_scale() -> int:
+	var fit := fit_scales(_screen_size())
+	var s := int(settings.get("window_scale", 0))
+	return fit[1] if s <= 0 else mini(s, fit[0])
+
+
+func window_scale_label() -> String:
+	var s := int(settings.get("window_scale", 0))
+	return "Auto %dx" % window_scale() if s <= 0 else "%dx" % window_scale()
+
+
+## Steps through Auto, 2x .. the largest scale that fits (wrapping).
+func step_window_scale(d: int) -> void:
+	var opts := [0]
+	for k in range(2, max_window_scale() + 1):
+		opts.append(k)
+	var cur := int(settings.get("window_scale", 0))
+	var i := opts.find(mini(cur, max_window_scale()) if cur > 0 else 0)
+	settings.window_scale = opts[posmod(maxi(i, 0) + d, opts.size())]
+	if settings.fullscreen:
+		settings.fullscreen = false
+	apply_settings()
+
+
+func toggle_fullscreen() -> void:
+	settings.fullscreen = not settings.fullscreen
+	apply_settings()
+
+
+func _apply_window_size() -> void:
+	var want := BASE * window_scale()
+	if DisplayServer.window_get_size() == want:
+		return
+	DisplayServer.window_set_size(want)
+	var scr := DisplayServer.screen_get_usable_rect(DisplayServer.window_get_current_screen())
+	DisplayServer.window_set_position(scr.position + (scr.size - want) / 2)
 
 
 ## Gamepad vibration (weak/strong motors scaled together), if enabled.

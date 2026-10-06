@@ -34,12 +34,12 @@ var paused := false
 var pause_items := ["Resume", "Retry Room", "Assist", "Options", "Return to Map"]
 var pause_sel := 0
 var pause_k := 0.0
-var row_k: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+var row_k: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var assist_open := false
 var assist_items := ["Game Speed", "Infinite Stamina", "Invincibility", "Back"]
 var assist_sel := 0
 var options_open := false
-var option_items := ["Music Volume", "Sound Volume", "Screen Shake", "Rumble", "Speedrun Timer", "Back"]
+var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Screen Shake", "Rumble", "Speedrun Timer", "Back"]
 var option_sel := 0
 var results_ticks := 0
 
@@ -168,6 +168,10 @@ func handle_menu_input(ev: InputEvent) -> bool:
 				"Sound Volume":
 					Game.settings.sfx = clampf(snappedf(float(Game.settings.sfx) + 0.1 * dir, 0.1), 0.0, 1.0)
 					Sfx.refresh_volume()
+				"Fullscreen":
+					Game.toggle_fullscreen()
+				"Window Size":
+					Game.step_window_scale(dir)
 				"Screen Shake":
 					Game.settings.screen_shake = not Game.settings.screen_shake
 				"Rumble":
@@ -294,7 +298,7 @@ func _draw_pause(e: float) -> void:
 
 
 func _draw_options(e: float) -> void:
-	var r := Rect2(88, 40, 144, 14 + option_items.size() * 12)
+	var r := Rect2(88, 30, 144, 14 + option_items.size() * 12)
 	UIKit.panel(self, r, e)
 	UIKit.panel_title(self, r, "OPTIONS", e)
 	for i in option_items.size():
@@ -304,6 +308,10 @@ func _draw_options(e: float) -> void:
 		match option_items[i]:
 			"Music Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.music), e)
 			"Sound Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.sfx), e)
+			"Fullscreen": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), e)
+			"Window Size":
+				var v := Game.window_scale_label()
+				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
 			"Screen Shake": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), e)
 			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
 			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)

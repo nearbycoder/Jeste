@@ -124,8 +124,8 @@ parallax backdrops, a glow pass, bloom and per-chapter colour grading.
 
 A title screen with a campfire and a juggling Mira. Chapter select shows living
 postcards rendered from each chapter's real opening room. Results screens show berries,
-deaths, time, bells and golden runs. Options cover volume, fullscreen, screen shake, rumble, an
-optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
+deaths, time, bells and golden runs. Options cover volume, fullscreen, window size, screen shake,
+rumble, an optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
 and *Continue* returns you to the last room you entered.
 
 ## Content overview
@@ -297,7 +297,10 @@ and credits. It is a first release, so expect rough edges.
 - **Difficulty was tuned against a bot.** Every room is proven possible, but human-feel
   playtesting has been light, so some rooms may feel tighter than intended. Assist mode is
   there for that.
-- **Display:** integer scaling of a 320×180 canvas. Odd window sizes letterbox, and there is no
-  resolution picker beyond fullscreen.
+- **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
+  of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
+  first launch sizes the window to about three quarters of the screen. Tested on one 4K
+  monitor under Wayland. On this machine's X11 (XWayland) session, game windows launched from a
+  script started minimised regardless of these settings, so X11 was not checked by eye.
 - **No license has been chosen yet.** Until a `LICENSE` file is added, all rights are
   reserved by the author.

@@ -31,7 +31,7 @@ func _ready() -> void:
 	steps = [
 		["scene", "res://scenes/main.tscn", 90],
 		["expect", "Title", 0],
-		["check", "pad_labels", 0],
+		["check", "helpers", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -48,7 +48,11 @@ func _ready() -> void:
 		["check", "music_one_step", 0],
 		["stick", "left", 6],
 		["press", "right", 4], ["press", "down", 4], ["press", "left", 4],
-		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],  # toggles
+		["press", "down", 4], ["press", "down", 4],              # Window Size
+		["check", "window_auto", 0],
+		["press", "right", 4], ["check", "window_2x", 0],
+		["press", "left", 4], ["check", "window_auto", 0],
+		["press", "down", 4], ["press", "confirm", 4],           # toggles Screen Shake
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Controls
 		["check", "controls", 0],
 		["press", "confirm", 6],                                  # rebind Jump
@@ -182,15 +186,20 @@ func _process(_d: float) -> void:
 			match s[1]:
 				"options": ok = cur.screen == "options"
 				"title_sel_1": ok = cur.sel == 1
+				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
+				"window_2x": ok = int(get_node("/root/Game").settings.window_scale) == 2 and get_node("/root/Game").window_scale_label() == "2x"
 				"title_sel_0": ok = cur.sel == 0
 				"held_down": ok = Input.is_action_pressed("down") and cur.sel == 1
 				"pause_sel_1": ok = cur.hud.pause_sel == 1
 				"music_one_step": ok = is_equal_approx(float(get_node("/root/Game").settings.music), minf(music_before + 0.1, 1.0))
-				"pad_labels":
+				"helpers":
 					var g: Node = get_node("/root/Game")
 					ok = g.pad_family("Xbox Series Controller") == "xbox" and g.pad_family("PS5 Controller") == "playstation" \
 						and g.pad_family("Sony DualSense") == "playstation" and g.pad_family("Nintendo Switch Pro Controller") == "nintendo" \
-						and g.pad_family("") == "xbox" and g.PAD_LABELS.nintendo.jump == "B"
+						and g.pad_family("") == "xbox" and g.PAD_LABELS.nintendo.jump == "B" \
+						and g.fit_scales(Vector2i(3840, 2160)) == [11, 9] and g.fit_scales(Vector2i(1920, 1080)) == [5, 4] \
+						and g.fit_scales(Vector2i(1366, 768)) == [4, 3] and g.fit_scales(Vector2i(2560, 1440)) == [7, 6] \
+						and g.fit_scales(Vector2i(800, 600)) == [2, 2] and g.fit_scales(Vector2i(500, 300)) == [1, 1]
 				"controls": ok = cur.screen == "controls"
 				"jump_is_n": ok = get_node("/root/Game").key_label("jump") == "N"
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"
