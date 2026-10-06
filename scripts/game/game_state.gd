@@ -299,6 +299,22 @@ func setup_input() -> void:
 	_axis("grab", JOY_AXIS_TRIGGER_LEFT, 1.0)
 
 
+## Grab Mode "toggle": one press grabs until the next press (or a death or a
+## new chapter, see release_grab()), instead of holding the button. Room
+## changes keep it, so a climb can carry on into the room above.
+var _grab_down := false
+var grab_latched := false
+
+
+func toggle_grab_mode() -> void:
+	settings.grab_mode = "hold" if str(settings.get("grab_mode", "hold")) == "toggle" else "toggle"
+	release_grab()
+
+
+func release_grab() -> void:
+	grab_latched = false
+
+
 func read_input() -> int:
 	var b := 0
 	if Input.is_action_pressed("left"): b |= World.IN_LEFT
@@ -307,7 +323,14 @@ func read_input() -> int:
 	if Input.is_action_pressed("down"): b |= World.IN_DOWN
 	if Input.is_action_pressed("jump"): b |= World.IN_JUMP
 	if Input.is_action_pressed("dash"): b |= World.IN_DASH
-	if Input.is_action_pressed("grab"): b |= World.IN_GRAB
+	var grab := Input.is_action_pressed("grab")
+	if str(settings.get("grab_mode", "hold")) == "toggle":
+		if grab and not _grab_down:
+			grab_latched = not grab_latched
+		if grab_latched: b |= World.IN_GRAB
+	elif grab:
+		b |= World.IN_GRAB
+	_grab_down = grab
 	if (b & World.IN_LEFT) and (b & World.IN_RIGHT):
 		b &= ~(World.IN_LEFT | World.IN_RIGHT)
 	if (b & World.IN_UP) and (b & World.IN_DOWN):
@@ -423,7 +446,7 @@ func default_settings() -> Dictionary:
 		"music": 0.7, "sfx": 0.8, "fullscreen": false, "screen_shake": true,
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
-		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto",
+		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto", "grab_mode": "hold",
 	}
 
 

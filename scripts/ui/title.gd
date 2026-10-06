@@ -22,7 +22,7 @@ var jingled := false
 var bell_swing := 0.0
 
 const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
-const CONTROLS := ["jump", "dash", "grab", "up", "down", "left", "right", "Reset Defaults", "Back"]
+const CONTROLS := ["jump", "dash", "grab", "Grab Mode", "up", "down", "left", "right", "Reset Defaults", "Back"]
 var ctl_sel := 0
 var ctl_k: Array = []
 var waiting_key := false
@@ -242,6 +242,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 			elif ev.is_action_pressed("down"):
 				ctl_sel = (ctl_sel + 1) % CONTROLS.size()
 				Sfx.play("menu_move")
+			elif CONTROLS[ctl_sel] == "Grab Mode" and (ev.is_action_pressed("confirm") or ev.is_action_pressed("left") or ev.is_action_pressed("right")):
+				Sfx.play("menu_select")
+				Game.toggle_grab_mode()
+				Game.save_settings()
 			elif ev.is_action_pressed("confirm"):
 				Sfx.play("menu_select")
 				match CONTROLS[ctl_sel]:
@@ -417,7 +421,7 @@ func _draw() -> void:
 
 func _draw_controls() -> void:
 	draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.45))
-	var r := Rect2(78, 30, 164, 16 + CONTROLS.size() * 12 + 12)
+	var r := Rect2(78, 14, 164, 16 + CONTROLS.size() * 12 + 12)
 	UIKit.panel(self, r)
 	UIKit.panel_title(self, r, "CONTROLS")
 	var names := {"jump": "Jump", "dash": "Dash", "grab": "Grab / Climb", "up": "Up", "down": "Down", "left": "Left", "right": "Right"}
@@ -425,7 +429,10 @@ func _draw_controls() -> void:
 		var y := r.position.y + 10 + i * 12
 		var id: String = CONTROLS[i]
 		UIKit.menu_row(self, r.position.x + 12, y, 140, names.get(id, id), ctl_k[i], time)
-		if names.has(id):
+		if id == "Grab Mode":
+			var v := "Toggle" if str(Game.settings.get("grab_mode", "hold")) == "toggle" else "Hold"
+			PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width(v), y), v, UIKit.GOLD, UIKit.INK)
+		elif names.has(id):
 			var lbl := "..." if (waiting_key and i == ctl_sel) else Game.kb_label(id)
 			var w := maxf(PixelText.width(lbl) + 6.0, 9.0)
 			if waiting_key and i == ctl_sel:

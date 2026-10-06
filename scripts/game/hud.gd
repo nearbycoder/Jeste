@@ -254,6 +254,10 @@ func _draw() -> void:
 		PixelText.draw(self, Vector2(320 - PixelText.width(s) - 4, 4), s, Color.WHITE, Color(0, 0, 0, 0.8))
 	if level and level.ghost_view.visible and level.mode == "play":
 		_draw_ghost_input()
+	if Game.grab_latched and level and level.mode == "play":
+		# Grab Mode: Toggle is holding grab for the player
+		var pairs := [[Game.key_label("grab"), "Grab on"]]
+		UIKit.hints(self, Vector2(roundf(316 - UIKit.hints_width(pairs)), 166), pairs, 0.85)
 	# Room title
 	if room_title != "" and room_title_t < 3.0:
 		var a := clampf(minf(room_title_t * 3.0, (3.0 - room_title_t) * 2.0), 0.0, 1.0)

@@ -73,6 +73,7 @@ func _ready() -> void:
 	_build_nodes()
 	var start_room := Game.pending_room if Game.pending_room != "" else chapter.start
 	_restore_resume(start_room)
+	Game.release_grab()
 	if not fast:
 		# paint every room on worker threads; the first one is needed right away
 		var first: RoomDef = chapter.rooms.get(start_room)
@@ -576,6 +577,7 @@ func _on_death() -> void:
 	mode = "dead"
 	timer = 0.0
 	deaths_this_chapter += 1
+	Game.release_grab()
 	Game.rumble(0.8, 0.3)
 	if not Game.headless_test:
 		Game.data.total_deaths = int(Game.data.total_deaths) + 1

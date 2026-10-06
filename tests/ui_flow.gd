@@ -82,16 +82,21 @@ func _ready() -> void:
 		["key", "N", 6],
 		["check", "jump_is_n", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
 		["check", "jump_default", 0],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
-		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 6],   # rebind Jump on the pad
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 6],   # rebind Jump on the pad
 		["padbtn", "DPAD_UP", 6], ["check", "still_waiting", 0],  # D-pad can't be bound
 		["padbtn", "X", 6],
 		["check", "pad_jump_x", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
 		["check", "pad_default", 0],
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["check", "on_grab_mode", 0],    # Grab Mode
+		["press", "confirm", 4], ["check", "grab_toggle", 0],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],          # Reset Defaults keeps it
+		["check", "grab_mode_kept", 0],
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "right", 4], ["check", "grab_hold", 0],
 		["press", "back", 10],
 		["press", "back", 20],
 		["check", "main", 0],
@@ -316,6 +321,10 @@ func _process(_d: float) -> void:
 				"still_waiting": ok = cur.waiting_key and cur.CONTROLS[cur.ctl_sel] == "jump"
 				"pad_jump_x": ok = not cur.waiting_key and _pad_buttons("jump") == [JOY_BUTTON_X] and _pad_buttons("dash").has(JOY_BUTTON_A) \
 					and not _pad_buttons("dash").has(JOY_BUTTON_X) and get_node("/root/Game").pad_label("jump") == "X"
+				"on_grab_mode": ok = cur.CONTROLS[cur.ctl_sel] == "Grab Mode" and str(get_node("/root/Game").settings.grab_mode) == "hold"
+				"grab_toggle": ok = str(get_node("/root/Game").settings.grab_mode) == "toggle" and _grab_reads() == [true, true, true, false, false, true, true, false]
+				"grab_mode_kept": ok = cur.CONTROLS[cur.ctl_sel] == "Reset Defaults" and str(get_node("/root/Game").settings.grab_mode) == "toggle"
+				"grab_hold": ok = str(get_node("/root/Game").settings.grab_mode) == "hold" and _grab_reads() == [true, false, false, true, false, true, false, false]
 				"pad_default": ok = _pad_buttons("jump") == [JOY_BUTTON_A, JOY_BUTTON_Y] and _pad_buttons("dash") == [JOY_BUTTON_X, JOY_BUTTON_B]
 				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null
 				"ghost_running": ok = cur.ghost_world != null and cur.ghost_view.visible and cur.ghost_i >= 5 and cur.ghost_world != cur.world
@@ -412,3 +421,19 @@ func _ghost_parts_ok() -> bool:
 		if g4.zip_view_pos(0) != p4.zip_view_pos(0):
 			apart += 1
 	return seen > 0 and apart > 0 and pw.exited and g4.exited
+
+
+## Grab as the simulation sees it over press, release, idle, press, release,
+## press, release, and then after a death's release_grab().
+func _grab_reads() -> Array:
+	var g: Node = get_node("/root/Game")
+	var out := []
+	for down in [true, false, false, true, false, true, false]:
+		if down:
+			Input.action_press("grab")
+		else:
+			Input.action_release("grab")
+		out.append((g.read_input() & World.IN_GRAB) != 0)
+	g.release_grab()
+	out.append((g.read_input() & World.IN_GRAB) != 0)
+	return out
