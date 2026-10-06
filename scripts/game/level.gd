@@ -53,6 +53,8 @@ var room_spawn := 0
 # basic-moveset route for this room in a simulation of its own.
 var ghost_world: World
 var ghost_view: PlayerView
+var ghost_grin: PlayerView      # the ghost's own chaser in chase rooms
+var ghost_vis := PackedInt32Array()
 var ghost_inputs := PackedByteArray()
 var ghost_i := 0
 var ghost_hold := 0
@@ -150,6 +152,12 @@ func _build_nodes() -> void:
 	ghost_view.visible = false
 	ghost_view.modulate = Color(0.7, 0.9, 1.0, 0.5)
 	stage.add_child(ghost_view)
+	ghost_grin = PlayerView.new()
+	ghost_grin.is_grin = true
+	ghost_grin.world = world
+	ghost_grin.visible = false
+	ghost_grin.modulate = ghost_view.modulate
+	stage.add_child(ghost_grin)
 	player_view = PlayerView.new()
 	player_view.world = world
 	stage.add_child(player_view)
@@ -832,6 +840,7 @@ func _process(delta: float) -> void:
 	hud.timer_value = chapter_time
 	_update_grin()
 	ghost_view.visible = ghost_world != null and mode in ["play", "dialogue"]
+	_update_ghost_grin()
 	_update_cutscene_pose(delta)
 
 
@@ -888,6 +897,7 @@ static func _hint(rid: String, spawn: int, chapter_key: String = "") -> Dictiona
 func _reset_ghost() -> void:
 	ghost_world = null
 	ghost_inputs = PackedByteArray()
+	ghost_vis = PackedInt32Array()
 	if fast or ghost_view == null or room == null or not bool(Game.settings.get("route_ghost", false)):
 		if ghost_view:
 			ghost_view.visible = false
@@ -919,6 +929,8 @@ func _ghost_tick() -> void:
 	ghost_i += 1
 	for ev in ghost_world.events:
 		ghost_view.on_event(ev)
+	if room.chase_delay > 0:
+		ghost_vis.append(ghost_view.current_frame() * 2 + (1 if ghost_world.facing < 0 else 0))
 	if ghost_world.dead or ghost_world.exited or ghost_world.end_reached or ghost_i >= ghost_inputs.size():
 		ghost_hold = 45   # pause at the exit, then loop
 
@@ -937,3 +949,16 @@ func _update_grin() -> void:
 	grin_view.ghost_frame = vis_hist[i] >> 1
 	grin_view.ghost_flip = (vis_hist[i] & 1) == 1
 	grin_view.position = player_view.position
+
+
+## The Route Ghost's own Grin (chase rooms): replays her path, in her tint.
+func _update_ghost_grin() -> void:
+	var i := ghost_vis.size() - 1 - room.chase_delay if room else -1
+	if not ghost_view.visible or room.chase_delay <= 0 or not ghost_world.chase_active or ghost_world.dead or i < 0:
+		ghost_grin.visible = false
+		return
+	ghost_grin.visible = true
+	ghost_grin.ghost_pos = ghost_world.chaser_view_pos()
+	ghost_grin.ghost_frame = ghost_vis[i] >> 1
+	ghost_grin.ghost_flip = (ghost_vis[i] & 1) == 1
+	ghost_grin.position = player_view.position

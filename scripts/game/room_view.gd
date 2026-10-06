@@ -334,7 +334,8 @@ func _draw() -> void:
 	_draw_curtains()
 	_draw_groups()
 	_draw_masks()
-	_draw_zips()
+	_draw_zips(world)
+	_draw_ghost_parts()
 	if fg_tex:
 		draw_texture(fg_tex, Vector2.ZERO)
 	_draw_fake()
@@ -526,38 +527,79 @@ func _draw_masks() -> void:
 			_tile(col + 1, 5, Vector2(cx * T, cy * T), Color(1, 1, 1, 0.8 if active else 0.55))
 
 
-func _draw_zips() -> void:
-	for i in world.zip_count:
-		var zw := world.zip_w[i]
-		var zh := world.zip_h[i]
-		var a := Vector2(world.zip_sx[i] + zw / 2.0, world.zip_sy[i] + zh / 2.0)
-		var b := Vector2(world.zip_tx[i] + zw / 2.0, world.zip_ty[i] + zh / 2.0)
-		# cable
-		draw_line(a + Vector2(0, -1), b + Vector2(0, -1), Color("1c1424"), 1.0)
-		draw_line(a + Vector2(0, 1), b + Vector2(0, 1), Color("1c1424"), 1.0)
-		draw_circle(a, 3, Color("3a3f52"))
-		draw_circle(b, 3, Color("3a3f52"))
-		var zp := world.zip_view_pos(i).round()
+## Gondolas of `w`: the room's own world, or the Route Ghost's (tinted, and
+## only where its gondola isn't exactly where the player's is).
+func _draw_zips(w: World, tint := Color.WHITE) -> void:
+	var ghost := w != world
+	for i in w.zip_count:
+		var zw := w.zip_w[i]
+		var zh := w.zip_h[i]
+		var zp := w.zip_view_pos(i).round()
+		if ghost and zp == world.zip_view_pos(i).round():
+			continue
+		if not ghost:
+			var a := Vector2(w.zip_sx[i] + zw / 2.0, w.zip_sy[i] + zh / 2.0)
+			var b := Vector2(w.zip_tx[i] + zw / 2.0, w.zip_ty[i] + zh / 2.0)
+			# cable
+			draw_line(a + Vector2(0, -1), b + Vector2(0, -1), Color("1c1424"), 1.0)
+			draw_line(a + Vector2(0, 1), b + Vector2(0, 1), Color("1c1424"), 1.0)
+			draw_circle(a, 3, Color("3a3f52"))
+			draw_circle(b, 3, Color("3a3f52"))
 		var x := zp.x
 		var y := zp.y
-		var moving := world.zip_phase[i] != World.Z_IDLE
+		var moving := w.zip_phase[i] != World.Z_IDLE
 		var body := Rect2(x, y, zw, zh)
-		draw_rect(body, Color("1c1424"))
-		draw_rect(body.grow(-1), Color("6b4a35"))
-		draw_rect(Rect2(x + 1, y + 1, zw - 2, 2), Color("e8b84a") if moving else Color("a8782a"))
+		draw_rect(body, Color("1c1424") * tint)
+		draw_rect(body.grow(-1), Color("6b4a35") * tint)
+		draw_rect(Rect2(x + 1, y + 1, zw - 2, 2), (Color("e8b84a") if moving else Color("a8782a")) * tint)
 		# windows
 		var wy := y + 4
 		var wx := x + 3
 		while wx + 4 <= x + zw - 2 and zh >= 10:
-			draw_rect(Rect2(wx, wy, 4, mini(4, zh - 7)), Color("ffd27a") if moving else Color("2a1a14"))
+			draw_rect(Rect2(wx, wy, 4, mini(4, zh - 7)), (Color("ffd27a") if moving else Color("2a1a14")) * tint)
 			wx += 7
 		# gear
 		var gc := Vector2(x + zw / 2.0, y + zh - 4)
 		var ang := time * (6.0 if moving else 0.5)
 		for k in 4:
 			var d := Vector2.RIGHT.rotated(ang + k * PI / 2.0) * 2.5
-			draw_rect(Rect2(gc + d - Vector2(0.5, 0.5), Vector2(1, 1)), Color("c9ced9"))
-		draw_rect(Rect2(x, y + zh - 1, zw, 1), Color("1c1424"))
+			draw_rect(Rect2(gc + d - Vector2(0.5, 0.5), Vector2(1, 1)), Color("c9ced9") * tint)
+		draw_rect(Rect2(x, y + zh - 1, zw, 1), Color("1c1424") * tint)
+
+
+## Route Ghost: she runs in a simulation of her own, so draw (in her tint) the
+## moving parts that differ from the player's: her gondolas, and boards,
+## gates, cracked walls and mask blocks that are solid for her but not here.
+## Cells that can change (boards, gates, cracked walls, mask blocks) and are
+## solid in the ghost's world `gw` but not in the player's `w`.
+static func ghost_only_cells(w: World, gw: World) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for i in gw.dyn_cells:
+		if gw.solid[i] == 1 and w.solid[i] != 1:
+			out.append(i)
+	return out
+
+
+func _draw_ghost_parts() -> void:
+	var gw: World = level.ghost_world if level and level.get("ghost_world") else null
+	if gw == null or gw.room != def or not level.ghost_view.visible:
+		return
+	var tint: Color = level.ghost_view.modulate
+	_draw_zips(gw, tint)
+	for i in ghost_only_cells(world, gw):
+		var cx := i % def.w
+		var col := -1
+		match def.cells[i]:
+			RoomDef.CRUMBLE:
+				var l := cx > 0 and def.cells[i - 1] == RoomDef.CRUMBLE
+				var r := cx < def.w - 1 and def.cells[i + 1] == RoomDef.CRUMBLE
+				col = 5 if l and r else (6 if l else (4 if r else 7))
+			RoomDef.DOOR: col = 8
+			RoomDef.CRACKED: col = 9
+			RoomDef.MASK_A: col = 10
+			RoomDef.MASK_B: col = 12
+		if col >= 0:
+			_tile(col, 5, Vector2(cx * T, (i / def.w) * T), tint)
 
 
 func _draw_decor_back() -> void:

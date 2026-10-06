@@ -23,6 +23,8 @@ func _ready() -> void:
 	game.headless_test = true
 	game.data = game.default_save()
 	game.data.unlocked = 8
+	game.settings = game.default_settings()   # whatever the machine's settings file says
+	game.setup_input()
 	var t := Timer.new()
 	t.wait_time = 240.0
 	t.one_shot = true
@@ -34,6 +36,7 @@ func _ready() -> void:
 		["scene", "res://scenes/main.tscn", 90],
 		["expect", "Title", 0],
 		["check", "helpers", 0],
+		["check", "ghost_parts", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -295,7 +298,8 @@ func _process(_d: float) -> void:
 				"pad_default": ok = _pad_buttons("jump") == [JOY_BUTTON_A, JOY_BUTTON_Y] and _pad_buttons("dash") == [JOY_BUTTON_X, JOY_BUTTON_B]
 				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null
 				"ghost_running": ok = cur.ghost_world != null and cur.ghost_view.visible and cur.ghost_i >= 5 and cur.ghost_world != cur.world
-				"ghost_off": ok = not bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world == null
+				"ghost_off": ok = not bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world == null and not cur.ghost_grin.visible
+				"ghost_parts": ok = _ghost_parts_ok()
 				"skip_not_yet":
 					ok = cur.dialogue.active and cur.mode == "dialogue"
 					skip_id = cur.dialogue.script_id
@@ -350,3 +354,39 @@ func _process(_d: float) -> void:
 		"done":
 			print("UI FLOW PASS")
 			get_tree().quit(0)
+
+
+## Route Ghost parts: once the player has broken 1-03's boards, the ghost's
+## intact ones (and only boards) are the cells drawn for her; in 4-02 her
+## gondola moves away from the player's idle one.
+func _ghost_parts_ok() -> bool:
+	var ch := LevelDB.get_chapter(1)
+	var def := ch.room("1-03")
+	var pw := World.new()
+	pw.load_room(def, 0, ch.dashes)
+	var gw := World.new()
+	gw.load_room(def, 0, ch.dashes)
+	if not RoomView.ghost_only_cells(pw, gw).is_empty():
+		return false
+	var seen := 0
+	for inp in Solver.decode(str(Level._hint("1-03", 0, "1").inputs)):
+		pw.step(inp)
+		for i in RoomView.ghost_only_cells(pw, gw):
+			if def.cells[i] != RoomDef.CRUMBLE:
+				return false
+			seen += 1
+		if pw.exited or pw.dead:
+			break
+	var ch4 := LevelDB.get_chapter(4)
+	var def4 := ch4.room("4-02")
+	var p4 := World.new()
+	p4.load_room(def4, 0, ch4.dashes)
+	var g4 := World.new()
+	g4.load_room(def4, 0, ch4.dashes)
+	var apart := 0
+	for inp in Solver.decode(str(Level._hint("4-02", 0, "4").inputs)):
+		g4.step(inp)
+		p4.step(0)
+		if g4.zip_view_pos(0) != p4.zip_view_pos(0):
+			apart += 1
+	return seen > 0 and apart > 0 and pw.exited and g4.exited
