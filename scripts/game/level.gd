@@ -917,6 +917,13 @@ func _reset_ghost() -> void:
 	ghost_view.visible = true
 
 
+## Buttons the Route Ghost is holding this step (0 while she waits to loop).
+func ghost_input() -> int:
+	if ghost_world == null or ghost_hold > 0 or ghost_i <= 0:
+		return 0
+	return ghost_inputs[ghost_i - 1]
+
+
 func _ghost_tick() -> void:
 	if ghost_world == null:
 		return

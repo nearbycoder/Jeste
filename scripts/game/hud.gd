@@ -48,6 +48,8 @@ var results := false
 var results_data: Dictionary = {}
 var results_t := 0.0
 
+var ghost_glow := {}            # Route Ghost button bit -> seconds of afterglow left
+const GHOST_GLOW := 0.25         # a one-frame dash press stays visible this long
 var show_timer := false
 var timer_value := 0.0
 var flash := 0.0
@@ -58,6 +60,9 @@ func _process(delta: float) -> void:
 	berry_show = maxf(berry_show - delta, 0.0)
 	bell_show = maxf(bell_show - delta, 0.0)
 	title_t += delta
+	var gi: int = level.ghost_input() if level and level.ghost_world else 0
+	for b in [World.IN_UP, World.IN_DOWN, World.IN_LEFT, World.IN_RIGHT, World.IN_JUMP, World.IN_DASH, World.IN_GRAB]:
+		ghost_glow[b] = GHOST_GLOW if gi & b else maxf(float(ghost_glow.get(b, 0.0)) - delta, 0.0)
 	room_title_t += delta
 	flash = maxf(flash - delta * 3.0, 0.0)
 	wipe = move_toward(wipe, wipe_target, wipe_speed * delta)
@@ -247,6 +252,8 @@ func _draw() -> void:
 		var t := timer_value
 		var s := "%d:%02d.%03d" % [int(t / 60.0), int(t) % 60, int(fmod(t, 1.0) * 1000)]
 		PixelText.draw(self, Vector2(320 - PixelText.width(s) - 4, 4), s, Color.WHITE, Color(0, 0, 0, 0.8))
+	if level and level.ghost_view.visible and level.mode == "play":
+		_draw_ghost_input()
 	# Room title
 	if room_title != "" and room_title_t < 3.0:
 		var a := clampf(minf(room_title_t * 3.0, (3.0 - room_title_t) * 2.0), 0.0, 1.0)
@@ -281,6 +288,31 @@ func _draw() -> void:
 		_draw_pause(ease(pause_k, 0.4))
 	if results:
 		_draw_results()
+
+
+## Route Ghost buttons, bottom left: a D-pad and the Jump / Dash / Grab keys
+## (named by the player's own bindings) light up while the ghost holds them.
+func _draw_ghost_input() -> void:
+	var tint := Color(0.7, 0.9, 1.0)
+	var o := Vector2(5, 160)
+	draw_rect(Rect2(o.x - 3, o.y - 3, 136, 19), Color(UIKit.INK, 0.6))
+	draw_rect(Rect2(o.x - 3, o.y - 3, 136, 1), Color(tint, 0.5))
+	for d in [[World.IN_UP, Vector2(5, 0)], [World.IN_LEFT, Vector2(0, 5)], [World.IN_RIGHT, Vector2(10, 5)], [World.IN_DOWN, Vector2(5, 10)]]:
+		var g := _glow(int(d[0]))
+		draw_rect(Rect2(o + (d[1] as Vector2), Vector2(4, 4)), Color(tint, lerpf(0.3, 1.0, g)))
+	draw_rect(Rect2(o + Vector2(5, 5), Vector2(4, 4)), Color(tint, 0.15))
+	var x := o.x + 19.0
+	for a in [[World.IN_JUMP, "jump", "Jump"], [World.IN_DASH, "dash", "Dash"], [World.IN_GRAB, "grab", "Grab"]]:
+		var g := _glow(int(a[0]))
+		var k := lerpf(0.55, 1.0, g)
+		x += UIKit.keycap(self, Vector2(x, o.y + 2), Game.key_label(str(a[1])), k) + 2.0
+		PixelText.draw_outlined(self, Vector2(x, o.y + 3), str(a[2]), Color(UIKit.CREAM.lerp(tint, g), k), Color(UIKit.INK, 0.8 * k))
+		x += PixelText.width(str(a[2])) + 6.0
+
+
+## 1 while the ghost holds the button, fading to 0 over GHOST_GLOW after.
+func _glow(bit: int) -> float:
+	return clampf(float(ghost_glow.get(bit, 0.0)) / GHOST_GLOW, 0.0, 1.0)
 
 
 func _draw_pause(e: float) -> void:

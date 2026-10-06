@@ -12,6 +12,9 @@ var failed := ""
 var music_before := 0.0
 var skip_id := ""
 var speed_from := 0
+var frames_btn := 0
+var btn_last := {}
+var btn_seen := 0
 
 
 func _ready() -> void:
@@ -123,6 +126,7 @@ func _ready() -> void:
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
 		["check", "unpaused", 0],
 		["check", "ghost_running", 0],
+		["ghost_buttons", "", 0],                                 # the HUD strip follows the ghost's inputs
 		["speed", "0.5", 40], ["check", "half_speed", 0],        # Game Speed 50% = half the simulation steps
 		["speed", "1.0", 40], ["check", "full_speed", 0],
 		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
@@ -259,6 +263,23 @@ func _process(_d: float) -> void:
 				wait = 2
 		"hold_wait":
 			pass
+		"ghost_buttons":
+			# every frame for 150 frames: each button the ghost holds is fully lit,
+			# each one she hasn't held for a while is dark
+			cur.hud._process(0.0)    # this driver runs before the HUD in a frame
+			var gi: int = cur.ghost_input()
+			for b in [World.IN_UP, World.IN_DOWN, World.IN_LEFT, World.IN_RIGHT, World.IN_JUMP, World.IN_DASH, World.IN_GRAB]:
+				var g: float = cur.hud._glow(b)
+				if ((gi & b) and g < 1.0) or (not (gi & b) and b in btn_last and frames_btn - int(btn_last[b]) > 30 and g > 0.0):
+					_fail("step %d: ghost button %d glow %.2f, held %s" % [idx, b, g, gi & b != 0])
+				if gi & b:
+					btn_last[b] = frames_btn
+					btn_seen |= b
+			frames_btn += 1
+			if frames_btn < 150:
+				idx -= 1
+			elif btn_seen == 0:
+				_fail("step %d: the ghost pressed nothing in 150 frames" % idx)
 		"speed":
 			get_node("/root/Game").settings.game_speed = float(s[1])
 			Engine.time_scale = float(s[1])
@@ -298,7 +319,8 @@ func _process(_d: float) -> void:
 				"pad_default": ok = _pad_buttons("jump") == [JOY_BUTTON_A, JOY_BUTTON_Y] and _pad_buttons("dash") == [JOY_BUTTON_X, JOY_BUTTON_B]
 				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null
 				"ghost_running": ok = cur.ghost_world != null and cur.ghost_view.visible and cur.ghost_i >= 5 and cur.ghost_world != cur.world
-				"ghost_off": ok = not bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world == null and not cur.ghost_grin.visible
+				"ghost_off": ok = not bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world == null and not cur.ghost_grin.visible \
+					and cur.ghost_input() == 0
 				"ghost_parts": ok = _ghost_parts_ok()
 				"skip_not_yet":
 					ok = cur.dialogue.active and cur.mode == "dialogue"
