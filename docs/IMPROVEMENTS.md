@@ -292,3 +292,67 @@ proven way through. A human playtest is still the right next signal.
   moving objects is possible but was out of scope.
 - **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
   notarization, hosting, license, releases and tags, physical-controller testing.
+
+## Round 3 scope (2026-10-06)
+
+Picked from the two items round 2 left open and from gaps in the Route Ghost, which is now the
+game's main answer to "this room is too hard". Everything here can be checked on this machine.
+All tests and probes run with Godot's user data redirected into the git-ignored `build/`, and
+the real save's checksum is compared before and after.
+
+Not picked:
+- **Windows / web / macOS builds, license, publishing:** still owner decisions.
+- **Checkpoint select** (start a chapter from any room you've reached, to go back for a missed
+  berry): useful, but it touches chapter select, resume and Best-time rules. Kept on the list.
+- **Content (#12):** too large for this pass.
+
+### A. Smooth Motion (frame interpolation)
+- **Why:** the simulation steps at a fixed 60 Hz and everything is drawn at the last step's
+  position. On 144 or 165 Hz displays steps land on frames unevenly (judder). The same happens
+  on *every* display at the Game Speed assist: at 50% the sim steps 30 times a second, so Mira
+  and the camera move at 30 fps even on a 120 Hz screen. That one can be seen here.
+- **Do:** keep the previous step's positions and draw Mira, the camera, gondolas, the Grin and
+  the Route Ghost between the last two steps. Add **Options → Smooth Motion: Auto / On / Off**
+  (title and pause). Auto turns it on only when the refresh rate isn't a multiple of 60 Hz or
+  Game Speed is below 100%, so the common 60/120 Hz case at full speed keeps today's zero added
+  latency. The simulation itself doesn't change, so routes, proofs and replays are unaffected.
+- **Accept:** with it on, per-frame screen movement during a steady run or dash is even
+  (no 0-px / 2-px alternation) at 144 fps and at 50% speed. With it off, rendering is unchanged.
+  Respawns, room transitions and freeze frames don't smear.
+- **Verify:** a probe scene replays a proven route at a forced frame rate (144 fps at 100%, 60 fps
+  at 50%) and logs Mira's drawn position and the camera each frame, Off vs On, reporting the
+  spread of per-frame steps. ui_flow cycles the option and checks the Auto rule. Full suite.
+
+### B. Route Ghost shows its own moving parts
+- **Why:** the ghost runs in its own simulation, so in rooms with gondolas, crumbling boards,
+  gates, cracked walls, mask blocks or a chaser, she reacts to things that aren't drawn. She
+  "rides" nothing, stands on boards the player already broke, or walks through mask blocks.
+- **Do:** draw, in the ghost's tint, the ghost world's gondolas, plus any crumbling boards,
+  gates, cracked walls and mask blocks that are solid for her but not for the player. In chase
+  rooms, draw her own Grin, also tinted.
+- **Accept:** in a gondola room the ghost's gondola carries her. In a crumble room after the
+  player breaks the boards, the ghost's intact boards are drawn under her. In a chase room a
+  tinted Grin follows her. Nothing changes when the ghost is off.
+- **Verify:** a scripted capture of the ghost mid-route in a gondola room (4-xx), a crumble room
+  (1-xx) and a chase room (2-xx), plus ui_flow checks that the ghost layer only draws while
+  the ghost is on. Full suite.
+
+### C. Route Ghost button display
+- **Why:** the ghost shows *where* to go but not *what to press*. A dash direction or a
+  held grab is hard to read from a translucent sprite.
+- **Do:** while the ghost is on, a small HUD strip shows the buttons the ghost is holding this
+  frame (direction arrows, Jump, Dash, Grab), labelled with the player's own bindings
+  (keyboard or pad, following the last device used). It can be turned off with the ghost.
+- **Accept:** the strip matches the ghost's inputs frame by frame and hides with the ghost.
+- **Verify:** ui_flow compares the strip's state with the ghost's input stream for a few hundred
+  frames. Screenshot of the strip during a dash.
+
+### D. Grab Mode: Hold / Toggle
+- **Why:** climbing means holding a shoulder button or key for long stretches. A toggle is a
+  common accessibility option in this genre and costs nothing to players who don't use it.
+- **Do:** **Options → Controls → Grab Mode**: Hold (default) or Toggle (press once to grab,
+  again to let go; the latch also clears on death and room change).
+- **Accept:** in Toggle mode one press then release gives a held grab to the simulation until
+  the next press. Hold mode is unchanged.
+- **Verify:** ui_flow drives a press/release sequence through `Game.read_input()` in both modes,
+  and checks the setting persists and survives Reset Defaults as documented. Full suite.
