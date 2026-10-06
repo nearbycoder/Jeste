@@ -30,6 +30,12 @@ const PAD_DIRS := {"up": "Up", "down": "Down", "left": "Left", "right": "Right"}
 const STICK_PRESS := 0.5
 const STICK_RELEASE := 0.3
 var _axis_dir := {}            # (device, axis) -> -1, 0 or 1
+## Menu hold-to-repeat: a held direction re-sends its press after
+## REPEAT_DELAY, then every REPEAT_RATE seconds (real time).
+const REPEAT_DELAY := 0.35
+const REPEAT_RATE := 0.09
+const REPEAT_ACTIONS := ["up", "down", "left", "right"]
+var _held := {}                # action -> seconds held
 
 
 func _ready() -> void:
@@ -42,6 +48,31 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	Art.clear_cache()
+
+
+func _process(delta: float) -> void:
+	_menu_repeat(delta / maxf(Engine.time_scale, 0.01))
+
+
+## Synthetic presses go straight to the viewport, not through Input, so the
+## polled action state that gameplay reads is never touched.
+func _menu_repeat(dt: float) -> void:
+	for a in REPEAT_ACTIONS:
+		if not Input.is_action_pressed(a):
+			_held.erase(a)
+			continue
+		var t: float = _held.get(a, 0.0)
+		var t2 := t + dt
+		_held[a] = t2
+		if t2 < REPEAT_DELAY:
+			continue
+		# number of repeat ticks crossed this frame (at most one per frame)
+		if t < REPEAT_DELAY or floori((t2 - REPEAT_DELAY) / REPEAT_RATE) > floori((t - REPEAT_DELAY) / REPEAT_RATE):
+			var ev := InputEventAction.new()
+			ev.action = a
+			ev.pressed = true
+			if is_inside_tree():
+				get_viewport().push_input(ev)
 
 
 func _input(ev: InputEvent) -> void:

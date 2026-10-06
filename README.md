@@ -62,6 +62,7 @@ is always one menu away.
 - **Hold jump** to jump higher. **Jump off a wall** to kick away from it.
 - **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
+- Menus repeat when you hold a direction (keys, D-pad or stick).
 - **Options → Controls** rebinds every key, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
 - **Pause → Assist** offers slower game speed (50–100%), infinite stamina and invincibility. Your progress counts the same.

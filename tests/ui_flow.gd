@@ -43,6 +43,14 @@ func _ready() -> void:
 		["check", "title_sel_0", 0],
 		["press", "down", 6], ["press", "confirm", 20],          # Options
 		["check", "options", 0],
+		["hold", "dpad_down", 40], ["release", "dpad_down", 4],  # holding repeats
+		["check", "repeated", 0], ["set_opt0", "", 2],
+		["hold", "key_down", 40], ["release", "key_down", 4],
+		["check", "repeated", 0], ["set_opt0", "", 2],
+		["hold", "stick_down", 40], ["release", "stick_down", 4],
+		["check", "repeated", 0], ["set_opt0", "", 2],
+		["hold", "key_down", 2], ["release", "key_down", 30],    # a tap is one step, no repeats after release
+		["check", "one_step", 0], ["set_opt0", "", 2],
 		["mark_music", "", 0],
 		["stick", "right", 6],                                    # one stick push = one slider step
 		["check", "music_one_step", 0],
@@ -173,6 +181,26 @@ func _process(_d: float) -> void:
 				ev.axis = JOY_AXIS_LEFT_Y
 				ev.axis_value = v
 				Input.parse_input_event(ev)
+		"hold", "release":
+			var down: bool = s[0] == "hold"
+			var ev: InputEvent
+			match s[1]:
+				"dpad_down":
+					ev = InputEventJoypadButton.new()
+					ev.button_index = JOY_BUTTON_DPAD_DOWN
+					ev.pressed = down
+				"key_down":
+					ev = InputEventKey.new()
+					ev.physical_keycode = KEY_DOWN
+					ev.keycode = KEY_DOWN
+					ev.pressed = down
+				"stick_down":
+					ev = InputEventJoypadMotion.new()
+					ev.axis = JOY_AXIS_LEFT_Y
+					ev.axis_value = 1.0 if down else 0.0
+			Input.parse_input_event(ev)
+		"set_opt0":
+			cur.opt_sel = 0
 		"mark_music":
 			music_before = float(get_node("/root/Game").settings.music)
 		"key":
@@ -193,6 +221,8 @@ func _process(_d: float) -> void:
 				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
 				"window_2x": ok = int(get_node("/root/Game").settings.window_scale) == 2 and get_node("/root/Game").window_scale_label() == "2x"
 				"title_sel_0": ok = cur.sel == 0
+				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
+				"one_step": ok = cur.opt_sel == 1
 				"held_down": ok = Input.is_action_pressed("down") and cur.sel == 1
 				"pause_sel_1": ok = cur.hud.pause_sel == 1
 				"music_one_step": ok = is_equal_approx(float(get_node("/root/Game").settings.music), minf(music_before + 0.1, 1.0))
@@ -215,7 +245,7 @@ func _process(_d: float) -> void:
 				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02" and cur.chapter_time >= 100.0 and cur.deaths_this_chapter == 7 and not cur.full_run
 				"has_continue": ok = cur.items.size() > 0 and cur.items[0] == "Continue" and cur.sel == 0
 			if not ok:
-				_fail("step %d: check %s failed" % [idx, s[1]])
+				_fail("step %d: check %s failed%s" % [idx, s[1], (" (opt_sel %d)" % cur.opt_sel) if "opt_sel" in cur else ""])
 		"skip_dialogue":
 			for i in 40:
 				if cur.mode == "dialogue":
