@@ -17,12 +17,20 @@ var pending_spawn := 0
 var headless_test := false     # set by test harness: no saving to disk
 var using_pad := false         # last input came from a gamepad (prompts show pad buttons)
 var pad_device := 0            # gamepad that sent the last pad input (for button names)
-## Button names per controller family. Godot maps face buttons by position
-## (JOY_BUTTON_A is always the bottom one), so only the names differ.
-const PAD_LABELS := {
-	"xbox": {"jump": "A", "dash": "X", "grab": "RB"},
-	"playstation": {"jump": "Cross", "dash": "Square", "grab": "R1"},
-	"nintendo": {"jump": "B", "dash": "Y", "grab": "R"},
+## Button names per controller family [xbox, playstation, nintendo]. Godot
+## maps face buttons by position (JOY_BUTTON_A is always the bottom one), so
+## only the names differ. These are also the buttons a player may rebind.
+const PAD_BUTTON_NAMES := {
+	JOY_BUTTON_A: ["A", "Cross", "B"], JOY_BUTTON_B: ["B", "Circle", "A"],
+	JOY_BUTTON_X: ["X", "Square", "Y"], JOY_BUTTON_Y: ["Y", "Triangle", "X"],
+	JOY_BUTTON_LEFT_SHOULDER: ["LB", "L1", "L"], JOY_BUTTON_RIGHT_SHOULDER: ["RB", "R1", "R"],
+	JOY_BUTTON_LEFT_STICK: ["LS", "L3", "LS"], JOY_BUTTON_RIGHT_STICK: ["RS", "R3", "RS"],
+}
+const PAD_FAMILIES := ["xbox", "playstation", "nintendo"]
+const PAD_REBINDABLE := ["jump", "dash", "grab"]
+const DEFAULT_PAD := {
+	"jump": [JOY_BUTTON_A, JOY_BUTTON_Y], "dash": [JOY_BUTTON_X, JOY_BUTTON_B],
+	"grab": [JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_LEFT_SHOULDER],
 }
 const PAD_DIRS := {"up": "Up", "down": "Down", "left": "Left", "right": "Right"}
 ## Stick hysteresis for menus: an axis counts as pushed past STICK_PRESS and
@@ -117,8 +125,46 @@ static func pad_family(joy_name: String) -> String:
 func pad_label(action: String) -> String:
 	if PAD_DIRS.has(action):
 		return PAD_DIRS[action]
-	var fam := pad_family(Input.get_joy_name(pad_device))
-	return PAD_LABELS[fam].get(action, "?")
+	var bs := pad_buttons_for(action)
+	return "?" if bs.is_empty() else pad_button_name(int(bs[0]), pad_family(Input.get_joy_name(pad_device)))
+
+
+static func pad_button_name(button: int, family: String) -> String:
+	var names: Array = PAD_BUTTON_NAMES.get(button, [])
+	return "?" if names.is_empty() else str(names[maxi(PAD_FAMILIES.find(family), 0)])
+
+
+## Pad buttons per action: custom bindings override the defaults.
+func pad_buttons_for(action: String) -> Array:
+	var b: Dictionary = settings.get("pad_bindings", {}) if settings else {}
+	if b.has(action):
+		var out := []
+		for k in b[action]:
+			out.append(int(k))
+		return out
+	return DEFAULT_PAD.get(action, [])
+
+
+## Bind a pad button to jump / dash / grab, swapping like rebind() does.
+## Returns false for buttons that can't be bound (D-pad, Start, Back...).
+func rebind_pad(action: String, button: int) -> bool:
+	if not PAD_REBINDABLE.has(action) or not PAD_BUTTON_NAMES.has(button):
+		return false
+	var b: Dictionary = settings.get("pad_bindings", {})
+	var old: Array = pad_buttons_for(action).duplicate()
+	for other in PAD_REBINDABLE:
+		if other == action:
+			continue
+		var bs: Array = pad_buttons_for(other).duplicate()
+		if bs.has(button):
+			bs.erase(button)
+			if not old.is_empty() and not bs.has(old[0]):
+				bs.insert(0, old[0])
+			b[other] = bs
+	b[action] = [button]
+	settings.pad_bindings = b
+	setup_input()
+	return true
 
 
 ## Label for the movement prompt ("Arrows" on keyboard, "Stick" on a pad).
@@ -220,6 +266,7 @@ func rebind(action: String, key: int) -> void:
 
 func reset_bindings() -> void:
 	settings.bindings = {}
+	settings.pad_bindings = {}
 	setup_input()
 
 
@@ -239,9 +286,8 @@ func setup_input() -> void:
 			if not seen.has(k):
 				seen[k] = true
 				_key(a, [k])
-	_pad("jump", [JOY_BUTTON_A, JOY_BUTTON_Y])
-	_pad("dash", [JOY_BUTTON_X, JOY_BUTTON_B])
-	_pad("grab", [JOY_BUTTON_RIGHT_SHOULDER, JOY_BUTTON_LEFT_SHOULDER])
+	for a in PAD_REBINDABLE:
+		_pad(a, pad_buttons_for(a))
 	_pad("pause", [JOY_BUTTON_START])
 	_pad("confirm", [JOY_BUTTON_A])
 	_pad("back", [JOY_BUTTON_B])

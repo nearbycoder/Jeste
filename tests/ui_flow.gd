@@ -73,6 +73,14 @@ func _ready() -> void:
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
 		["check", "jump_default", 0],
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 6],   # rebind Jump on the pad
+		["padbtn", "DPAD_UP", 6], ["check", "still_waiting", 0],  # D-pad can't be bound
+		["padbtn", "X", 6],
+		["check", "pad_jump_x", 0],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
+		["check", "pad_default", 0],
 		["press", "back", 10],
 		["press", "back", 20],
 		["check", "main", 0],
@@ -151,6 +159,14 @@ func _press(action: String) -> void:
 	Input.parse_input_event.call_deferred(up)
 
 
+func _pad_buttons(action: String) -> Array:
+	var out := []
+	for e in InputMap.action_get_events(action):
+		if e is InputEventJoypadButton:
+			out.append((e as InputEventJoypadButton).button_index)
+	return out
+
+
 func _scene() -> Node:
 	return get_tree().current_scene
 
@@ -219,6 +235,14 @@ func _process(_d: float) -> void:
 					ev.axis = JOY_AXIS_LEFT_Y
 					ev.axis_value = 1.0 if down else 0.0
 			Input.parse_input_event(ev)
+		"padbtn":
+			var ev := InputEventJoypadButton.new()
+			ev.button_index = JOY_BUTTON_X if s[1] == "X" else JOY_BUTTON_DPAD_UP
+			ev.pressed = true
+			Input.parse_input_event(ev)
+			var up := ev.duplicate()
+			up.pressed = false
+			Input.parse_input_event.call_deferred(up)
 		"wait_dialogue":
 			if not cur.dialogue.active:
 				idx -= 1
@@ -249,6 +273,10 @@ func _process(_d: float) -> void:
 				"title_sel_0": ok = cur.sel == 0
 				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
 				"one_step": ok = cur.opt_sel == 1
+				"still_waiting": ok = cur.waiting_key and cur.CONTROLS[cur.ctl_sel] == "jump"
+				"pad_jump_x": ok = not cur.waiting_key and _pad_buttons("jump") == [JOY_BUTTON_X] and _pad_buttons("dash").has(JOY_BUTTON_A) \
+					and not _pad_buttons("dash").has(JOY_BUTTON_X) and get_node("/root/Game").pad_label("jump") == "X"
+				"pad_default": ok = _pad_buttons("jump") == [JOY_BUTTON_A, JOY_BUTTON_Y] and _pad_buttons("dash") == [JOY_BUTTON_X, JOY_BUTTON_B]
 				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null
 				"ghost_running": ok = cur.ghost_world != null and cur.ghost_view.visible and cur.ghost_i >= 5 and cur.ghost_world != cur.world
 				"ghost_off": ok = not bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world == null
@@ -263,7 +291,8 @@ func _process(_d: float) -> void:
 					var g: Node = get_node("/root/Game")
 					ok = g.pad_family("Xbox Series Controller") == "xbox" and g.pad_family("PS5 Controller") == "playstation" \
 						and g.pad_family("Sony DualSense") == "playstation" and g.pad_family("Nintendo Switch Pro Controller") == "nintendo" \
-						and g.pad_family("") == "xbox" and g.PAD_LABELS.nintendo.jump == "B" \
+						and g.pad_family("") == "xbox" and g.pad_button_name(JOY_BUTTON_A, "nintendo") == "B" \
+						and g.pad_button_name(JOY_BUTTON_X, "playstation") == "Square" and g.pad_label("grab") == "RB" \
 						and g.fit_scales(Vector2i(3840, 2160)) == [11, 9] and g.fit_scales(Vector2i(1920, 1080)) == [5, 4] \
 						and g.fit_scales(Vector2i(1366, 768)) == [4, 3] and g.fit_scales(Vector2i(2560, 1440)) == [7, 6] \
 						and g.fit_scales(Vector2i(800, 600)) == [2, 2] and g.fit_scales(Vector2i(500, 300)) == [1, 1]

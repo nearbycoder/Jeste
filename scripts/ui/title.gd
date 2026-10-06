@@ -171,6 +171,22 @@ func _go(what: String) -> void:
 
 func _input(ev: InputEvent) -> void:
 	# key capture for rebinding happens before actions are dispatched
+	if waiting_key and ev is InputEventJoypadButton and ev.pressed:
+		# pad buttons rebind Jump / Dash / Grab; Start cancels
+		var btn: int = (ev as InputEventJoypadButton).button_index
+		var act: String = CONTROLS[ctl_sel]
+		if btn == JOY_BUTTON_START:
+			get_viewport().set_input_as_handled()
+			waiting_key = false
+			Sfx.play("menu_move")
+		elif Game.rebind_pad(act, btn):
+			get_viewport().set_input_as_handled()
+			waiting_key = false
+			Game.save_settings()
+			Sfx.play("menu_select")
+		else:
+			get_viewport().set_input_as_handled()   # not bindable here: keep waiting
+		return
 	if not waiting_key or not (ev is InputEventKey) or not ev.pressed or ev.echo:
 		return
 	get_viewport().set_input_as_handled()
@@ -411,13 +427,16 @@ func _draw_controls() -> void:
 			var lbl := "..." if (waiting_key and i == ctl_sel) else Game.kb_label(id)
 			var w := maxf(PixelText.width(lbl) + 6.0, 9.0)
 			if waiting_key and i == ctl_sel:
-				PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width("press a key"), y), "press a key", Color(UIKit.GOLD, 0.6 + 0.4 * sin(time * 8.0)), UIKit.INK)
+				var prompt := "key or button" if Game.PAD_REBINDABLE.has(id) else "press a key"
+				PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width(prompt), y), prompt, Color(UIKit.GOLD, 0.6 + 0.4 * sin(time * 8.0)), UIKit.INK)
 			else:
-				UIKit.keycap(self, Vector2(r.end.x - 10 - w, y), lbl)
-	var pad := "Pad: %s jump  %s dash  %s grab" % [Game.pad_label("jump"), Game.pad_label("dash"), Game.pad_label("grab")]
-	if PixelText.width(pad) > r.size.x - 8.0:
-		pad = pad.trim_prefix("Pad: ")
-	PixelText.draw_centered(self, 160, r.end.y - 11, pad, Color(UIKit.MUTED, 0.8))
+				var kx := r.end.x - 10 - w
+				UIKit.keycap(self, Vector2(kx, y), lbl)
+				if Game.PAD_REBINDABLE.has(id):
+					var pl := Game.pad_label(id)
+					PixelText.draw_outlined(self, Vector2(kx - 6 - PixelText.width(pl), y), pl, UIKit.GOLD, UIKit.INK)
+	var foot := "Gold: pad button"
+	PixelText.draw_outlined(self, Vector2(160 - PixelText.width(foot) / 2.0, r.end.y - 11), foot, Color(UIKit.GOLD, 0.8), UIKit.INK)
 
 
 func _draw_opt_value(name: String, right: Vector2, a: float) -> void:
