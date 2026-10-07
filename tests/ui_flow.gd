@@ -15,6 +15,8 @@ var speed_from := 0
 var frames_btn := 0
 var btn_last := {}
 var btn_seen := 0
+var frame := 0
+var input_log: Array = []      # the last inputs that reached the scene, printed on a failure
 
 
 func _ready() -> void:
@@ -190,7 +192,32 @@ func _fail(msg: String) -> void:
 	if failed == "":
 		failed = msg
 		print("UI FLOW FAIL: ", msg)
+		var g: Node = get_node("/root/Game")
+		print("  at frame %d; settings: window_scale=%s music=%s sfx=%s fullscreen=%s; using_pad=%s" % [frame,
+			g.settings.get("window_scale"), g.settings.get("music"), g.settings.get("sfx"), g.settings.get("fullscreen"), g.using_pad])
+		print("  last inputs (frame, step, event):")
+		for l in input_log:
+			print("    ", l)
 		get_tree().quit(1)
+
+
+## Records what reaches the scene (scripted presses, menu repeats, stick
+## motion), so a failed check shows the inputs that led to it.
+func _input(ev: InputEvent) -> void:
+	var t := ""
+	if ev is InputEventAction:
+		t = "action %s %s" % [ev.action, "down" if ev.pressed else "up"]
+	elif ev is InputEventKey:
+		t = "key %s %s%s" % [OS.get_keycode_string(ev.physical_keycode), "down" if ev.pressed else "up", " echo" if ev.echo else ""]
+	elif ev is InputEventJoypadButton:
+		t = "pad button %d %s" % [ev.button_index, "down" if ev.pressed else "up"]
+	elif ev is InputEventJoypadMotion:
+		t = "pad axis %d %.2f" % [ev.axis, ev.axis_value]
+	else:
+		return
+	input_log.append("%d, %d, %s" % [frame, idx, t])
+	if input_log.size() > 40:
+		input_log.pop_front()
 
 
 func _press(action: String) -> void:
@@ -217,6 +244,7 @@ func _scene() -> Node:
 
 
 func _process(_d: float) -> void:
+	frame += 1
 	if failed != "":
 		return
 	if wait > 0:
