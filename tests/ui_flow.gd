@@ -154,6 +154,25 @@ func _ready() -> void:
 		["results", "", 120],
 		["press", "confirm", 90],
 		["expect", "ChapterSelect", 0],
+		["check", "backfill", 0],                                # checkpoint select
+		["seed_checkpoints", "", 0],
+		["scene", "res://scenes/chapter_select.tscn", 60],
+		["press", "left", 10], ["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
+		["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
+		["press", "confirm", 10], ["check", "picker_open", 0],
+		["press", "right", 6], ["press", "right", 6], ["press", "right", 6], ["press", "right", 6],
+		["check", "picker_last", 0],
+		["press", "back", 6], ["check", "picker_closed", 0],
+		["press", "confirm", 10], ["press", "right", 6], ["press", "right", 6],
+		["press", "confirm", 120],
+		["expect", "Level", 0],
+		["check", "from_checkpoint", 0],
+		["seed_continue", "", 0],                                # Continue from a secret room
+		["scene", "res://scenes/chapter_select.tscn", 60],
+		["press", "confirm", 10], ["check", "picker_continue", 0],
+		["press", "confirm", 120],
+		["expect", "Level", 0],
+		["check", "continued", 0],
 		["scene", "res://scenes/credits.tscn", 240],
 		["expect", "Credits", 0],
 		["done", "", 0],
@@ -363,6 +382,13 @@ func _process(_d: float) -> void:
 				"unpaused": ok = not cur.paused
 				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02" and cur.chapter_time >= 100.0 and cur.deaths_this_chapter == 7 and not cur.full_run
 				"has_continue": ok = cur.items.size() > 0 and cur.items[0] == "Continue" and cur.sel == 0
+				"backfill": ok = _backfill_ok()
+				"picker_open": ok = cur.sel == 1 and cur.picking and Array(cur.cp_rooms) == ["1-01", "1-02", "1-03", "1-04"] and cur.cp_sel == 0
+				"picker_last": ok = cur.picking and cur.cp_sel == 3
+				"picker_closed": ok = not cur.picking and cur.leaving < 0
+				"from_checkpoint": ok = cur.chapter_n == 1 and cur.room_id == "1-03" and not cur.full_run and cur.chapter_time < 5.0 and cur.deaths_this_chapter == 0
+				"picker_continue": ok = cur.sel == 1 and cur.picking and Array(cur.cp_rooms) == ["1-01", "1-02", "1-03", "1-04", "1-05", "1-05s"] and cur.cp_sel == 5
+				"continued": ok = cur.room_id == "1-05s" and cur.chapter_time >= 50.0 and cur.deaths_this_chapter == 3 and not cur.full_run
 			if not ok:
 				_fail("step %d: check %s failed%s" % [idx, s[1], (" (opt_sel %d)" % cur.opt_sel) if "opt_sel" in cur else ""])
 		"skip_dialogue":
@@ -382,9 +408,43 @@ func _process(_d: float) -> void:
 				_fail("step %d: resumed run overwrote Best with %.2f" % [idx, float(cd.best_time)])
 		"seed_resume":
 			get_node("/root/Game").data.resume = {"chapter": 1, "room": "1-02", "time": 100.0, "deaths": 7}
+		"seed_checkpoints":
+			# reached 1-01..1-03 and the secret 1-05s; a berry from 1-04 backfills it
+			var g: Node = get_node("/root/Game")
+			g.data.chapters.erase("1")
+			g.data.resume = {}
+			g.data.reached = {"1-01": true, "1-02": true, "1-03": true, "1-05s": true}
+			g.data.collected = {"1-04:berry0": true}
+		"seed_continue":
+			get_node("/root/Game").data.resume = {"chapter": 1, "room": "1-05s", "time": 50.0, "deaths": 3}
 		"done":
 			print("UI FLOW PASS")
 			get_tree().quit(0)
+
+
+## Checkpoint rules on a scratch save: a completed chapter offers every
+## main-path room, an old save without room records is backfilled up to its
+## Continue room, and secret rooms are never offered.
+func _backfill_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var keep: Dictionary = g.data
+	g.data = g.default_save()
+	g.data.erase("reached")   # a save from before rooms were recorded
+	var ok := true
+	ok = ok and Array(g.reached_checkpoints(1)) == ["1-01"]
+	g.data.resume = {"chapter": 1, "room": "1-06", "time": 1.0, "deaths": 0}
+	ok = ok and Array(g.reached_checkpoints(1)) == ["1-01", "1-02", "1-03", "1-04", "1-05", "1-06"]
+	g.chapter_data(1).complete = true
+	ok = ok and g.reached_checkpoints(1).size() == 10 and not g.reached_checkpoints(1).has("1-05s")
+	ok = ok and Array(g.checkpoint_rooms(8)) == ["8-01", "8-02"]
+	# every checkpoint starts at spawn 0, which must have a proven route out
+	for n in LevelDB.chapter_count():
+		for rid in g.checkpoint_rooms(n):
+			if Level._hint(rid, 0, str(n)).is_empty():
+				print("no proven route from checkpoint %s" % rid)
+				ok = false
+	g.data = keep
+	return ok
 
 
 ## Route Ghost parts: once the player has broken 1-03's boards, the ghost's

@@ -355,6 +355,7 @@ func default_save() -> Dictionary:
 		"total_deaths": 0,
 		"playtime": 0.0,
 		"resume": {},
+		"reached": {},
 	}
 
 
@@ -489,6 +490,49 @@ func total_bells() -> int:
 		if "bell" in str(cid):
 			c += 1
 	return c
+
+
+# ---------------------------------------------------------------- checkpoints
+
+## A chapter's checkpoints: its main-path rooms in order. Secret rooms (ids
+## ending in "s") are never offered, so the list gives nothing away.
+static func checkpoint_rooms(n: int) -> PackedStringArray:
+	var out := PackedStringArray()
+	for rid in LevelDB.get_chapter(n).order:
+		if not rid.ends_with("s"):
+			out.append(rid)
+	return out
+
+
+func mark_reached(room_id: String) -> void:
+	if not data.has("reached"):
+		data.reached = {}
+	data.reached[room_id] = true
+
+
+## Checkpoints the player has reached. Saves from before rooms were recorded
+## are backfilled: a completed chapter has them all; otherwise every room up
+## to the Continue room, and any room where something was collected.
+func reached_checkpoints(n: int) -> PackedStringArray:
+	var rooms := checkpoint_rooms(n)
+	if rooms.is_empty():
+		return rooms
+	var reached: Dictionary = data.get("reached", {})
+	var all := bool(chapter_data(n).get("complete", false))
+	var r: Dictionary = data.get("resume", {})
+	var upto := -1
+	if not r.is_empty() and int(r.get("chapter", -1)) == n:
+		upto = Array(LevelDB.get_chapter(n).order).find(str(r.get("room", "")))
+	var with_items := {}
+	for cid in data.collected:
+		with_items[str(cid).split(":")[0]] = true
+	var out := PackedStringArray()
+	var order := Array(LevelDB.get_chapter(n).order)
+	for i in rooms.size():
+		var rid := rooms[i]
+		if i == 0 or all or reached.has(rid) or with_items.has(rid) or order.find(rid) <= upto:
+			out.append(rid)
+	return out
 
 
 func mark_seen(id: String) -> void:

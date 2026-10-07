@@ -8,9 +8,12 @@ var time := 0.0
 var backdrop: Backdrop
 var post: PostFX
 var slide := 0.0
-var confirm_resume := false
-var resume_sel := 0
-var resume_k: Array = [0.0, 0.0]
+# Checkpoint picker: the reached main-path rooms of the chosen chapter (plus
+# the Continue room if it's a secret one). Left / right steps through them.
+var picking := false
+var cp_rooms := PackedStringArray()
+var cp_sel := 0
+var cp_slide := 0.0
 var wipe := 1.0
 var leaving := -1
 var leaving_room := ""
@@ -19,7 +22,7 @@ var card_flash := 0.0
 var pc_vp: SubViewport
 var pc_view: RoomView
 var pc_world: World
-var pc_for := -1
+var pc_for := ""
 
 static var _cards: Dictionary = {}
 
@@ -72,8 +75,7 @@ func _process(delta: float) -> void:
 	slide = move_toward(slide, 0.0, delta * 5.0)
 	card_flash = maxf(card_flash - delta * 3.0, 0.0)
 	marker_x = lerpf(marker_x, _marker_pos(sel).x, minf(delta * 10.0, 1.0))
-	for i in 2:
-		resume_k[i] = move_toward(resume_k[i], 1.0 if i == resume_sel else 0.0, delta * 8.0)
+	cp_slide = move_toward(cp_slide, 0.0, delta * 6.0)
 	if leaving >= 0:
 		wipe = minf(wipe + delta * 2.2, 1.0)
 		if wipe >= 1.0:
@@ -95,17 +97,22 @@ func _select(n: int, dir: float) -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if leaving >= 0:
 		return
-	if confirm_resume:
-		if ev.is_action_pressed("up") or ev.is_action_pressed("down"):
-			resume_sel = 1 - resume_sel
+	if picking:
+		if ev.is_action_pressed("left") and cp_sel > 0:
+			cp_sel -= 1
+			cp_slide = -1.0
+			Sfx.play("menu_move")
+		elif ev.is_action_pressed("right") and cp_sel < cp_rooms.size() - 1:
+			cp_sel += 1
+			cp_slide = 1.0
 			Sfx.play("menu_move")
 		elif ev.is_action_pressed("confirm"):
 			Sfx.play("menu_select")
-			var r: Dictionary = Game.data.resume
 			leaving = sel
-			leaving_room = str(r.room) if resume_sel == 0 else ""
+			leaving_room = "" if cp_sel == 0 else cp_rooms[cp_sel]
 		elif ev.is_action_pressed("back"):
-			confirm_resume = false
+			picking = false
+			Sfx.play("menu_move")
 		return
 	var n := LevelDB.chapter_count()
 	if ev.is_action_pressed("left") and sel > 0:
@@ -114,28 +121,66 @@ func _unhandled_input(ev: InputEvent) -> void:
 		_select(sel + 1, 1.0)
 	elif ev.is_action_pressed("confirm") and _unlocked(sel):
 		Sfx.play("menu_select")
-		var r: Dictionary = Game.data.get("resume", {})
-		if not r.is_empty() and int(r.chapter) == sel and str(r.room) != LevelDB.get_chapter(sel).start:
-			confirm_resume = true
-			resume_sel = 0
-		else:
+		open_picker()
+		if cp_rooms.size() <= 1:
+			picking = false
 			leaving = sel
 			leaving_room = ""
 	elif ev.is_action_pressed("back"):
 		Game.goto_title()
 
 
+# ---------------------------------------------------------------- checkpoints
+
+## Lists where the chosen chapter can be started from, and selects Continue
+## (the room the player was last in) when there is one.
+func open_picker() -> void:
+	cp_rooms = Game.reached_checkpoints(sel)
+	var order := Array(LevelDB.get_chapter(sel).order)
+	var cont := _continue_room()
+	if cont != "" and not cp_rooms.has(cont):
+		# a secret room: slot it in after the checkpoint before it
+		var at := cp_rooms.size()
+		for i in cp_rooms.size():
+			if order.find(cp_rooms[i]) > order.find(cont):
+				at = i
+				break
+		cp_rooms.insert(at, cont)
+	cp_sel = maxi(cp_rooms.find(cont), 0) if cont != "" else 0
+	cp_slide = 0.0
+	picking = true
+	var ch := LevelDB.get_chapter(sel)
+	for rid in cp_rooms:
+		var info := _card(sel, rid)
+		RoomView.prebake(ch.rooms[rid], info.ts)
+
+
+## The Continue room for the chosen chapter, or "" (none, or at its start).
+func _continue_room() -> String:
+	var r: Dictionary = Game.data.get("resume", {})
+	if r.is_empty() or int(r.get("chapter", -1)) != sel:
+		return ""
+	var rid := str(r.get("room", ""))
+	return "" if rid == LevelDB.get_chapter(sel).start or not LevelDB.get_chapter(sel).rooms.has(rid) else rid
+
+
+func _picked_room() -> String:
+	return cp_rooms[cp_sel] if picking and cp_sel < cp_rooms.size() else ""
+
+
 # ---------------------------------------------------------------- postcard
 
-## Composes the chapter's opening room (bg, terrain, hangers, Mira at the
-## spawn) cropped to the postcard window. Cached per chapter.
-static func _card(n: int) -> Dictionary:
-	if _cards.has(n):
-		return _cards[n]
+## Composes a room of the chapter (its opening room unless `room` is given:
+## bg, terrain, hangers, Mira at the spawn) cropped to the postcard window.
+## Cached per chapter and room.
+static func _card(n: int, room: String = "") -> Dictionary:
 	var ch := LevelDB.get_chapter(n)
-	var rid: String = POSTCARD_ROOM.get(n, ch.start)
+	var rid: String = room if room != "" else POSTCARD_ROOM.get(n, ch.start)
 	if not ch.rooms.has(rid):
 		rid = ch.start
+	var key := "%d:%s" % [n, rid]
+	if _cards.has(key):
+		return _cards[key]
 	var def: RoomDef = ch.rooms[rid]
 	var ts: String = str(def.meta.get("tileset", ch.tileset if ch.tileset != "" else Art.CHAPTER_TILESETS[n]))
 	var W := def.w * 8
@@ -180,29 +225,34 @@ static func _card(n: int) -> Dictionary:
 				best = sc
 				x0 = ox * 8
 				y0 = oy * 8
+	if room != "":
+		# a checkpoint: centre on where Mira will start
+		x0 = feet.x - int(PC.size.x) / 2
+		y0 = feet.y - int(PC.size.y * 0.6)
 	x0 = clampi(x0, 0, maxi(W - int(PC.size.x), 0))
 	y0 = clampi(y0, 0, maxi(H - int(PC.size.y), 0))
 	var d := {"rid": rid, "ts": ts, "crop": Vector2(x0, y0), "feet": Vector2(feet)}
-	_cards[n] = d
+	_cards[key] = d
 	return d
 
 
 ## Live postcard: the real RoomView of the chosen room in a transparent
 ## SubViewport, so curtains ripple, gems spin and NPCs breathe.
-func _ensure_postcard(n: int) -> void:
-	if pc_for == n:
+func _ensure_postcard(n: int, room: String = "") -> void:
+	var key := "%d:%s" % [n, room]
+	if pc_for == key:
 		return
-	pc_for = n
+	pc_for = key
 	if pc_view:
 		pc_view.queue_free()
 		pc_view = null
 	if not _unlocked(n):
 		return
-	var info := _card(n)
+	var info := _card(n, room)
 	var ch := LevelDB.get_chapter(n)
 	var def: RoomDef = ch.rooms[info.rid]
 	if not RoomView.is_painted(def, info.ts):
-		pc_for = -1   # try again next frame
+		pc_for = ""   # try again next frame
 		return
 	pc_world = World.new()
 	pc_world.load_room(def, 0, ch.dashes)
@@ -231,10 +281,11 @@ func _draw_postcard(r: Rect2, n: int, a: float) -> void:
 		if first < r.size.x:
 			draw_texture_rect_region(tex, Rect2(r.position + Vector2(first, 0), Vector2(r.size.x - first, r.size.y)), Rect2(0, oy, r.size.x - first, r.size.y), Color(1, 1, 1, a))
 	if _unlocked(n):
-		_ensure_postcard(n)
-		if pc_for == n:
+		var room := _picked_room()
+		_ensure_postcard(n, room)
+		if pc_for == "%d:%s" % [n, room]:
 			draw_texture(pc_vp.get_texture(), r.position, Color(1, 1, 1, a))
-		var info := _card(n)
+		var info := _card(n, room)
 		var mira := (info.feet as Vector2) - (info.crop as Vector2)
 		var fi := Art.frame_index("idle%d" % [0, 0, 1, 2, 3, 3, 3, 2, 1, 0, 4, 0][int(time * 5.0) % 12])
 		var dst := Rect2(r.position + mira - Vector2(12, 24), Vector2(24, 24))
@@ -316,6 +367,8 @@ func _draw() -> void:
 	if not _unlocked(sel):
 		PixelText.draw_outlined(self, Vector2(tx, ty), "???", Color(UIKit.MUTED, a), Color(UIKit.INK, a))
 		PixelText.draw(self, Vector2(tx, ty + 14), "Climb on to reveal", Color(UIKit.MUTED, 0.7 * a))
+	elif picking:
+		_draw_checkpoint_info(tx, ty, a)
 	else:
 		var lines := PixelText.wrap(ch.name, 112)
 		for i in lines.size():
@@ -350,11 +403,21 @@ func _draw() -> void:
 		PixelText.draw(self, Vector2(tx + 110 - PixelText.width(bts), y), bts, Color(Color.WHITE, a))
 		if cd.get("complete", false):
 			_draw_stamp(Vector2(PC.end.x - 22 + off, PC.position.y + 14), a)
+	if picking:
+		# arrows on the postcard while there are more checkpoints that way
+		var cb := roundf(sin(time * 5.0) * 1.0)
+		var cy := PC.get_center().y
+		if cp_sel > 0:
+			_draw_arrow(Vector2(PC.position.x - 3 - cb, cy), -1.0)
+		if cp_sel < cp_rooms.size() - 1:
+			_draw_arrow(Vector2(PC.end.x + 5 + cb, cy), 1.0)
 	# arrows
 	var bounce := roundf(sin(time * 5.0) * 1.5)
-	if sel > 0:
+	if picking:
+		pass
+	elif sel > 0:
 		_draw_arrow(Vector2(6 - bounce, CARD.get_center().y), -1.0)
-	if sel < LevelDB.chapter_count() - 1 and _unlocked(sel + 1):
+	if not picking and sel < LevelDB.chapter_count() - 1 and _unlocked(sel + 1):
 		_draw_arrow(Vector2(314 + bounce, CARD.get_center().y), 1.0)
 	# totals, top left
 	var tot_x := 6.0
@@ -364,18 +427,100 @@ func _draw() -> void:
 	PixelText.draw_outlined(self, Vector2(tot_x + 50, 6), str(Game.total_bells()), UIKit.CREAM, UIKit.INK)
 	var dstr := "Deaths %d" % int(Game.data.total_deaths)
 	PixelText.draw_outlined(self, Vector2(314 - PixelText.width(dstr), 6), dstr, UIKit.CREAM, UIKit.INK)
-	_draw_path()
-	var pairs := [[Game.move_label(), "Choose"], [Game.key_label("jump"), "Climb"], [Game.key_label("dash"), "Back"]]
+	if picking:
+		_draw_room_pips()
+	else:
+		_draw_path()
+	var pairs := [[Game.move_label(), "Start from" if picking else "Choose"], [Game.key_label("jump"), "Climb"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 167), pairs, 0.9)
-	if confirm_resume:
-		draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.45))
-		var r := Rect2(80, 66, 160, 46)
-		UIKit.panel(self, r)
-		UIKit.panel_title(self, r, "Welcome back")
-		var opts := ["Continue from checkpoint", "Restart chapter"]
-		for i in 2:
-			UIKit.menu_row(self, r.position.x + 8, r.position.y + 12 + i * 14, 144, opts[i], resume_k[i], time, 1.0, true)
 	UIKit.wipe(self, wipe, -1.0 if leaving < 0 else 1.0)
+
+
+## Picker text column: which checkpoint, what's still missing in that room,
+## and what the run will count for.
+func _draw_checkpoint_info(tx: float, ty: float, a: float) -> void:
+	var ch := LevelDB.get_chapter(sel)
+	var rid := _picked_room()
+	var def: RoomDef = ch.rooms[rid]
+	var main := Game.checkpoint_rooms(sel)
+	var cont := rid == _continue_room()
+	var head := "Start" if cp_sel == 0 and not cont else ("Continue" if cont else "Checkpoint")
+	var k := ease(1.0 - absf(cp_slide), 0.5)
+	var dx := roundf(cp_slide * 8.0)
+	PixelText.draw_outlined(self, Vector2(tx + dx, ty), head, Color(UIKit.GOLD, a * k), Color(UIKit.INK, a * k))
+	var where := def.title if def.title != "" else "Room %d of %d" % [main.find(rid) + 1, main.size()]
+	PixelText.draw(self, Vector2(tx + dx, ty + 11), where, Color(UIKit.CREAM, a * k))
+	# this room's collectibles: lit when found, faint when still out there
+	var y := ty + 26.0
+	var x := tx
+	var missing := 0
+	var any := false
+	for e in def.entities:
+		if not e.type in ["berry", "winged", "bell"]:
+			continue
+		any = true
+		var got := Game.is_collected(str(e.cid))
+		missing += 0 if got else 1
+		var nm := ("bell0" if got else "bell_ghost") if e.type == "bell" else ("berry0" if got else "ghost0")
+		draw_texture_rect_region(Art.objects(), Rect2(x - 3, y - 4, 16, 16), Art.obj_rect(nm), Color(1, 1, 1, a if got else 0.55 * a))
+		x += 13.0
+	var note := "Nothing to find here" if not any else ("All found" if missing == 0 else "%d still to find" % missing)
+	PixelText.draw(self, Vector2(tx, y + (12 if any else 0)), note, Color(UIKit.GOLD if any and missing == 0 else UIKit.MUTED, 0.9 * a))
+	draw_rect(Rect2(tx, 92, 110, 1), Color(UIKit.GOLD, 0.35 * a))
+	var y2 := 97.0
+	if cont:
+		var r: Dictionary = Game.data.resume
+		var t := float(r.get("time", 0.0))
+		PixelText.draw(self, Vector2(tx, y2), "Time so far", Color(UIKit.MUTED, a))
+		var ts := "%d:%02d" % [int(t / 60.0), int(t) % 60]
+		PixelText.draw(self, Vector2(tx + 110 - PixelText.width(ts), y2), ts, Color(Color.WHITE, a))
+		PixelText.draw(self, Vector2(tx, y2 + 10), "Deaths", Color(UIKit.MUTED, a))
+		var ds := str(int(r.get("deaths", 0)))
+		PixelText.draw(self, Vector2(tx + 110 - PixelText.width(ds), y2 + 10), ds, Color(Color.WHITE, a))
+	elif cp_sel == 0:
+		PixelText.draw(self, Vector2(tx, y2), "A full climb:", Color(UIKit.MUTED, a))
+		PixelText.draw(self, Vector2(tx, y2 + 10), "Best time counts", Color(UIKit.CREAM, a))
+	else:
+		PixelText.draw(self, Vector2(tx, y2), "Practice run:", Color(UIKit.MUTED, a))
+		PixelText.draw(self, Vector2(tx, y2 + 10), "no Best time", Color(UIKit.CREAM, a))
+
+
+## Picker footer: one pip per main-path room. Reached rooms are lit, the
+## chosen one is gold, and a red dot marks rooms with something still to find.
+func _draw_room_pips() -> void:
+	var main := Game.checkpoint_rooms(sel)
+	var ch := LevelDB.get_chapter(sel)
+	var gap := minf(16.0, 240.0 / maxf(main.size() - 1, 1))
+	var x0 := roundf(160.0 - gap * (main.size() - 1) / 2.0)
+	var picked := _picked_room()
+	for i in main.size():
+		var rid := main[i]
+		var p := Vector2(roundf(x0 + i * gap), 155)
+		var lit := cp_rooms.has(rid)
+		if i > 0:
+			var q := Vector2(roundf(x0 + (i - 1) * gap), 155)
+			draw_rect(Rect2(q.x + 3, p.y, p.x - q.x - 6, 1), Color(UIKit.GOLD, 0.6) if lit else Color(UIKit.MUTED, 0.3))
+		var col := UIKit.CREAM if lit else UIKit.MUTED.darkened(0.45)
+		var r := 2.0
+		if rid == picked:
+			col = UIKit.GOLD
+			r = 3.0
+		UIKit.diamond(self, p, r + 1.0, UIKit.INK)
+		UIKit.diamond(self, p, r, col)
+		if lit:
+			for cid in ch.rooms[rid].collectible_ids():
+				if not Game.is_collected(cid):
+					draw_rect(Rect2(p + Vector2(-1, -7), Vector2(2, 2)), UIKit.CRIMSON)
+					break
+	# the Continue room may be a secret one, which has no pip: mark the gap
+	if picked != "" and not main.has(picked):
+		var before := 0
+		var order := Array(ch.order)
+		for i in main.size():
+			if order.find(main[i]) < order.find(picked):
+				before = i
+		var p := Vector2(roundf(x0 + (before + 0.5) * gap), 155)
+		UIKit.diamond(self, p, 2.0, UIKit.GOLD)
 
 
 func _draw_arrow(c: Vector2, dir: float) -> void:

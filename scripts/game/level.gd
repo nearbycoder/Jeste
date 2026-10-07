@@ -267,6 +267,7 @@ func _load_room(id: String, spawn: int, view: RoomView = null) -> void:
 	vis_hist = PackedInt32Array()
 	grin_view.visible = false
 	_reset_ghost()
+	Game.mark_reached(id)
 	if not fast and not Game.headless_test:
 		Game.data.resume = {"chapter": chapter_n, "room": id, "time": chapter_time, "deaths": deaths_this_chapter}
 		Game.save()
