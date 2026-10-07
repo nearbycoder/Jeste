@@ -760,3 +760,68 @@ opened on the desktop and the desktop's keyboard layout was never touched. Scree
   notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
   still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, and now the
   wrong key names on non-US keyboards.
+
+## Round 7 scope (2026-10-07)
+
+Baseline on `improvements-7` (from `main` = `origin/main` = `0b525a8`): the full suite passes in
+30 s at load average 6. All runs this round use a throwaway user-data directory (the suite's
+`build/test_user/`, or `build/r7/` for probes, with `TMPDIR` in `build/r7/tmp/` so the suite's
+scratch files stay off the shared `/tmp`). The real user-data folder's checksums (save and the
+log files there) were recorded before the first run and are compared at the end.
+
+**What the code shows (read for this plan):**
+1. *A mouse player gets stranded.* Round 6 made the title, Options, pause, Assist and results
+   take the mouse, but *Climb* leads to chapter select, which ignores it; so do Controls, the
+   Erase Save and Restart Chapter boxes, and cutscenes (a click doesn't advance a line).
+2. *A click can only raise the volume.* A left click on a menu row is Confirm, and Confirm on
+   Music or Sound Volume adds 10% and stops at 100%. With the mouse alone there's no way to
+   turn either down.
+3. *The ghost's berries.* In Berries mode she takes berries in her own simulation, but only the
+   player's are drawn, so nothing shows her taking them (round 6's known issue).
+4. *No fullscreen key.* Fullscreen is only in the Options menus; F11 and Alt+Enter do nothing.
+
+Picked for a real player's experience, and because each can be checked here:
+
+### A. Mouse in chapter select and the checkpoint picker
+- **Do:** click a chapter's marker on the trail (or the side arrows) to select it, click the card
+  to choose it, right-click to go back. In the picker, click the postcard's arrows or a reached
+  room's pip to pick a checkpoint, click the card to start, right-click to close it.
+- **Accept:** a mouse alone gets from the title to a level and back; locked chapters and
+  unreached rooms can't be picked by clicking; keyboard and pad behaviour unchanged.
+- **Verify:** ui_flow clicks through chapter select and the picker (marker, arrow, locked marker,
+  pip, unreached pip, card, right-click), and the existing key steps still pass; screenshot.
+
+### B. Mouse in Controls, confirm boxes, cutscenes and sliders
+- **Do:** Controls rows take hover and click (a click starts a rebind; right-click cancels a
+  rebind or closes the panel). Restart Chapter's two choices take hover and click; Erase Save's
+  *Erase* and *Keep* prompts are clickable (a click elsewhere does nothing, so a stray click can't
+  erase a save). A left click advances a cutscene line. A click on a volume slider sets the
+  volume where you clicked.
+- **Accept:** each of these works by mouse alone; mouse buttons can't be bound as keys; a click on
+  the Erase Save box away from *Erase* erases nothing.
+- **Verify:** ui_flow steps for each (title Controls, pause Controls, both confirm boxes, a
+  cutscene line, both sliders down to 0% and back up), fails with the new code disabled.
+
+### C. Route Ghost draws her own berries, bells and keys
+- **Do:** draw, in her tint, the collectibles and keys of her simulation where they differ from
+  the player's: hers still in place where the player's is gone or already collected (drawn as an
+  outline), and hers following her once she has touched them.
+- **Accept:** in 1-02 (Berries mode) her berry is drawn following her after she touches it, and
+  nothing extra is drawn where both are untouched; nothing changes with the ghost off.
+- **Verify:** a ui_flow unit check of which items are drawn for her, a survey over the collect
+  routes, screenshots.
+
+### D. F11 and Alt+Enter toggle fullscreen
+- **Do:** either key toggles fullscreen anywhere (and is saved), unless the player has bound that
+  key to a game action. Alt+Enter doesn't also pause or confirm.
+- **Accept:** works on the title, in chapter select and in play; Alt+Enter in play doesn't open
+  the pause menu; F11 bound to Jump doesn't toggle; while rebinding, F11 is taken as the new key.
+- **Verify:** ui_flow steps for each case.
+
+### E. Keyboard layouts under X11 (stretch, a check rather than a change)
+- **Do:** repeat round 6's French and German key-name check with Godot's X11 driver inside a
+  private KWin session's Xwayland. If the names are wrong there, fix or document it.
+- **Verify:** the label read back under X11; otherwise say why it couldn't be checked.
+
+Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
+builds, license and releases (owner decisions); new content (too large).
