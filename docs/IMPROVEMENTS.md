@@ -945,3 +945,53 @@ Picked for a real player's experience, and because each can be checked here:
 Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
 builds, license and releases (owner decisions); new content (too large); mouse control of
 gameplay itself (keyboard and pad are the game's controls, as in the genre).
+
+## Round 8 results (2026-10-07)
+
+All commits are on `improvements-8`; nothing has been pushed. The full suite passes after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow). The final run took 60 s at load average 21–25, and ui_flow then
+passed two more standalone runs at load 23. Every run used a throwaway user-data directory
+(`build/test_user/` or `build/r8/`), with `TMPDIR` in `build/r8/tmp/`, and the real user-data
+folder (save and log files) had the same checksums before and after. Window probes ran inside a
+private, invisible KWin session (`kwin_wayland --virtual`, adding `--xwayland` for X11, with its
+own D-Bus and sandboxed config and user data, and the outer `DISPLAY` and `WAYLAND_DISPLAY`
+removed), so nothing opened on the desktop. Screenshots are in
+`docs/media/improvements/round8/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Route Ghost draws her own dash gems and balloons | Done | `91ce03f` | A ui_flow unit check in 1-04 (gems) and 5-02 (balloons), once with her running and the player idle and once the other way round: on every frame exactly the gems and balloons whose state differs are reported, as *used*, *ready* or *riding*, and each state turns up. Two mutations (no *ready* gems, no *riding*) fail it. A survey of all 132 routes both ways round (264 runs, 17 rooms): every reported entry matches the sim. Screenshot of the draining rings in 1-04 and 5-02: `route_ghost_gems_balloons.png`. |
+| B. Her berries read as hers | Done | `e105a41` | Her items are now pale, dark-rimmed shapes in her colour (`Art.objects_ghost`). In 1-03 with one berry found, the brightest third of the berry's spot was beige (203, 181, 148) in round 7 and is now pale cyan (201, 227, 235): its distance from her tint (178, 230, 255) went from 120 to 31 (the found-berry outline alone is 60). ui_flow checks the sheet (berry pixels grey, a dark rim) beside round 7's items check. Before/after and carried: `route_ghost_found_berry.png`. |
+| C. Mouse wheel in menus and the credits | Done | `c324cd8` | ui_flow: the title list (a notch, three 0.4 touchpad steps adding up to one, back up); a slider stepped up and down and the wheel moving past Fullscreen without toggling it; Controls, and a pending rebind that ignores it; chapter select (steps chapters, can't reach a locked one) and the picker (steps checkpoints, stops at the last); pause list, Route Ghost stepped Off → Exit → Off and the wheel moving past Invincibility; a pause slider; the Restart box ignoring it; play ignoring it; the credits scrolling ±40 px, a click skipping ahead and a right click leaving. Five mutations (no touchpad accumulation, no chapter-select wheel, no credits wheel, hover on a wheel event, no Controls wheel) each fail it. In a real 3× window, wheel events in window pixels moved the title selection, stepped Music Volume and added three 0.34 steps up to one. |
+| D. The first window on small and X11 screens | Fixed | `34fcb21` | Window mode and size read back in the private KWin at 1280×720, 1366×768 and 1920×1080 under Wayland and X11. Before: X11 at 1280×720 opened maximised (1280×692), because the 1280×720 first window filled the screen; the other five were windowed at their Auto size. After (first window 640×360): all six windowed at their Auto size (960×540, 960×540, 1280×720), the X11 ones centred. |
+
+### Deviations and limits
+- **B went further than planned.** The scope asked for a halo and a stronger drawing over a found
+  berry. A halo didn't fix the colour (her tint over the orange berry is still brownish), so all
+  her items, and the gems and balloons from A, use the pale shapes instead; no halo.
+- **The wheel over a value row** steps the value only for sliders and multi-choice rows (volume,
+  Window Size, Smooth Motion, Game Speed, Air Dashes, Route Ghost); over an on/off row it moves
+  the selection, so a stray scroll can't flip Fullscreen or Invincibility. Wheel up is "more".
+  On chapter select, wheel down is the next chapter. Results screens and cutscenes ignore the
+  wheel (a scroll shouldn't skip a line). A wheel event still shows the mouse cursor in play,
+  like any mouse event. Horizontal scrolling is ignored.
+- **Touchpads:** the accumulation was checked with synthetic `factor` values; no real touchpad
+  was used, and how much each platform reports per swipe varies.
+- **The first window** is now 640×360 for a moment before the game sizes it, on every screen
+  (it was 1280×720). Only KWin was tried; other window managers may place or maximise windows
+  differently. Debug tools that skip the game's window sizing (`tools/shot.tscn` and others)
+  now open at 640×360; their captures come from the 320×180 viewport, so they're unchanged.
+- **Shared `/tmp`:** 3.4 GB of trailer captures from 2026-10-04 (`/tmp/jeste_movie*`,
+  `/tmp/jeste_cred`) are still on the shared RAM disk. They predate this round, so they were
+  left alone.
+
+### Still open
+- A human playtest (Air Dashes, ghost outlines, Berries mode, her pale items and rings),
+  physical controllers, a physical mouse and touchpad, a real 144/165 Hz display, and a non-US
+  keyboard in hand.
+- The round 4 menu-flow flake (not seen this round).
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, the wrong key names
+  on non-US keyboards, and now the maximised window on 720p X11 screens.

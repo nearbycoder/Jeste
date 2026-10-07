@@ -93,9 +93,11 @@ is always one menu away.
 - **Pause → Assist → Route Ghost** shows a translucent Mira running the room the way the
   automated solver proved it can be done, using only the moves the game teaches. She loops,
   restarts with you when you respawn, and changes nothing. She runs in a simulation of her
-  own, so her gondolas, crumbling boards, gates, mask blocks, Grin, and the berries, bells and
-  keys she picks up are drawn in her tint wherever they differ from yours, and where she passes through one of your blocks (a wall she
-  has broken, a gate she has opened) it's outlined in her tint. A strip at the bottom left lights up the buttons she's
+  own, so her gondolas, crumbling boards, gates, mask blocks and Grin are drawn in her tint
+  wherever they differ from yours. Her berries, bells and keys are pale shapes in her colour
+  (the ones she picks up trail her), a dash gem or balloon she has used gets a ring in her
+  colour that drains until it's back for her, and where she passes through one of your blocks
+  (a wall she has broken, a gate she has opened) it's outlined in her tint. A strip at the bottom left lights up the buttons she's
   pressing, named by your own bindings. After 10 deaths in a room the game points you to
   her, once. Set her to **Berries** and she shows how to take every berry and bell in the
   room while you're still missing one, then the way into a secret room that still holds
@@ -373,22 +375,26 @@ and credits. It is a first release, so expect rough edges.
     key is printed W. Prompts now follow the keyboard layout. French and German were checked
     under Wayland and X11 (Xwayland), each in a private KWin session; Windows and macOS
     weren't. Letters the pixel font can't draw (Cyrillic, Greek…) fall back to the US name.
+  - *On a 1280×720 screen under X11 the window opened maximised.* The game's first window was
+    1280×720 before it sized itself, the whole screen, so KWin maximised it. It now starts at
+    640×360. Checked in a private KWin session, not on other window managers.
 - **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
   gate she has opened, a mask block that swapped for her) is still drawn as your solid block,
-  with an outline in her tint while she is near it. A berry she takes trails her in her tint
-  (your own stays where it is), and where you found a berry on an earlier climb, hers is drawn
-  over its outline until she takes it. Her dash gems and balloons aren't drawn separately, so
-  one she has used still looks ready. None of this has been playtested with a new player.
-- **Mouse:** menu hover and clicks were checked with synthetic events (in a real window too),
-  not with a physical mouse. There is no mouse wheel support, and gameplay itself is keyboard
-  or pad only.
+  with an outline in her tint while she is near it. Her own berries, bells and keys are pale
+  shapes in her colour (a berry she takes trails her; your own stays where it is), drawn over
+  the outline of one you found on an earlier climb until she takes it. A dash gem or balloon
+  she has used keeps looking ready for you, with a draining ring in her colour around it. None
+  of this has been playtested with a new player.
+- **Mouse:** menu hover, clicks and the wheel were checked with synthetic events (in a real
+  window too), not with a physical mouse or touchpad. Gameplay itself is keyboard or pad only.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
   default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
   monitor under Wayland. On this machine's X11 (XWayland) session, game windows launched from a
-  script started minimised regardless of these settings, so X11 was not checked by eye; in a
+  script started minimised regardless of these settings, so X11 was not checked by eye. In a
   private KWin session's Xwayland, F11 and Alt+Enter switched a real X11 window to fullscreen
-  and back.
+  and back, and the first window opened at its Auto size on 1280×720, 1366×768 and 1920×1080
+  screens.
   *Smooth Motion* was checked by measuring where Mira is drawn on every frame at a forced
   144 fps and at 50% Game Speed, plus captured frames from a real window. Nobody has watched
   it on a real 144 or 165 Hz display yet, and Auto relies on the refresh rate the system reports.
