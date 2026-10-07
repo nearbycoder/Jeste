@@ -741,6 +741,19 @@ func step_window_scale(d: int) -> void:
 	apply_settings()
 
 
+## Mouse: a click at x on the Music or Sound Volume slider drawn at x0 sets
+## that volume (see UIKit.slider_at; the caller refreshes the audio). False
+## when it isn't one.
+func set_volume_at(row: String, x: float, x0: float) -> bool:
+	var key := "music" if row == "Music Volume" else ("sfx" if row == "Sound Volume" else "")
+	var v := UIKit.slider_at(x, x0)
+	if key == "" or v < 0.0:
+		return false
+	settings[key] = v
+	save_settings()
+	return true
+
+
 func toggle_fullscreen() -> void:
 	settings.fullscreen = not settings.fullscreen
 	apply_settings()

@@ -128,6 +128,20 @@ static func hints(ci: CanvasItem, pos: Vector2, pairs: Array, a: float = 1.0) ->
 	return x - pos.x
 
 
+## Mouse: the index of the [key, label] pair under `p` in a row drawn by
+## hints() at `pos`, or -1.
+static func hint_at(p: Vector2, pos: Vector2, pairs: Array) -> int:
+	if p.y < pos.y - 3.0 or p.y > pos.y + 12.0:
+		return -1
+	var x := pos.x
+	for i in pairs.size():
+		var w := maxf(PixelText.width(str(pairs[i][0])) + 6.0, 9.0) + 3.0 + PixelText.width(str(pairs[i][1]))
+		if p.x >= x - 2.0 and p.x <= x + w + 2.0:
+			return i
+		x += w + 9.0
+	return -1
+
+
 static func hints_width(pairs: Array) -> float:
 	var x := 0.0
 	for p in pairs:
@@ -142,6 +156,15 @@ static func toggle(ci: CanvasItem, pos: Vector2, on: bool, a: float = 1.0) -> vo
 	var kx := r.position.x + (9.0 if on else 1.0)
 	ci.draw_rect(Rect2(kx, r.position.y + 1, 5, 5), Color(CREAM, a))
 	ci.draw_rect(Rect2(kx, r.position.y + 5, 5, 1), Color(MUTED.darkened(0.3), a))
+
+
+## Mouse: the value (0..1, in tenths) a click at x sets on a slider drawn at
+## x0 by slider(): up to the bar clicked, 0 just left of the first. -1 when
+## the click is off the slider.
+static func slider_at(x: float, x0: float) -> float:
+	if x < x0 - 4.0 or x >= x0 + 40.0:
+		return -1.0
+	return clampf(floorf((x - x0) / 4.0) + 1.0, 0.0, 10.0) / 10.0
 
 
 static func slider(ci: CanvasItem, pos: Vector2, v: float, a: float = 1.0) -> void:

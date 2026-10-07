@@ -122,6 +122,10 @@ func _process(delta: float) -> void:
 func handle_input(ev: InputEvent) -> bool:
 	if not active:
 		return false
+	if ev is InputEventMouse:
+		ev = UIKit.click_action(ev)   # a left click reads as Confirm
+		if ev == null:
+			return true
 	if ev.is_action_pressed("pause"):
 		skip_armed = true
 		return true

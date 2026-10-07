@@ -173,12 +173,14 @@ func _input(ev: InputEvent) -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
-	if leaving != "" or time < 0.8 or controls.waiting_key:
+	if leaving != "" or time < 0.8:
 		return
-	if ev is InputEventMouse and (screen == "main" or screen == "options"):
+	if ev is InputEventMouse:
 		ev = _mouse_menu(ev)
 		if ev == null:
 			return
+	if controls.waiting_key:
+		return
 	match screen:
 		"main":
 			if ev.is_action_pressed("up"):
@@ -224,10 +226,21 @@ func _unhandled_input(ev: InputEvent) -> void:
 				screen = "options"
 
 
-## Mouse on the main menu and Options: pointing at a row selects it, a left
-## click confirms it and a right click goes back (see UIKit.click_action).
+## Mouse on the main menu, Options and Controls: pointing at a row selects it,
+## a left click confirms it and a right click goes back (see
+## UIKit.click_action). Erase Save's box takes a click only on its prompts.
 ## Returns the action to handle, or null when the event is used up here.
 func _mouse_menu(ev: InputEventMouse) -> InputEvent:
+	if screen == "controls":
+		return controls.mouse(ev)
+	if screen == "confirm_reset":
+		var a := UIKit.click_action(ev)
+		if a and a.action == "confirm":
+			var h := UIKit.hint_at(ev.position, _erase_hints_at(), _erase_hints())
+			if h < 0:
+				return null   # only a click on "Erase" erases
+			a.action = "confirm" if h == 0 else "back"
+		return a
 	var i := -1
 	if screen == "main":
 		i = UIKit.row_at(ev.position, MENU_X, MENU_Y, 92, 14, items.size())
@@ -240,6 +253,10 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 			opt_sel = i
 			Sfx.play("menu_move")
 	var a := UIKit.click_action(ev)
+	if a and a.action == "confirm" and i >= 0 and screen == "options" and Game.set_volume_at(OPTIONS[i], ev.position.x, 186.0):
+		Sfx.refresh_volume()
+		Sfx.play("menu_select")
+		return null   # a click on a volume slider sets it there
 	if a and a.action == "confirm" and i < 0:
 		return null   # a click outside the rows does nothing
 	return a
@@ -384,8 +401,7 @@ func _draw() -> void:
 			var cr := Rect2(60, 76, 200, 40)
 			UIKit.panel(self, cr, 1.0, UIKit.CRIMSON)
 			PixelText.draw_centered(self, 160, cr.position.y + 8, "Erase ALL progress?", Color.WHITE)
-			var pairs := [[Game.key_label("jump"), "Erase"], [Game.key_label("dash"), "Keep"]]
-			UIKit.hints(self, Vector2(160 - UIKit.hints_width(pairs) / 2.0, cr.position.y + 23), pairs)
+			UIKit.hints(self, _erase_hints_at(), _erase_hints())
 	# control hints
 	var hk := _intro(1.6, 0.5)
 	if hk > 0.0:
@@ -401,6 +417,15 @@ func _draw() -> void:
 		draw_rect(Rect2(nr.position.x, nr.end.y - 1, nr.size.x, 1), Color(UIKit.CRIMSON, na))
 		PixelText.draw_centered(self, 160, nr.position.y + 3, notice, Color(UIKit.CREAM, na))
 	UIKit.wipe(self, wipe, -1.0 if leaving == "" else 1.0)
+
+
+## Erase Save's prompts, centred in its box (see _draw).
+func _erase_hints() -> Array:
+	return [[Game.key_label("jump"), "Erase"], [Game.key_label("dash"), "Keep"]]
+
+
+func _erase_hints_at() -> Vector2:
+	return Vector2(roundf(160 - UIKit.hints_width(_erase_hints()) / 2.0), 99)
 
 
 func _draw_opt_value(name: String, right: Vector2, a: float) -> void:

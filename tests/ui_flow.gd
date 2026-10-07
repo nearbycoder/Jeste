@@ -63,6 +63,21 @@ func _ready() -> void:
 		["mouse_at", "60,116", 2], ["check", "title_sel_1", 0],  # pointing at a row selects it
 		["click", "200,40", 6], ["check", "title_sel_1", 0], ["check", "main", 0],   # a click off the rows does nothing
 		["click", "60,116", 20], ["check", "options", 0],        # a click confirms (Options)
+		["click", "183,19", 4], ["check", "volume_music_0", 0],  # a click on a volume slider sets it there
+		["click", "203,19", 4], ["check", "volume_music_5", 0],
+		["click", "183,31", 4], ["check", "volume_sfx_0", 0],
+		["click", "215,31", 4], ["check", "volume_sfx_8", 0],
+		["click", "211,19", 4], ["check", "volume_music_7", 0],
+		["click", "120,19", 4], ["check", "volume_music_8", 0],  # a click on the label still steps it
+		["click", "211,19", 4], ["check", "volume_music_7", 0],
+		["mark_save", "", 0],
+		["click", "150,139", 10], ["check", "erase_asks", 0],    # Erase Save asks...
+		["click", "160,84", 6], ["check", "erase_asks", 0],      # ...a click off its prompts does nothing...
+		["click_hint", "1", 6], ["check", "save_kept", 0],       # ...Keep keeps it
+		["click", "150,139", 10], ["check", "erase_asks", 0],
+		["rclick", "160,84", 6], ["check", "save_kept", 0],      # a right click keeps it too
+		["click", "150,139", 10], ["click_hint", "0", 6], ["check", "save_erased", 0],   # Erase erases
+		["unlock", "8", 0],
 		["mouse_at", "150,40", 2], ["check", "opt_sel_2", 0],
 		["rclick", "150,40", 10], ["check", "main", 0],          # a right click goes back
 		["mouse_at", "60,102", 2], ["check", "title_sel_0", 0],
@@ -114,6 +129,15 @@ func _ready() -> void:
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],          # Reset Defaults keeps it
 		["check", "grab_mode_kept", 0],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "right", 4], ["check", "grab_hold", 0],
+		["mouse_at", "160,39", 2], ["check", "ctl_sel_1", 0],    # the mouse in Controls
+		["click", "160,39", 4], ["check", "ctl_waiting", 0],     # a click starts a rebind...
+		["click", "160,39", 4], ["check", "ctl_waiting", 0],     # ...a mouse button can't be bound...
+		["rclick", "160,39", 4], ["check", "ctl_cancelled", 0],  # ...a right click cancels it
+		["click", "160,63", 4], ["check", "grab_toggle", 0],     # Grab Mode
+		["click", "160,63", 4], ["check", "grab_hold", 0],
+		["click", "160,5", 4], ["check", "ctl_cancelled", 0],   # a click off the rows does nothing
+		["rclick", "160,63", 10], ["check", "options", 0],       # a right click closes the panel
+		["click", "150,127", 10], ["check", "controls", 0],      # and a click on Controls opens it again
 		["press", "back", 10],
 		["press", "back", 20],
 		["check", "main", 0],
@@ -126,6 +150,7 @@ func _ready() -> void:
 		["press", "confirm", 120],                               # Chapter 1
 		["expect", "Level", 0],
 		["wait_dialogue", "", 20],
+		["mark_line", "", 0], ["click", "160,90", 4], ["check", "line_advanced", 0],   # a click reads the next line
 		["hold", "pause_key", 10], ["check", "skip_not_yet", 0],  # holding Esc skips the scene
 		["hold_wait", "", 40],
 		["release", "pause_key", 10],
@@ -171,7 +196,10 @@ func _ready() -> void:
 		["press", "confirm", 6], ["check", "pause_reset", 0],                       # Reset Defaults
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
 		["press", "confirm", 4], ["check", "grab_hold_paused", 0],
-		["press", "back", 6], ["check", "pause_controls_closed", 0],
+		["mouse_at", "160,39", 2], ["check", "pause_ctl_sel_1", 0],
+		["rclick", "160,39", 6], ["check", "pause_controls_closed", 0],   # a right click closes Controls
+		["click", "180,37", 4], ["check", "volume_sfx_0", 0],    # the pause menu's sliders take a click too
+		["click", "211,37", 4], ["check", "volume_sfx_8", 0],
 		["press", "back", 10],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
 		["check", "unpaused", 0],
@@ -231,9 +259,14 @@ func _ready() -> void:
 		["check", "from_checkpoint", 0],
 		["press", "pause", 20], ["press", "up", 4], ["press", "up", 4],   # Restart Chapter
 		["press", "confirm", 6], ["check", "restart_asks", 0],
+		["mouse_at", "160,105", 2], ["check", "restart_yes", 0],        # the mouse picks a choice...
+		["click", "160,75", 4], ["check", "restart_yes", 0],            # ...a click off them does nothing...
+		["mouse_at", "160,93", 2], ["check", "restart_asks", 0],
+		["rclick", "250,93", 10], ["check", "restart_kept", 0],         # ...a right click backs out
+		["press", "confirm", 6], ["check", "restart_asks", 0],
 		["press", "confirm", 10], ["check", "restart_kept", 0],          # "Keep climbing" is the default
 		["press", "confirm", 6], ["press", "down", 4], ["check", "restart_yes", 0],
-		["press", "confirm", 120],
+		["click", "160,105", 120],                                       # a click on Restart restarts
 		["expect", "Level", 0],
 		["check", "restarted", 0],
 		["seed_continue", "", 0],                                # Continue from a secret room
@@ -431,7 +464,7 @@ func _process(_d: float) -> void:
 			ev.position = Vector2(300, 5)   # off every menu
 			ev.relative = Vector2(3, 1)
 			Input.parse_input_event(ev)
-		"mouse_at", "click", "rclick", "click_marker", "click_pip":
+		"mouse_at", "click", "rclick", "click_marker", "click_pip", "click_hint":
 			# in the 320x180 canvas: a move there, then a press and release
 			var xy: PackedStringArray = str(s[1]).split(",")
 			var pos := Vector2(float(xy[0]), float(xy[1])) if xy.size() == 2 else Vector2.ZERO
@@ -439,6 +472,12 @@ func _process(_d: float) -> void:
 				pos = cur._marker_pos(int(s[1]))
 			elif s[0] == "click_pip":      # a room's pip in the checkpoint picker
 				pos = cur._pip_pos(int(s[1]), get_node("/root/Game").checkpoint_rooms(cur.sel).size())
+			elif s[0] == "click_hint":     # a prompt in Erase Save's box, as UIKit.hints() lays it out
+				var pairs: Array = cur._erase_hints()
+				pos = cur._erase_hints_at() + Vector2(0, 4)
+				for j in int(s[1]):
+					pos.x += maxf(PixelText.width(str(pairs[j][0])) + 6.0, 9.0) + 3.0 + PixelText.width(str(pairs[j][1])) + 9.0
+				pos.x += 8.0
 			var evs: Array = []
 			var m := InputEventMouseMotion.new()
 			m.position = pos
@@ -571,6 +610,18 @@ func _process(_d: float) -> void:
 				"from_checkpoint": ok = cur.chapter_n == 1 and cur.room_id == "1-03" and not cur.full_run and cur.chapter_time < 5.0 and cur.deaths_this_chapter == 0
 				"picker_continue": ok = cur.sel == 1 and cur.picking and Array(cur.cp_rooms) == ["1-01", "1-02", "1-03", "1-04", "1-05", "1-05s"] and cur.cp_sel == 5
 				"continued": ok = cur.room_id == "1-05s" and cur.chapter_time >= 50.0 and cur.deaths_this_chapter == 3 and not cur.full_run
+			var gm: Node = get_node("/root/Game")
+			match s[1]:
+				"erase_asks": ok = cur.screen == "confirm_reset" and int(gm.data.total_deaths) == 7
+				"save_kept": ok = cur.screen == "options" and int(gm.data.total_deaths) == 7
+				"save_erased": ok = cur.screen == "options" and int(gm.data.total_deaths) == 0 and int(gm.data.unlocked) == 0
+				"ctl_sel_1": ok = cur.screen == "controls" and cur.controls.sel == 1 and not cur.controls.waiting_key
+				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
+				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
+				"pause_ctl_sel_1": ok = cur.hud.controls_open and cur.hud.controls.sel == 1
+				"line_advanced": ok = cur.dialogue.active and cur.dialogue.idx > int(skip_id)
+			if str(s[1]).begins_with("volume_"):        # volume_<music|sfx>_<tenths>
+				ok = is_equal_approx(float(gm.settings[str(s[1]).get_slice("_", 1)]), int(str(s[1]).get_slice("_", 2)) / 10.0)
 			if str(s[1]).begins_with("cs_sel_"):        # chapter select's chosen chapter
 				ok = cur.sel == int(str(s[1]).get_slice("_", 2)) and not cur.picking and cur.leaving < 0
 			elif str(s[1]).begins_with("cp_sel_"):      # the picker's chosen checkpoint
@@ -620,6 +671,15 @@ func _process(_d: float) -> void:
 			g.data.collected = {"1-04:berry0": true}
 		"unlock":
 			get_node("/root/Game").data.unlocked = int(s[1])
+		"mark_save":
+			get_node("/root/Game").data.total_deaths = 7   # something Erase Save would clear
+		"mark_line":
+			if cur.dialogue.cur.is_empty():   # the scene opens with a pause: wait for a line
+				idx -= 1
+				wait = 2
+			else:
+				cur.dialogue.shown = cur.dialogue._total_chars()   # the line has finished typing
+				skip_id = str(cur.dialogue.idx)
 		"seed_continue":
 			get_node("/root/Game").data.resume = {"chapter": 1, "room": "1-05s", "time": 50.0, "deaths": 3}
 		"done":

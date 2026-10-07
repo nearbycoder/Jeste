@@ -6,6 +6,8 @@ extends RefCounted
 const ITEMS := ["jump", "dash", "grab", "Grab Mode", "up", "down", "left", "right", "Reset Defaults", "Back"]
 const NAMES := {"jump": "Jump", "dash": "Dash", "grab": "Grab / Climb", "up": "Up", "down": "Down", "left": "Left", "right": "Right"}
 
+const PANEL := Rect2(78, 14, 164, 16 + 10 * 12 + 12)   # ITEMS.size() rows
+
 var sel := 0
 var waiting_key := false
 var k: Array = []
@@ -85,6 +87,26 @@ func navigate(ev: InputEvent) -> bool:
 	return false
 
 
+## Mouse: pointing at a row selects it, a left click confirms it (starting a
+## rebind) and a right click goes back, or cancels a rebind (mouse buttons
+## can't be bound). Returns the action for navigate(), or null when the event
+## is used up here.
+func mouse(ev: InputEventMouse) -> InputEvent:
+	var a := UIKit.click_action(ev)
+	if waiting_key:
+		if a and a.action == "back":
+			waiting_key = false
+			Sfx.play("menu_move")
+		return null
+	var i := UIKit.row_at(ev.position, PANEL.position.x + 12, PANEL.position.y + 10, 140, 12, ITEMS.size())
+	if i >= 0 and i != sel:
+		sel = i
+		Sfx.play("menu_move")
+	if a and a.action == "confirm" and i < 0:
+		return null   # a click outside the rows does nothing
+	return a
+
+
 ## Prompt pairs for the bottom of the screen.
 func hints() -> Array:
 	if waiting_key:
@@ -94,7 +116,7 @@ func hints() -> Array:
 
 func draw(ci: CanvasItem, time: float) -> void:
 	ci.draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.45))
-	var r := Rect2(78, 14, 164, 16 + ITEMS.size() * 12 + 12)
+	var r := PANEL
 	UIKit.panel(ci, r)
 	UIKit.panel_title(ci, r, "CONTROLS")
 	for i in ITEMS.size():

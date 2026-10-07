@@ -141,7 +141,7 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		return true
 	if not paused:
 		return false
-	if ev is InputEventMouse and not controls_open and not confirm_restart:
+	if ev is InputEventMouse:
 		ev = _mouse_menu(ev)
 		if ev == null:
 			return true
@@ -265,12 +265,21 @@ func handle_menu_input(ev: InputEvent) -> bool:
 	return true
 
 
-## Mouse in the pause, assist and options menus: pointing at a row selects it,
-## a left click confirms it and a right click goes back (see UIKit.click_action).
-## Returns the action to handle, or null when the event is used up here.
+## Mouse in the pause, assist, options and Controls menus and the Restart
+## Chapter box: pointing at a row selects it, a left click confirms it and a
+## right click goes back (see UIKit.click_action). Returns the action to
+## handle, or null when the event is used up here.
 func _mouse_menu(ev: InputEventMouse) -> InputEvent:
+	if controls_open:
+		return controls.mouse(ev)
+	var a := UIKit.click_action(ev)
 	var i := -1
-	if assist_open:
+	if confirm_restart:
+		i = UIKit.row_at(ev.position, 98, 90, 124, 12, 2)
+		if i >= 0 and i != restart_sel:
+			restart_sel = i
+			Sfx.play("menu_move")
+	elif assist_open:
 		i = UIKit.row_at(ev.position, 90, 56, 140, 13, assist_items.size())
 		if i >= 0 and i != assist_sel:
 			assist_sel = i
@@ -280,12 +289,15 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 		if i >= 0 and i != option_sel:
 			option_sel = i
 			Sfx.play("menu_move")
+		if i >= 0 and a and a.action == "confirm" and Game.set_volume_at(option_items[i], ev.position.x, 182.0):
+			Sfx.refresh_volume()
+			Sfx.play("menu_select")
+			return null   # a click on a volume slider sets it there
 	else:
 		i = UIKit.row_at(ev.position, 114, 44, 92, 14, pause_items.size())
 		if i >= 0 and i != pause_sel:
 			pause_sel = i
 			Sfx.play("menu_move")
-	var a := UIKit.click_action(ev)
 	if a and a.action == "confirm" and i < 0:
 		return null   # a click outside the rows does nothing
 	return a

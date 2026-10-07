@@ -63,9 +63,12 @@ is always one menu away.
 - **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
 - Menus repeat when you hold a direction (keys, D-pad or stick).
-- **The mouse works in the main menus** (title, Options, pause, Assist and results): point at a row to
-  select it, left-click to choose it, right-click to go back. Chapter select, Controls and the
-  confirm boxes are keyboard and pad only.
+- **The mouse works in every menu**: point at a row to select it, left-click to choose it,
+  right-click to go back. On chapter select, click a chapter's marker on the trail (or an arrow)
+  and then the card; in the checkpoint picker, click a room's pip or the postcard's arrows.
+  A click on a volume slider sets it there, a click in Controls starts a rebind (right-click
+  cancels it), and a click reads the next line of a cutscene. *Erase Save* only erases on a
+  click on its *Erase* prompt.
 - **Hold Pause** (Esc or Start) during a cutscene to skip the rest of it. Tapping jump or dash still advances line by line.
 - **Start from any checkpoint.** Once you've reached more than one room of a chapter, choosing
   it on the map lets you pick where to start with Left/Right: *Continue*, the start, or any
