@@ -147,7 +147,19 @@ func _ready() -> void:
 		["press", "confirm", 4], ["press", "confirm", 4], ["press", "back", 10],
 		["press", "down", 4], ["press", "confirm", 10],          # Options
 		["check", "options_open", 0],
-		["press", "right", 4], ["press", "left", 4], ["press", "back", 10],
+		["press", "right", 4], ["press", "left", 4],
+		["press", "up", 4], ["press", "up", 4], ["check", "on_pause_controls", 0],   # Options > Controls, mid-climb
+		["press", "confirm", 6], ["check", "pause_controls", 0],
+		["press", "confirm", 6], ["key", "M", 6], ["check", "pause_jump_m", 0],     # rebind Jump to M
+		["press", "confirm", 6], ["key", "Escape", 6], ["check", "pause_jump_m", 0], # Esc cancels, still paused
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Grab Mode
+		["check", "grab_toggle_paused", 0],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
+		["press", "confirm", 6], ["check", "pause_reset", 0],                       # Reset Defaults
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
+		["press", "confirm", 4], ["check", "grab_hold_paused", 0],
+		["press", "back", 6], ["check", "pause_controls_closed", 0],
+		["press", "back", 10],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
 		["check", "unpaused", 0],
 		["check", "ghost_running", 0],
@@ -247,6 +259,13 @@ func _press(action: String) -> void:
 	up.action = action
 	up.pressed = false
 	Input.parse_input_event.call_deferred(up)
+
+
+func _has_key(action: String, key: int) -> bool:
+	for e in InputMap.action_get_events(action):
+		if e is InputEventKey and (e as InputEventKey).physical_keycode == key:
+			return true
+	return false
 
 
 func _pad_buttons(action: String) -> Array:
@@ -413,12 +432,12 @@ func _process(_d: float) -> void:
 				"title_sel_0": ok = cur.sel == 0
 				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
 				"one_step": ok = cur.opt_sel == 1
-				"still_waiting": ok = cur.waiting_key and cur.CONTROLS[cur.ctl_sel] == "jump"
-				"pad_jump_x": ok = not Input.is_action_pressed("dash") and not cur.waiting_key and _pad_buttons("jump") == [JOY_BUTTON_X] and _pad_buttons("dash").has(JOY_BUTTON_A) \
+				"still_waiting": ok = cur.controls.waiting_key and cur.controls.ITEMS[cur.controls.sel] == "jump"
+				"pad_jump_x": ok = not Input.is_action_pressed("dash") and not cur.controls.waiting_key and _pad_buttons("jump") == [JOY_BUTTON_X] and _pad_buttons("dash").has(JOY_BUTTON_A) \
 					and not _pad_buttons("dash").has(JOY_BUTTON_X) and get_node("/root/Game").pad_label("jump") == "X"
-				"on_grab_mode": ok = cur.CONTROLS[cur.ctl_sel] == "Grab Mode" and str(get_node("/root/Game").settings.grab_mode) == "hold"
+				"on_grab_mode": ok = cur.controls.ITEMS[cur.controls.sel] == "Grab Mode" and str(get_node("/root/Game").settings.grab_mode) == "hold"
 				"grab_toggle": ok = str(get_node("/root/Game").settings.grab_mode) == "toggle" and _grab_reads() == [true, true, true, false, false, true, true, false]
-				"grab_mode_kept": ok = cur.CONTROLS[cur.ctl_sel] == "Reset Defaults" and str(get_node("/root/Game").settings.grab_mode) == "toggle"
+				"grab_mode_kept": ok = cur.controls.ITEMS[cur.controls.sel] == "Reset Defaults" and str(get_node("/root/Game").settings.grab_mode) == "toggle"
 				"grab_hold": ok = str(get_node("/root/Game").settings.grab_mode) == "hold" and _grab_reads() == [true, false, false, true, false, true, false, false]
 				"pad_default": ok = _pad_buttons("jump") == [JOY_BUTTON_A, JOY_BUTTON_Y] and _pad_buttons("dash") == [JOY_BUTTON_X, JOY_BUTTON_B]
 				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null
@@ -459,6 +478,15 @@ func _process(_d: float) -> void:
 					and cur.room_id == "1-01" and cur.world.max_dashes == 2
 				"air_infinite": ok = str(get_node("/root/Game").settings.air_dashes) == "infinite" and cur.world.assist_air_dashes == World.AIR_DASHES_INFINITE
 				"air_default": ok = str(get_node("/root/Game").settings.air_dashes) == "default" and cur.world.assist_air_dashes == World.AIR_DASHES_DEFAULT
+				"on_pause_controls": ok = cur.hud.options_open and cur.hud.option_items[cur.hud.option_sel] == "Controls"
+				"pause_controls": ok = cur.paused and cur.hud.controls_open and cur.hud.controls.sel == 0 and not cur.hud.controls.waiting_key
+				"pause_jump_m": ok = cur.paused and cur.hud.controls_open and not cur.hud.controls.waiting_key \
+					and get_node("/root/Game").kb_label("jump") == "M" and _has_key("jump", KEY_M) and not _has_key("jump", KEY_C)
+				"grab_toggle_paused": ok = cur.hud.controls.ITEMS[cur.hud.controls.sel] == "Grab Mode" and str(get_node("/root/Game").settings.grab_mode) == "toggle"
+				"pause_reset": ok = cur.hud.controls.ITEMS[cur.hud.controls.sel] == "Reset Defaults" and get_node("/root/Game").kb_label("jump") == "C" \
+					and _has_key("jump", KEY_C) and str(get_node("/root/Game").settings.grab_mode) == "toggle"
+				"grab_hold_paused": ok = str(get_node("/root/Game").settings.grab_mode) == "hold"
+				"pause_controls_closed": ok = cur.paused and cur.hud.options_open and not cur.hud.controls_open
 				"cursor_hidden": ok = get_node("/root/Game").cursor_hidden
 				"cursor_shown": ok = not get_node("/root/Game").cursor_hidden
 				"pad_paused": ok = cur.paused and cur.hud.paused and cur.mode == "play" and not get_node("/root/Game").using_pad \

@@ -41,8 +41,10 @@ var assist_open := false
 var assist_items := ["Game Speed", "Infinite Stamina", "Air Dashes", "Invincibility", "Route Ghost", "Back"]
 var assist_sel := 0
 var options_open := false
-var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Back"]
+var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Back"]
 var option_sel := 0
+var controls_open := false      # Options > Controls: rebinding and Grab Mode mid-climb
+var controls := ControlsMenu.new()
 var results_ticks := 0
 
 # Results
@@ -78,6 +80,7 @@ func _process(delta: float) -> void:
 		cur = option_sel
 	for i in row_k.size():
 		row_k[i] = move_toward(row_k[i], 1.0 if i == cur else 0.0, delta * 9.0)
+	controls.process(delta)
 	if results:
 		results_t += delta
 		# a soft tick as each stat row lands
@@ -111,6 +114,8 @@ func open_pause() -> void:
 	pause_sel = 0
 	assist_open = false
 	options_open = false
+	controls_open = false
+	controls.waiting_key = false
 	confirm_restart = false
 
 
@@ -133,6 +138,10 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		return true
 	if not paused:
 		return false
+	if controls_open:
+		if not controls.capture(ev) and controls.navigate(ev):
+			controls_open = false
+		return true
 	if confirm_restart:
 		if ev.is_action_pressed("up") or ev.is_action_pressed("down"):
 			restart_sel = 1 - restart_sel
@@ -211,6 +220,10 @@ func handle_menu_input(ev: InputEvent) -> bool:
 				"Speedrun Timer":
 					Game.settings.show_timer = not Game.settings.show_timer
 					show_timer = Game.settings.show_timer
+				"Controls":
+					if ev.is_action_pressed("confirm"):
+						controls_open = true
+						controls.open()
 				"Back":
 					if ev.is_action_pressed("confirm"):
 						options_open = false
@@ -346,6 +359,11 @@ func _draw_pause(e: float) -> void:
 	if assist_open:
 		_draw_assist(e)
 		return
+	if controls_open:   # replaces the options panel, as on the title screen
+		controls.draw(self, time)
+		var pairs := controls.hints()
+		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
+		return
 	if options_open:
 		_draw_options(e)
 		return
@@ -396,7 +414,7 @@ func _draw_confirm_restart(e: float) -> void:
 
 
 func _draw_options(e: float) -> void:
-	var r := Rect2(88, 18, 144, 14 + option_items.size() * 12)
+	var r := Rect2(88, 12, 144, 14 + option_items.size() * 12)
 	UIKit.panel(self, r, e)
 	UIKit.panel_title(self, r, "OPTIONS", e)
 	for i in option_items.size():

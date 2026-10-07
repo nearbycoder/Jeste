@@ -23,10 +23,7 @@ var bell_swing := 0.0
 var notice := ""          # a damaged save was set aside (see Game.read_json)
 
 const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
-const CONTROLS := ["jump", "dash", "grab", "Grab Mode", "up", "down", "left", "right", "Reset Defaults", "Back"]
-var ctl_sel := 0
-var ctl_k: Array = []
-var waiting_key := false
+var controls := ControlsMenu.new()
 const LOGO_Y := 25.0
 const MENU_X := 40.0
 const MENU_Y := 102.0
@@ -47,8 +44,6 @@ func _ready() -> void:
 	_build_items()
 	opt_k.resize(OPTIONS.size())
 	opt_k.fill(0.0)
-	ctl_k.resize(CONTROLS.size())
-	ctl_k.fill(0.0)
 	ledge_tex = _make_ledge()
 	# warm additive glow from the campfire
 	glow = Node2D.new()
@@ -136,8 +131,7 @@ func _process(delta: float) -> void:
 		row_k[i] = move_toward(row_k[i], 1.0 if (i == sel and screen == "main") else 0.0, delta * 8.0)
 	for i in opt_k.size():
 		opt_k[i] = move_toward(opt_k[i], 1.0 if i == opt_sel else 0.0, delta * 8.0)
-	for i in ctl_k.size():
-		ctl_k[i] = move_toward(ctl_k[i], 1.0 if i == ctl_sel else 0.0, delta * 8.0)
+	controls.process(delta)
 	panel_k = move_toward(panel_k, 1.0 if screen != "main" else 0.0, delta * 6.0)
 	if not jingled and time > 1.05:
 		jingled = true
@@ -174,37 +168,12 @@ func _go(what: String) -> void:
 
 func _input(ev: InputEvent) -> void:
 	# key capture for rebinding happens before actions are dispatched
-	if waiting_key and ev is InputEventJoypadButton and ev.pressed:
-		# pad buttons rebind Jump / Dash / Grab; Start cancels
-		var btn: int = (ev as InputEventJoypadButton).button_index
-		var act: String = CONTROLS[ctl_sel]
-		if btn == JOY_BUTTON_START:
-			get_viewport().set_input_as_handled()
-			waiting_key = false
-			Sfx.play("menu_move")
-		elif Game.rebind_pad(act, btn):
-			get_viewport().set_input_as_handled()
-			waiting_key = false
-			Game.save_settings()
-			Sfx.play("menu_select")
-		else:
-			get_viewport().set_input_as_handled()   # not bindable here: keep waiting
-		return
-	if not waiting_key or not (ev is InputEventKey) or not ev.pressed or ev.echo:
-		return
-	get_viewport().set_input_as_handled()
-	var k: int = (ev as InputEventKey).physical_keycode
-	waiting_key = false
-	if k == KEY_ESCAPE:
-		Sfx.play("menu_move")
-		return
-	Game.rebind(CONTROLS[ctl_sel], k)
-	Game.save_settings()
-	Sfx.play("menu_select")
+	if controls.capture(ev):
+		get_viewport().set_input_as_handled()
 
 
 func _unhandled_input(ev: InputEvent) -> void:
-	if leaving != "" or time < 0.8 or waiting_key:
+	if leaving != "" or time < 0.8 or controls.waiting_key:
 		return
 	match screen:
 		"main":
@@ -239,27 +208,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 				screen = "main"
 				Game.save_settings()
 		"controls":
-			if ev.is_action_pressed("up"):
-				ctl_sel = (ctl_sel + CONTROLS.size() - 1) % CONTROLS.size()
-				Sfx.play("menu_move")
-			elif ev.is_action_pressed("down"):
-				ctl_sel = (ctl_sel + 1) % CONTROLS.size()
-				Sfx.play("menu_move")
-			elif CONTROLS[ctl_sel] == "Grab Mode" and (ev.is_action_pressed("confirm") or ev.is_action_pressed("left") or ev.is_action_pressed("right")):
-				Sfx.play("menu_select")
-				Game.toggle_grab_mode()
-				Game.save_settings()
-			elif ev.is_action_pressed("confirm"):
-				Sfx.play("menu_select")
-				match CONTROLS[ctl_sel]:
-					"Reset Defaults":
-						Game.reset_bindings()
-						Game.save_settings()
-					"Back":
-						screen = "options"
-					_:
-						waiting_key = true
-			elif ev.is_action_pressed("back"):
+			if controls.navigate(ev):
 				screen = "options"
 		"confirm_reset":
 			if ev.is_action_pressed("confirm"):
@@ -299,7 +248,7 @@ func _change_option(d: int, confirm: bool) -> void:
 		"Controls":
 			if confirm:
 				screen = "controls"
-				ctl_sel = 0
+				controls.open()
 		"Erase Save":
 			if confirm:
 				screen = "confirm_reset"
@@ -404,7 +353,7 @@ func _draw() -> void:
 			UIKit.menu_row(self, r.position.x + 12, y, 128, OPTIONS[i], opt_k[i], time, e)
 			_draw_opt_value(OPTIONS[i], Vector2(r.end.x - 10, y), e)
 		if screen == "controls":
-			_draw_controls()
+			controls.draw(self, time)
 		if screen == "confirm_reset":
 			draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.5))
 			var cr := Rect2(60, 76, 200, 40)
@@ -416,8 +365,8 @@ func _draw() -> void:
 	var hk := _intro(1.6, 0.5)
 	if hk > 0.0:
 		var pairs := [[Game.move_label(), "Move"], [Game.key_label("jump"), "Jump"], [Game.key_label("dash"), "Dash"], [Game.key_label("grab"), "Grab"]] if screen == "main" else [[Game.move_label(), "Change"], [Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Back"]]
-		if waiting_key:
-			pairs = [["Start" if Game.using_pad else "Esc", "Cancel"]]
+		if screen == "controls":
+			pairs = controls.hints()
 		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, hk * 0.9)
 	if notice != "" and time < 9.0:
 		var na := clampf(minf(time - 1.0, 9.0 - time), 0.0, 1.0)
@@ -427,35 +376,6 @@ func _draw() -> void:
 		draw_rect(Rect2(nr.position.x, nr.end.y - 1, nr.size.x, 1), Color(UIKit.CRIMSON, na))
 		PixelText.draw_centered(self, 160, nr.position.y + 3, notice, Color(UIKit.CREAM, na))
 	UIKit.wipe(self, wipe, -1.0 if leaving == "" else 1.0)
-
-
-func _draw_controls() -> void:
-	draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.45))
-	var r := Rect2(78, 14, 164, 16 + CONTROLS.size() * 12 + 12)
-	UIKit.panel(self, r)
-	UIKit.panel_title(self, r, "CONTROLS")
-	var names := {"jump": "Jump", "dash": "Dash", "grab": "Grab / Climb", "up": "Up", "down": "Down", "left": "Left", "right": "Right"}
-	for i in CONTROLS.size():
-		var y := r.position.y + 10 + i * 12
-		var id: String = CONTROLS[i]
-		UIKit.menu_row(self, r.position.x + 12, y, 140, names.get(id, id), ctl_k[i], time)
-		if id == "Grab Mode":
-			var v := "Toggle" if str(Game.settings.get("grab_mode", "hold")) == "toggle" else "Hold"
-			PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width(v), y), v, UIKit.GOLD, UIKit.INK)
-		elif names.has(id):
-			var lbl := "..." if (waiting_key and i == ctl_sel) else Game.kb_label(id)
-			var w := maxf(PixelText.width(lbl) + 6.0, 9.0)
-			if waiting_key and i == ctl_sel:
-				var prompt := "key or button" if Game.PAD_REBINDABLE.has(id) else "press a key"
-				PixelText.draw_outlined(self, Vector2(r.end.x - 10 - PixelText.width(prompt), y), prompt, Color(UIKit.GOLD, 0.6 + 0.4 * sin(time * 8.0)), UIKit.INK)
-			else:
-				var kx := r.end.x - 10 - w
-				UIKit.keycap(self, Vector2(kx, y), lbl)
-				if Game.PAD_REBINDABLE.has(id):
-					var pl := Game.pad_label(id)
-					PixelText.draw_outlined(self, Vector2(kx - 6 - PixelText.width(pl), y), pl, UIKit.GOLD, UIKit.INK)
-	var foot := "Gold: pad button"
-	PixelText.draw_outlined(self, Vector2(160 - PixelText.width(foot) / 2.0, r.end.y - 11), foot, Color(UIKit.GOLD, 0.8), UIKit.INK)
 
 
 func _draw_opt_value(name: String, right: Vector2, a: float) -> void:
