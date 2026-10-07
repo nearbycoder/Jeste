@@ -418,3 +418,63 @@ chart are in `docs/media/improvements/round3/`.
   notarization, hosting, license, releases and tags, physical-controller testing. One new
   point: v0.1.0's Game Speed assist doesn't slow gameplay, and the fix reaches players only
   in a new release.
+
+## Round 4 scope (2026-10-06)
+
+Baseline on `improvements-4` (from `main` = `origin/main` = `2a288a5`): the full suite passes
+in 32 s at load average 8. All runs this round use a throwaway user-data and temp directory
+under the git-ignored `build/r4/`, and the real save's checksum is compared before and after.
+
+Picked for a real player's experience, and because each can be checked here without a
+display-only judgement call:
+
+### A. Saves survive a crash or a bad write
+- **Why:** `Game.save()` opens the save with `FileAccess.WRITE`, which empties the file
+  before writing it, and it runs on every room entry and every berry. A crash, power cut or
+  full disk at that moment leaves an empty or half-written file. On the next launch
+  `load_save()` can't parse it, silently starts a fresh save, and the first room entry
+  overwrites the damaged file. The whole climb is lost without a word. Settings work the same way.
+- **Do:** write to a temporary file, check it, keep the previous good file as a backup, then
+  rename into place. On load, fall back to the backup if the main file is missing, empty or
+  unparseable, keep the unreadable file aside (`.corrupt`) instead of overwriting it, and say
+  so once on the title screen.
+- **Accept:** a truncated, empty or garbage save loads the last good backup. A damaged file is
+  never overwritten. A normal save round-trips unchanged. Settings behave the same.
+- **Verify:** a new headless check (`tests/save_check.gd`, in the suite) that writes saves into
+  the sandboxed `user://`, damages them in each way, reloads and compares. Fails on the old code.
+
+### B. Checkpoint select
+- **Why:** to go back for a missed berry or bell in room 9 of a chapter, a player must replay
+  the whole chapter, or rely on *Continue*, which only remembers the last room entered. With 61
+  berries and 7 bells, collecting is most of the replay value, and the genre standard is to let
+  you start from any checkpoint you've reached.
+- **Do:** remember every room entered. On chapter select, choosing a chapter with more than one
+  reached checkpoint opens a picker: Left/Right steps through the main-path rooms reached
+  (secret rooms are never listed), the postcard shows the chosen room live, and the text column
+  shows which berries and the bell of that room you still lack. *Continue* stays the default
+  when there is one and keeps its time and deaths. Any other room starts a fresh, non-Best run
+  (Best still needs a start-to-end run, as today). Old saves are backfilled: a completed chapter
+  has all its checkpoints, otherwise rooms up to the *Continue* room and rooms where something
+  was collected.
+- **Accept:** each listed room starts the level in that room at a spawn with a proven route to
+  its exit. Unreached rooms and secret rooms are never offered. Collectible markers match the save.
+  Starting from the chapter start still records Best; starting elsewhere never does.
+- **Verify:** ui_flow opens the picker on a seeded save, steps to a room, confirms, and checks
+  the level's room, `full_run` and time; a unit check of the reached/backfill rules; the suite
+  checks every main-path room's spawn 0 has a shipped Route Ghost hint (a proven route);
+  screenshot.
+
+### C. Pause → Restart Chapter
+- **Why:** golden-berry attempts and speedruns restart a chapter many times. Today that takes
+  Return to Map, Climb, then *Restart chapter* in the resume prompt, with two screen wipes.
+- **Do:** a *Restart Chapter* row in the pause menu with a Yes/No confirm (a misclick shouldn't
+  throw away a long climb). It starts a fresh full run at the chapter start, so Best and the
+  golden berry are both possible. The pause screen also shows this chapter's berries.
+- **Accept:** confirming starts the chapter at its first room with time and deaths at 0 and
+  `full_run` true; No or Back returns to the pause menu unchanged.
+- **Verify:** ui_flow walks pause → Restart Chapter → No, then → Yes, and checks the new level.
+  Screenshot of the confirm.
+
+Not picked: the Route Ghost block-drawing limit (small visual gap, and a fix means hiding the
+player's own blocks); physical controllers and 144/165 Hz displays (no hardware here); builds,
+license and releases (owner decisions); new content (too large).
