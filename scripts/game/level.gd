@@ -68,6 +68,14 @@ var full_run := true            # started at the chapter start in this session (
 var sim_acc := 0.0              # Game Speed: simulation steps owed (one per 1.0)
 var tap_hold := 0               # jump / dash presses seen between two steps
 var held_off := 0               # Jump / Dash still held from closing a menu or a cutscene: ignored until let go
+var aiming := false             # Dash Aim: time is stopped while Dash is held
+var aim_bits := 0               # direction bits she'll dash in (the last one held)
+var aim_dash_down := false      # Dash held on the last tick, for the press edge
+var aim_held := 0               # directions held on the last tick while aiming
+var aim_drop := 0               # ticks a held direction has been let go (see AIM_GRACE)
+const AIM_GRACE := 5            # a diagonal let go one key at a time stays diagonal this long
+var aim_fire := -1              # input for the step that fires the aimed dash
+var aim_view: Node2D
 var best_info := {}             # record_best() at the chapter end, for the results screen
 
 
@@ -145,6 +153,7 @@ func auto_pause() -> void:
 		return
 	pause_pending = false
 	paused = true
+	cancel_aim()
 	hud.open_pause()
 
 
@@ -189,6 +198,9 @@ func _build_nodes() -> void:
 	stage.add_child(player_view)
 	effects = Effects.new()
 	stage.add_child(effects)
+	aim_view = Node2D.new()
+	aim_view.draw.connect(_draw_aim)
+	stage.add_child(aim_view)
 	player_view.effects = effects
 	lighting = Lighting.new()
 	lighting.world = world
@@ -411,6 +423,8 @@ func _physics_process(_delta: float) -> void:
 	var inp := Game.read_input()
 	held_off &= inp
 	inp &= ~held_off
+	if _dash_aim(inp):
+		return
 	tap_hold |= inp & (World.IN_JUMP | World.IN_DASH)
 	sim_acc += clampf(Engine.time_scale, 0.05, 1.0)
 	if sim_acc < 1.0:
@@ -426,7 +440,88 @@ func _physics_process(_delta: float) -> void:
 		if replay_pos < replay.size():
 			inp = replay[replay_pos]
 			replay_pos += 1
+		elif aim_fire >= 0:
+			inp = aim_fire
+			aim_fire = -1
 		sim_tick(inp)
+
+
+## Assist > Dash Aim: a press of Dash that would start a dash stops time
+## (no simulation steps, so no ghost, Grin or chapter timer either) and shows
+## an arrow; held directions turn it, and letting go of Dash dashes the last
+## way held (straight ahead if none). Keys of a diagonal are rarely let go on
+## the same frame, so when a direction is let go the aim waits AIM_GRACE
+## ticks before following what's still held. True while time is stopped.
+func _dash_aim(inp: int) -> bool:
+	var dash := (inp & World.IN_DASH) != 0
+	var pressed := dash and not aim_dash_down
+	aim_dash_down = dash
+	var dirs := inp & (World.IN_LEFT | World.IN_RIGHT | World.IN_UP | World.IN_DOWN)
+	if aiming:
+		if dirs != 0 and ((dirs & ~aim_held) != 0 or dirs == aim_bits):
+			aim_bits = dirs   # a new direction: follow it at once
+			aim_drop = 0
+		elif dirs != 0:
+			aim_drop += 1     # one let go: follow after a moment
+			if aim_drop > AIM_GRACE:
+				aim_bits = dirs
+		aim_held = dirs
+		if dash and mode == "play":
+			aim_view.queue_redraw()
+			return true
+		aiming = false
+		aim_view.queue_redraw()
+		if mode == "play":
+			aim_fire = aim_bits | World.IN_DASH | (inp & (World.IN_JUMP | World.IN_GRAB))
+		return false
+	if pressed and bool(Game.settings.get("dash_aim", false)) and mode == "play" and not finished \
+			and freeze == 0 and aim_fire < 0 and replay_pos >= replay.size() and world.dash_would_start(inp):
+		aiming = true
+		aim_bits = dirs
+		aim_held = dirs
+		aim_drop = 0
+		sim_acc = 0.0
+		_snap_views()
+		Sfx.play("menu_move", 1.3, -6.0)
+		aim_view.queue_redraw()
+		return true
+	return false
+
+
+## Pausing (or a cutscene, death or room change) drops an aim without dashing.
+func cancel_aim() -> void:
+	aiming = false
+	aim_fire = -1
+	if aim_view:
+		aim_view.queue_redraw()
+
+
+## The Dash Aim arrow: eight ticks round Mira and a bright arrow for the
+## way she'll dash.
+func _draw_aim() -> void:
+	if not aiming:
+		return
+	var c := _pc() + world.view_offset()
+	var dx := (1 if aim_bits & World.IN_RIGHT else 0) - (1 if aim_bits & World.IN_LEFT else 0)
+	var dy := (1 if aim_bits & World.IN_DOWN else 0) - (1 if aim_bits & World.IN_UP else 0)
+	if dx == 0 and dy == 0:
+		dx = world.facing
+	var d := Vector2(dx, dy).normalized()
+	var col := player_view.cap_col.lightened(0.55)
+	var ink := Color(UIKit.INK, 0.9)
+	for i in 8:
+		var t := Vector2.RIGHT.rotated(i * PI / 4.0)
+		if t.dot(d) < 0.99:
+			aim_view.draw_line(c + t * 13.0, c + t * 16.0, Color(col, 0.45), 1.0)
+	var pulse := 1.5 * sin(Time.get_ticks_msec() / 90.0)
+	var tip := c + d * (24.0 + pulse)
+	var side := Vector2(-d.y, d.x)
+	var shaft_a := c + d * 11.0
+	var shaft_b := tip - d * 6.0
+	aim_view.draw_line(shaft_a, shaft_b, ink, 5.0)
+	aim_view.draw_colored_polygon(PackedVector2Array([tip + d * 2.0, tip - d * 8.0 + side * 6.5, tip - d * 8.0 - side * 6.5]), ink)
+	aim_view.draw_line(shaft_a, shaft_b, col, 3.0)
+	aim_view.draw_colored_polygon(PackedVector2Array([tip, tip - d * 7.0 + side * 5.0, tip - d * 7.0 - side * 5.0]), col)
 
 
 ## Smooth Motion draws between this snapshot and the next step. Taken before
@@ -828,6 +923,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	if ev.is_action_pressed("pause") and mode != "complete":
 		paused = true
+		cancel_aim()
 		hud.open_pause()
 		Sfx.play("menu_select")
 		if is_inside_tree(): get_viewport().set_input_as_handled()

@@ -90,7 +90,8 @@ is always one menu away.
   rooms before Mira learns to dash stay dashless) and invincibility. Invincible, a fall into a
   bottomless pit bounces Mira back up with her dash refilled, a dash through a curtain into a
   wall turns her back the way she came, and a gondola that would crush her sets her down beside
-  it. Your progress counts the same.
+  it. **Dash Aim** stops time when you press Dash (if a dash would start) and shows an arrow:
+  hold a direction to aim it and let go of Dash to dash that way. Your progress counts the same.
 - **Unplugging a controller** (or a pad's battery dying) pauses the game, as does switching to
   another window. The mouse cursor hides while you play and comes back when you move the mouse.
 - **Pause → Assist → Route Ghost** shows a translucent Mira running the room the way the

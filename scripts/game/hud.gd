@@ -38,7 +38,7 @@ var pause_sel := 0
 var pause_k := 0.0
 var row_k: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 var assist_open := false
-var assist_items := ["Game Speed", "Infinite Stamina", "Air Dashes", "Invincibility", "Route Ghost", "Back"]
+var assist_items := ["Game Speed", "Infinite Stamina", "Air Dashes", "Dash Aim", "Invincibility", "Route Ghost", "Back"]
 var assist_sel := 0
 var options_open := false
 var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Back"]
@@ -181,6 +181,8 @@ func handle_menu_input(ev: InputEvent) -> bool:
 					Game.settings.infinite_stamina = not Game.settings.infinite_stamina
 				"Air Dashes":
 					Game.step_air_dashes(dir, ev.is_action_pressed("confirm"))
+				"Dash Aim":
+					Game.settings.dash_aim = not bool(Game.settings.get("dash_aim", false))
 				"Invincibility":
 					Game.settings.invincible = not Game.settings.invincible
 				"Route Ghost":
@@ -525,6 +527,7 @@ func _draw_assist(e: float = 1.0) -> void:
 					else Game.ghost_mode().capitalize()
 				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
 			"Infinite Stamina": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.infinite_stamina), e)
+			"Dash Aim": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("dash_aim", false)), e)
 			"Invincibility": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.invincible), e)
 	PixelText.draw_centered_outlined(self, 160, r.end.y + 8, "Play the way that feels right.", Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
 

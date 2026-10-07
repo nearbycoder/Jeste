@@ -896,6 +896,21 @@ func _aim() -> Vector2i:
 	return Vector2i(ax, ay)
 
 
+## True if stepping with `inp` (Dash just pressed) would start a dash now.
+## Used by Dash Aim, which stops time only when a press would really dash;
+## the world is stepped and put back exactly as it was.
+func dash_would_start(inp: int) -> bool:
+	if dead or exited or end_reached or (prev_input & IN_DASH) != 0:
+		return false
+	var snap := save_state()
+	var ev := events
+	step(inp | IN_DASH)
+	var started := events.has("dash") or events.has("launch")
+	load_state(snap)
+	events = ev
+	return started
+
+
 func _tired() -> bool:
 	return stamina < CLIMB_TIRED
 

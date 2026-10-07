@@ -640,7 +640,7 @@ func default_settings() -> Dictionary:
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
 		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto", "grab_mode": "hold",
-		"air_dashes": "default", "ghost_goal": "exit",
+		"air_dashes": "default", "ghost_goal": "exit", "dash_aim": false,
 	}
 
 

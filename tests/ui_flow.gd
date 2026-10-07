@@ -51,6 +51,7 @@ func _ready() -> void:
 		["check", "ghost_goal", 0],
 		["check", "air_dash_sim", 0],
 		["check", "invincible_sim", 0],
+		["check", "aim_probe_pure", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -192,11 +193,11 @@ func _ready() -> void:
 		["stick", "up", 4],
 		["mouse_at", "160,74", 2], ["check", "pause_sel_2", 0],  # the mouse in the pause menu
 		["click", "160,74", 10], ["check", "assist", 0],
-		["mouse_at", "160,110", 2], ["check", "assist_sel_4", 0],
-		["wheel", "160,110,up", 6], ["check", "ghost_on", 0],    # the wheel steps Route Ghost under the pointer
-		["wheel", "160,110,down", 6], ["check", "ghost_off", 0],
-		["mouse_at", "160,98", 2], ["wheel", "160,98,down", 4], ["check", "assist_sel_4_not_invincible", 0],   # and moves past a toggle
-		["rclick", "160,110", 10], ["check", "assist_closed", 0],
+		["mouse_at", "160,123", 2], ["check", "assist_sel_5", 0],
+		["wheel", "160,123,up", 6], ["check", "ghost_on", 0],    # the wheel steps Route Ghost under the pointer
+		["wheel", "160,123,down", 6], ["check", "ghost_off", 0],
+		["mouse_at", "160,110", 2], ["wheel", "160,110,down", 4], ["check", "assist_sel_5_not_invincible", 0],   # and moves past a toggle
+		["rclick", "160,123", 10], ["check", "assist_closed", 0],
 		["mouse_at", "160,46", 2], ["check", "pause_sel_0", 0],
 		["wheel", "160,46,down", 4], ["check", "pause_sel_1", 0], ["wheel", "160,46,up", 4], ["check", "pause_sel_0", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
@@ -206,9 +207,9 @@ func _ready() -> void:
 		["press", "right", 4], ["check", "air_infinite", 0],
 		["press", "right", 4], ["check", "air_infinite", 0],     # Right stops at the end...
 		["press", "confirm", 4], ["check", "air_default", 0],    # ...Confirm wraps around
-		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost on
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost on
 		["check", "ghost_on", 0],
-		["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
 		["press", "confirm", 4], ["press", "confirm", 4], ["press", "back", 10],
 		["press", "down", 4], ["press", "confirm", 10],          # Options
 		["check", "options_open", 0],
@@ -245,14 +246,33 @@ func _ready() -> void:
 		["watch_moves", "", 0], ["key_down", "C", 4], ["key_up", "C", 40], ["check", "jumped", 0],   # a fresh press still jumps
 		["dialogue_held", "", 20], ["check", "no_moves", 0], ["action_up", "jump", 10],   # nor does the last line of a cutscene
 		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
 		["press", "right", 4], ["check", "ghost_berries", 0],    # Route Ghost: Berries
 		["press", "right", 4], ["check", "ghost_berries", 0],    # Right stops at the end...
 		["press", "left", 4], ["check", "ghost_on", 0],          # ...Left goes back to Exit
 		["press", "right", 4], ["press", "confirm", 4],          # Confirm wraps Berries -> Off
 		["check", "ghost_off", 0],
+		["press", "up", 4], ["press", "up", 4], ["check", "on_dash_aim", 0],
+		["press", "right", 4], ["check", "dash_aim_on", 0],      # Dash Aim on
 		["press", "back", 10], ["press", "back", 20],
 		["check", "unpaused", 0],
+		["wait_ground", "", 2],
+		# Dash Aim: holding Dash stops time; she dashes the last way aimed on release
+		["watch_moves", "", 0], ["key_down", "X", 2], ["check", "aiming", 0], ["mark_frame", "", 0],
+		["key_down", "Up", 0], ["key_down", "Right", 20], ["check", "aim_frozen", 0],
+		["key_up", "Up", 2], ["key_up", "Right", 1], ["check", "aim_frozen", 0],   # a diagonal let go one key at a time
+		["key_up", "X", 3], ["check", "aim_dashed", 0],
+		["key_down", "X", 2], ["check", "not_aiming", 0], ["key_up", "X", 2],   # no dash left: no aim
+		["wait_ground", "", 2],
+		["key_down", "X", 2], ["key_down", "Up", 0], ["key_down", "Right", 4], ["key_up", "Right", 10],   # a stick rolled to straight up
+		["check", "aim_up", 0], ["key_up", "X", 3], ["check", "aim_dashed_up", 0], ["key_up", "Up", 0],
+		["wait_ground", "", 2],
+		["watch_moves", "", 0], ["key_down", "X", 2], ["check", "aiming", 0],   # pausing drops the aim
+		["key_down", "Escape", 2], ["key_up", "Escape", 4], ["check", "paused_not_aiming", 0],
+		["key_up", "X", 2], ["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "no_moves", 0],
+		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4], ["check", "dash_aim_off", 0],
+		["press", "back", 10], ["press", "back", 20], ["check", "unpaused", 0],
 		["press", "pause", 20],
 		["press", "up", 4], ["press", "confirm", 40],           # Retry Room (wraps to last = Return to Map? no: up from Resume = Return to Map)
 		["expect", "ChapterSelect", 0],
@@ -514,6 +534,16 @@ func _process(_d: float) -> void:
 			Input.parse_input_event(ev)
 		"watch_moves":
 			moves = {}
+		"mark_frame":
+			speed_from = cur.world.frame
+			scroll_before = cur.chapter_time
+		"wait_ground":
+			if not (cur.mode == "play" and cur.world.on_ground and cur.world.state == World.ST_NORMAL \
+					and cur.world.dashes > 0) and wait_frames < 600:
+				wait_frames += 1
+				idx -= 1
+			else:
+				wait_frames = 0
 		"dialogue_held":
 			# Jump still down as a cutscene's last line closes
 			Input.action_press("jump")
@@ -597,7 +627,7 @@ func _process(_d: float) -> void:
 				"opt_sel_2": ok = cur.screen == "options" and cur.opt_sel == 2
 				"pause_sel_2": ok = cur.paused and cur.hud.pause_sel == 2 and not cur.hud.assist_open
 				"pause_sel_0": ok = cur.paused and cur.hud.pause_sel == 0
-				"assist_sel_4": ok = cur.hud.assist_open and cur.hud.assist_sel == 4
+				"assist_sel_5": ok = cur.hud.assist_open and cur.hud.assist_sel == 5
 				"assist_closed": ok = cur.paused and not cur.hud.assist_open
 				"reduced_flashing": ok = bool(get_node("/root/Game").settings.reduce_flashing) and is_equal_approx(get_node("/root/Game").flash_scale(), 0.2)
 				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
@@ -611,7 +641,7 @@ func _process(_d: float) -> void:
 				"title_sel_2": ok = cur.sel == 2 and cur.screen == "main"
 				"opt_sel_3": ok = cur.screen == "options" and cur.opt_sel == 3 and not bool(get_node("/root/Game").settings.fullscreen)
 				"ctl_sel_2": ok = cur.screen == "controls" and cur.controls.sel == 2 and not cur.controls.waiting_key
-				"assist_sel_4_not_invincible": ok = cur.hud.assist_open and cur.hud.assist_sel == 4 and not bool(get_node("/root/Game").settings.invincible)
+				"assist_sel_5_not_invincible": ok = cur.hud.assist_open and cur.hud.assist_sel == 5 and not bool(get_node("/root/Game").settings.invincible)
 				"credits_ahead_0", "credits_ahead_40":
 					var ahead: float = cur.scroll - scroll_before
 					var want := float(str(s[1]).get_slice("_", 2))
@@ -665,6 +695,7 @@ func _process(_d: float) -> void:
 				"paused": ok = cur.paused and cur.hud.paused
 				"air_dash_sim": ok = _air_dashes_ok()
 				"invincible_sim": ok = _invincible_ok()
+				"aim_probe_pure": ok = _aim_probe_pure_ok()
 				"on_air_dashes": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Air Dashes"
 				"air_two": ok = str(get_node("/root/Game").settings.air_dashes) == "two" and cur.world.assist_air_dashes == World.AIR_DASHES_TWO \
 					and cur.room_id == "1-01" and cur.world.max_dashes == 2
@@ -688,6 +719,17 @@ func _process(_d: float) -> void:
 				"options_open": ok = cur.hud.options_open
 				"unpaused": ok = not cur.paused
 				"no_moves": ok = moves.is_empty() and not cur.paused and cur.mode == "play"
+				"on_dash_aim": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Dash Aim"
+				"dash_aim_on": ok = bool(get_node("/root/Game").settings.dash_aim)
+				"dash_aim_off": ok = not bool(get_node("/root/Game").settings.dash_aim) and cur.hud.assist_items[cur.hud.assist_sel] == "Dash Aim"
+				"aiming": ok = cur.aiming and moves.is_empty() and cur.aim_view.visible
+				"aim_frozen": ok = cur.aiming and cur.world.frame == speed_from and is_equal_approx(cur.chapter_time, scroll_before) \
+					and cur.aim_bits == (World.IN_UP | World.IN_RIGHT) and moves.is_empty()
+				"aim_dashed": ok = not cur.aiming and moves.has("dash") and cur.world.dash_dir_x == 1 and cur.world.dash_dir_y == -1
+				"not_aiming": ok = not cur.aiming
+				"aim_up": ok = cur.aiming and cur.aim_bits == World.IN_UP
+				"aim_dashed_up": ok = not cur.aiming and cur.world.dash_dir_x == 0 and cur.world.dash_dir_y == -1 and cur.world.state == World.ST_DASH
+				"paused_not_aiming": ok = cur.paused and not cur.aiming
 				"jumped": ok = moves.has("jump")
 				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02" and cur.chapter_time >= 100.0 and cur.deaths_this_chapter == 7 and not cur.full_run
 				"has_continue": ok = cur.items.size() > 0 and cur.items[0] == "Continue" and cur.sel == 0
@@ -1128,6 +1170,31 @@ func _invincible_ok() -> bool:
 				print("invincibility %s, %s: %s" % ["on" if inv else "off", k, r])
 				ok = false
 	return ok
+
+
+## Dash Aim asks the world whether a dash would start now by stepping it and
+## putting it back. Replaying Route Ghost routes through crumbling boards,
+## mask blocks, a gondola, balloons and bumpers, with that question asked
+## every frame, must give exactly the same world as not asking.
+func _aim_probe_pure_ok() -> bool:
+	var asked := 0
+	for r in [["1", "1-03"], ["3", "3-02"], ["4", "4-02"], ["5", "5-02"], ["6", "6-02"]]:
+		var ch := LevelDB.get_chapter(int(r[0]))
+		var a := World.new()
+		var b := World.new()
+		a.load_room(ch.room(r[1]), 0, ch.dashes)
+		b.load_room(ch.room(r[1]), 0, ch.dashes)
+		for inp in Solver.decode(str(Level._hint(r[1], 0, r[0]).inputs)):
+			if b.dash_would_start(inp):
+				asked += 1
+			a.step(inp)
+			b.step(inp)
+			if a.events != b.events or str(a.save_state()) != str(b.save_state()) or a.solid != b.solid:
+				print("aim probe changed the world in %s at frame %d" % [r[1], a.frame])
+				return false
+			if a.dead or a.exited or a.end_reached:
+				break
+	return asked > 0
 
 
 func _inv_world(ch_n: int, rid: String, inv: bool) -> World:
