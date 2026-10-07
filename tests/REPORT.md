@@ -1,6 +1,6 @@
 # Jeste level verification report
 
-Generated 2026-10-07 10:57:58
+Generated 2026-10-07 11:01:34
 
 ## Chapter 0: The Foot of Jeste - PASS
 - End reachable from start: yes
@@ -295,4 +295,4 @@ Each room's route from entry to exit (no collectibles) with the basic moveset, u
 ## Menu flow
 - PASS - UI FLOW PASS
 
-**Overall: PASS**  (62s)
+**Overall: PASS**  (60s)

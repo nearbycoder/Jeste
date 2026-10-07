@@ -825,3 +825,55 @@ Picked for a real player's experience, and because each can be checked here:
 
 Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
 builds, license and releases (owner decisions); new content (too large).
+
+## Round 7 results (2026-10-07)
+
+All commits are on `improvements-7`; nothing has been pushed. The full suite passes after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow). The final run took 60 s at load average 22–25, and ui_flow then passed three more standalone runs at load 23–25. Every run used a throwaway
+user-data directory (`build/test_user/` or `build/r7/`), with `TMPDIR` in `build/r7/tmp/`, and
+the real user-data folder (save and log files) had the same checksums before and after. Window
+probes ran inside a private, invisible KWin session (`kwin_wayland --virtual`, adding
+`--xwayland` for X11, with its own D-Bus and sandboxed config and user data, and the outer
+`DISPLAY` and `WAYLAND_DISPLAY` removed), so nothing opened on the desktop. Screenshots are in
+`docs/media/improvements/round7/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Mouse in chapter select and the picker | Done | `f6fb9a8` | ui_flow: a right click goes back to the title; a locked chapter's marker can't be clicked; markers, both side arrows and a click on nothing; a click on the card opens the picker; a reached pip, an unreached pip (nothing), the postcard's arrows, a right click closing the picker, and a click on the card starting the level at that checkpoint. Fails with the mouse code disabled. In a real window: `mouse_menus.png` (top left). |
+| B. Mouse in Controls, confirm boxes, cutscenes, sliders | Done | `6c5a35e` | ui_flow: volume sliders set to 0%, 50%, 80% and back by clicks (the label still steps); Erase Save asks, ignores a click off its prompts, keeps on *Keep* and on a right click, erases on *Erase*; title Controls: hover, a click starts a rebind, a second click can't be bound, a right click cancels, Grab Mode toggles by click, a right click closes; pause Controls hover and right-click close; the pause sliders; the Restart box's hover, a click off it, a right click backing out and a click on *Restart*; a click reads the next cutscene line. Five mutations (each piece disabled, and a naive Erase box that confirms on any click) each fail it. Real window: `mouse_menus.png`. |
+| C. Route Ghost draws her own berries, bells and keys | Done | `b73a2f2`, `74ffc32` | A ui_flow unit check on her collect routes in 1-03 (two berries) and 3-05 (two berries, two keys): nothing extra is drawn while the player touches nothing except what she carries, she carries every berry and key, and berries the player found earlier are drawn for her until she takes them. Two mutations fail it. A survey of all 52 collect routes: no unexpected item on any frame, and she visibly carries every berry in each room. Screenshot (1-03 and 3-05, her berry trailing her while the player's stays): `route_ghost_carries_berries.png`. |
+| D. F11 and Alt+Enter toggle fullscreen | Done | `7507e6e` | ui_flow: both keys on the title (Alt+Enter doesn't choose *Climb*), in chapter select and in play (Alt+Enter doesn't pause); while rebinding (title and pause), F11 becomes the binding; bound to Jump it acts as Jump. Three mutations fail it. A real window under Wayland and under X11 (Xwayland) switched to fullscreen and back. |
+| E. Keyboard layouts under X11 | Checked, no change needed | `369af81` | Under the private KWin's Xwayland with Godot's X11 driver: French reads Grab = **W**, W/A = **Z/Q**; German reads Grab = **Y**; US unchanged. Screenshot of the prologue's grab sign under X11: `x11_keyboard_layouts.png`. |
+
+### Deviations and limits
+- **Mouse:** hover selects rows as before, but on chapter select only a click changes the
+  chapter (hovering the trail would repaint the backdrop under the pointer). After a right
+  click closes a box, the row under the pointer is selected, as any mouse movement would.
+  There's no mouse wheel, gameplay stays keyboard and pad only, and no physical mouse was used.
+- **Erase Save** takes a click on its prompts rather than on rows, so its keyboard and pad
+  behaviour (Jump erases, Dash keeps) is unchanged.
+- **Route Ghost:** a berry the player already found is drawn for her over its outline in her
+  tint, which is faint against the outline sprite; once she takes it, it trails her clearly.
+  Her dash gems and balloons are still not drawn separately. Not playtested.
+- **F11** that a player has bound to Jump (or any action) does that action instead; Alt+Enter
+  always toggles. Neither works in a web build (the browser owns those keys), and there is no
+  web build yet.
+- **X11:** checked in a private session's Xwayland, not on a real X11 desktop. There the X11
+  window started maximised rather than at its 3× size (the Wayland window didn't); the cause
+  wasn't looked into.
+- **Test tooling:** `run_tests.py` writes its scratch JSON to the system temp folder; this round
+  pointed `TMPDIR` at `build/r7/tmp/` rather than changing the runner.
+- **Load:** several suite and ui_flow runs happened at load average 24–36 (the machine is
+  shared). ui_flow runs at a fixed 60 fps, so this slowed it without changing its result; the
+  final runs are listed above with their load.
+
+### Still open
+- A human playtest (Air Dashes, ghost outlines, Berries mode and her carried berries),
+  physical controllers, a physical mouse, a real 144/165 Hz display, and a non-US keyboard in
+  hand.
+- The round 4 menu-flow flake (not seen this round).
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, and the wrong key
+  names on non-US keyboards.
