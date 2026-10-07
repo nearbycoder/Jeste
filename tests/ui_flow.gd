@@ -52,6 +52,11 @@ func _ready() -> void:
 		["stick_hold", "", 4],
 		["press", "up", 6],
 		["check", "title_sel_0", 0],
+		["key", "Down", 2], ["check", "cursor_hidden", 0],      # the cursor hides on a key...
+		["mouse", "", 2], ["check", "cursor_shown", 0],          # ...shows when the mouse moves...
+		["wait_n", "100", 0], ["check", "cursor_shown", 0],
+		["wait_n", "30", 0], ["check", "cursor_hidden", 0],     # ...and hides again after 2 s still
+		["key", "Up", 6], ["check", "title_sel_0", 0],
 		["press", "down", 6], ["press", "confirm", 20],          # Options
 		["check", "options", 0],
 		["hold", "dpad_down", 40], ["release", "dpad_down", 4],  # holding repeats
@@ -366,6 +371,13 @@ func _process(_d: float) -> void:
 			if cur.mode != "play" and wait_frames < 600:
 				wait_frames += 1
 				idx -= 1
+		"mouse":
+			var ev := InputEventMouseMotion.new()
+			ev.position = Vector2(100, 100)
+			ev.relative = Vector2(3, 1)
+			Input.parse_input_event(ev)
+		"wait_n":
+			wait = int(s[1])
 		"set_opt0":
 			cur.opt_sel = 0
 		"mark_music":
@@ -435,6 +447,8 @@ func _process(_d: float) -> void:
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"
 				"main": ok = cur.screen == "main"
 				"paused": ok = cur.paused and cur.hud.paused
+				"cursor_hidden": ok = get_node("/root/Game").cursor_hidden
+				"cursor_shown": ok = not get_node("/root/Game").cursor_hidden
 				"pad_paused": ok = cur.paused and cur.hud.paused and cur.mode == "play" and not get_node("/root/Game").using_pad \
 					and not Input.is_action_pressed("right") and not cur.pause_pending
 				"pause_waits": ok = not cur.paused and cur.pause_pending and cur.mode == "dead"

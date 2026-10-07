@@ -79,7 +79,24 @@ func _exit_tree() -> void:
 
 
 func _process(delta: float) -> void:
-	_menu_repeat(delta / maxf(Engine.time_scale, 0.01))
+	var real := delta / maxf(Engine.time_scale, 0.01)
+	_menu_repeat(real)
+	_mouse_still += real
+	if not cursor_hidden and _mouse_still >= CURSOR_IDLE:
+		set_cursor_hidden(true)
+
+
+## The game has no mouse controls, so the cursor hides once a key or button is
+## used or the mouse rests for CURSOR_IDLE seconds, and comes back when it moves.
+const CURSOR_IDLE := 2.0
+var cursor_hidden := false
+var _mouse_still := 0.0
+
+
+func set_cursor_hidden(h: bool) -> void:
+	cursor_hidden = h
+	if DisplayServer.get_name() != "headless":
+		Input.mouse_mode = Input.MOUSE_MODE_HIDDEN if h else Input.MOUSE_MODE_VISIBLE
 
 
 ## Synthetic presses go straight to the viewport, not through Input, so the
@@ -104,6 +121,12 @@ func _menu_repeat(dt: float) -> void:
 
 
 func _input(ev: InputEvent) -> void:
+	if ev is InputEventMouse:
+		_mouse_still = 0.0
+		if cursor_hidden:
+			set_cursor_hidden(false)
+	elif not cursor_hidden and (ev is InputEventKey or ev is InputEventJoypadButton) and ev.pressed:
+		set_cursor_hidden(true)
 	if ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and absf((ev as InputEventJoypadMotion).axis_value) > 0.5):
 		using_pad = true
 		pad_device = ev.device
