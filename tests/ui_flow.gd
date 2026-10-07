@@ -44,6 +44,7 @@ func _ready() -> void:
 		["check", "helpers", 0],
 		["check", "layout_names", 0],
 		["check", "ghost_parts", 0],
+		["check", "ghost_items", 0],
 		["check", "ghost_goal", 0],
 		["check", "air_dash_sim", 0],
 		["stick", "down", 6],                                     # one stick push = one row
@@ -619,6 +620,7 @@ func _process(_d: float) -> void:
 				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"pause_ctl_sel_1": ok = cur.hud.controls_open and cur.hud.controls.sel == 1
+				"ghost_items": ok = _ghost_items_ok()
 				"line_advanced": ok = cur.dialogue.active and cur.dialogue.idx > int(skip_id)
 			if str(s[1]).begins_with("volume_"):        # volume_<music|sfx>_<tenths>
 				ok = is_equal_approx(float(gm.settings[str(s[1]).get_slice("_", 1)]), int(str(s[1]).get_slice("_", 2)) / 10.0)
@@ -793,6 +795,51 @@ func _ghost_parts_ok() -> bool:
 			apart += 1
 	return seen > 0 and apart > 0 and pw.exited and g4.exited and _ghost_open_ok("1", "1-03", RoomDef.CRUMBLE, false) \
 		and _ghost_open_ok("3", "3-02", -1, true)
+
+
+## Route Ghost's own berries and keys, on her collect routes in 1-03 (two
+## berries) and 3-05 (two berries, two keys): nothing extra is drawn while
+## the player has touched nothing, except what she is carrying, which is
+## everything in the room at some point; and each berry the player found on
+## an earlier climb (drawn as an outline) is drawn in place for her until
+## she takes it.
+func _ghost_items_ok() -> bool:
+	return _ghost_items_room("1", "1-03") and _ghost_items_room("3", "3-05")
+
+
+func _ghost_items_room(ch_key: String, rid: String) -> bool:
+	var ch := LevelDB.get_chapter(int(ch_key))
+	var def := ch.room(rid)
+	var pw := World.new()
+	pw.load_room(def, 0, ch.dashes)
+	var gw := World.new()
+	gw.load_room(def, 0, ch.dashes)
+	var found := {}
+	for cid in def.collectible_ids():
+		found[cid] = true
+	var old := World.new()   # the player found everything on an earlier climb
+	old.load_room(def, 0, ch.dashes, found)
+	if not RoomView.ghost_items(pw, gw).is_empty() or RoomView.ghost_items(old, gw).size() != gw.berry_s.size() + gw.bell_s.size():
+		print("ghost items at the start of %s: %s / %s" % [rid, RoomView.ghost_items(pw, gw), RoomView.ghost_items(old, gw)])
+		return false
+	var followed := {}
+	for inp in Solver.decode(str(Level._hint(rid, 0, ch_key, "collect").inputs)):
+		gw.step(inp)
+		for it in RoomView.ghost_items(pw, gw):
+			var carried: bool = it[2] == "follow" and ((it[0] == "berry" and gw.berry_s[it[1]] == 1) or (it[0] == "key" and gw.key_s[it[1]] == 1))
+			if not carried:
+				print("ghost item %s in %s while the player has touched nothing" % [it, rid])
+				return false
+			followed["%s%d" % [it[0], it[1]]] = true
+		for it in RoomView.ghost_items(old, gw):
+			if it[0] == "berry" and it[2] == "spot" and gw.berry_s[it[1]] != 0:
+				return false
+		if gw.exited or gw.dead:
+			break
+	if not gw.exited or followed.size() != gw.berry_s.size() + gw.key_s.size():
+		print("ghost items in %s: exited %s, carried %s" % [rid, gw.exited, followed.keys()])
+		return false
+	return true
 
 
 ## The other direction: the player stands still while the ghost runs her

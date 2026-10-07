@@ -26,6 +26,8 @@ var berry_follow := {}     # berry index -> Vector2 position
 var berry_fly := {}        # berry index -> Vector2 position (flying away)
 var key_follow := {}       # key index -> Vector2
 var golden_follow := Vector2.ZERO
+var ghost_follow := {}     # Route Ghost: "berry3" / "key0" / "golden" -> Vector2
+var _ghost_follow_for: World = null
 var decor: Array = []      # [char, Vector2i]
 var grass: PackedVector2Array = PackedVector2Array()  # blade roots
 var npc_hidden := {}
@@ -287,6 +289,27 @@ func _update_followers(delta: float) -> void:
 		if golden_follow == Vector2.ZERO:
 			golden_follow = lead
 		golden_follow = golden_follow.lerp(lead, 1.0 - pow(0.001, delta))
+	_update_ghost_followers(delta)
+
+
+## The Route Ghost's carried berries, keys and golden berry trail her the way
+## the player's trail the player.
+func _update_ghost_followers(delta: float) -> void:
+	var gw: World = level.ghost_world if level and level.get("ghost_world") else null
+	if gw != _ghost_follow_for:
+		ghost_follow.clear()   # she started over
+		_ghost_follow_for = gw
+	if gw == null or gw.room != def:
+		return
+	var lead := gw.player_center() + Vector2(-gw.facing * 10, -8)
+	for it in ghost_items(world, gw):
+		if it[2] != "follow":
+			continue
+		var k := "%s%d" % [it[0], it[1]]
+		var cur: Vector2 = ghost_follow.get(k, item_pos(gw, it[0], it[1]))
+		cur = cur.lerp(lead, 1.0 - pow(0.001, delta))
+		ghost_follow[k] = cur
+		lead = cur + Vector2(-gw.facing * 8, 0)
 
 
 # ---------------------------------------------------------------- drawing
@@ -341,6 +364,7 @@ func _draw() -> void:
 	_draw_fake()
 	_draw_decor_front()
 	_draw_entities()
+	_draw_ghost_items()
 
 
 func _draw_fake() -> void:
@@ -867,6 +891,67 @@ func _draw_entities() -> void:
 				_obj(wf, fp + Vector2(4, -2))
 				_obj(wf, fp + Vector2(-4, -2), Color.WHITE, true)
 				_obj(nm, fp)
+
+
+## Route Ghost: which of her berries, bells, keys and golden berry to draw, as
+## [kind, index, "spot" | "follow"]. "spot": hers is still in place where the
+## player's isn't drawn as a whole one (taken, or found on an earlier climb
+## and drawn as an outline). "follow": she is carrying it. Where both are
+## untouched the player's own covers hers, and what she has collected is gone.
+static func ghost_items(w: World, gw: World) -> Array:
+	var out := []
+	for i in gw.berry_s.size():
+		if gw.berry_s[i] == 0 and (w.berry_s[i] != 0 or w.berry_ghost[i] == 1):
+			out.append(["berry", i, "spot"])
+		elif gw.berry_s[i] == 1:
+			out.append(["berry", i, "follow"])
+	for i in gw.bell_s.size():
+		if gw.bell_s[i] == 0 and (w.bell_s[i] != 0 or w.bell_ghost[i] == 1):
+			out.append(["bell", i, "spot"])
+	for i in gw.key_s.size():
+		if gw.key_s[i] == 0 and w.key_s[i] != 0:
+			out.append(["key", i, "spot"])
+		elif gw.key_s[i] == 1:
+			out.append(["key", i, "follow"])
+	for i in gw.golden_s.size():
+		if gw.golden_s[i] == 0 and w.golden_s[i] != 0:
+			out.append(["golden", i, "spot"])
+	if gw.golden_held:
+		out.append(["golden", 0, "follow"])
+	return out
+
+
+## Where item `i` of a kind sits in world `w` (before anyone takes it).
+static func item_pos(w: World, kind: String, i: int) -> Vector2:
+	match kind:
+		"berry": return Vector2(w.berry_x[i], w.berry_y[i])
+		"bell": return Vector2(w.bell_x[i], w.bell_y[i])
+		"key": return Vector2(w.key_x[i], w.key_y[i])
+	return Vector2(w.golden_x[i], w.golden_y[i])
+
+
+func _draw_ghost_items() -> void:
+	var gw: World = level.ghost_world if level and level.get("ghost_world") else null
+	if gw == null or gw.room != def or not level.ghost_view.visible:
+		return
+	var tint: Color = level.ghost_view.modulate
+	var bob := sin(time * 3.0) * 1.5
+	var f2 := int(time * 4.0) % 2
+	for it in ghost_items(world, gw):
+		var kind: String = it[0]
+		var c := item_pos(gw, kind, it[1]) + Vector2(0, bob)
+		if it[2] == "follow":
+			c = ghost_follow.get("%s%d" % [kind, it[1]], c)
+		match kind:
+			"berry":
+				if it[2] == "spot" and gw.berry_winged[it[1]] == 1:
+					var wf := "wing%d" % (int(time * 10.0) % 2)
+					_obj(wf, c + Vector2(4, -2), tint)
+					_obj(wf, c + Vector2(-4, -2), tint, true)
+				_obj("berry%d" % f2, c, tint)
+			"bell": _obj("bell%d" % f2, c, tint)
+			"key": _obj("key", c, tint)
+			"golden": _obj("gold%d" % f2, c, tint)
 
 
 ## Procedural waving pennant on a pole (base at `base`).

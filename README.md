@@ -89,8 +89,8 @@ is always one menu away.
 - **Pause → Assist → Route Ghost** shows a translucent Mira running the room the way the
   automated solver proved it can be done, using only the moves the game teaches. She loops,
   restarts with you when you respawn, and changes nothing. She runs in a simulation of her
-  own, so her gondolas, crumbling boards, gates, mask blocks and Grin are drawn in her tint
-  wherever they differ from yours, and where she passes through one of your blocks (a wall she
+  own, so her gondolas, crumbling boards, gates, mask blocks, Grin, and the berries, bells and
+  keys she picks up are drawn in her tint wherever they differ from yours, and where she passes through one of your blocks (a wall she
   has broken, a gate she has opened) it's outlined in her tint. A strip at the bottom left lights up the buttons she's
   pressing, named by your own bindings. After 10 deaths in a room the game points you to
   her, once. Set her to **Berries** and she shows how to take every berry and bell in the
@@ -371,9 +371,10 @@ and credits. It is a first release, so expect rough edges.
     font can't draw (Cyrillic, Greek…) fall back to the US name.
 - **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
   gate she has opened, a mask block that swapped for her) is still drawn as your solid block,
-  with an outline in her tint while she is near it. In *Berries* mode her own berries aren't
-  drawn, so she runs through yours (or through the spot where a berry you already have used to
-  be). Neither has been playtested with a new player.
+  with an outline in her tint while she is near it. A berry she takes trails her in her tint
+  (your own stays where it is), and where you found a berry on an earlier climb, hers is drawn
+  over its outline until she takes it. Her dash gems and balloons aren't drawn separately, so
+  one she has used still looks ready. None of this has been playtested with a new player.
 - **Mouse:** menu hover and clicks were checked with synthetic events (in a real window too),
   not with a physical mouse.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
