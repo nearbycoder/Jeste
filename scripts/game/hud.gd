@@ -267,13 +267,16 @@ func handle_menu_input(ev: InputEvent) -> bool:
 
 ## Mouse in the pause, assist, options and Controls menus and the Restart
 ## Chapter box: pointing at a row selects it, a left click confirms it and a
-## right click goes back (see UIKit.click_action). Returns the action to
-## handle, or null when the event is used up here.
+## right click goes back (see UIKit.click_action). The wheel moves the
+## selection, or steps a value row under the pointer (UIKit.wheel_menu); the
+## Restart box ignores it (it isn't a click). Returns the action to handle,
+## or null when the event is used up here.
 func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 	if controls_open:
 		return controls.mouse(ev)
 	var a := UIKit.click_action(ev)
 	var i := -1
+	var wheel := UIKit.is_wheel(ev)
 	if confirm_restart:
 		i = UIKit.row_at(ev.position, 98, 90, 124, 12, 2)
 		if i >= 0 and i != restart_sel:
@@ -281,19 +284,25 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 			Sfx.play("menu_move")
 	elif assist_open:
 		i = UIKit.row_at(ev.position, 90, 56, 140, 13, assist_items.size())
-		if i >= 0 and i != assist_sel:
+		if i >= 0 and i != assist_sel and (not wheel or UIKit.WHEEL_VALUE_ROWS.has(assist_items[i])):
 			assist_sel = i
 			Sfx.play("menu_move")
+		if wheel:
+			return UIKit.wheel_menu(ev, assist_items, i)
 	elif options_open:
 		i = UIKit.row_at(ev.position, 100, 22, 132, 12, option_items.size())
-		if i >= 0 and i != option_sel:
+		if i >= 0 and i != option_sel and (not wheel or UIKit.WHEEL_VALUE_ROWS.has(option_items[i])):
 			option_sel = i
 			Sfx.play("menu_move")
+		if wheel:
+			return UIKit.wheel_menu(ev, option_items, i)
 		if i >= 0 and a and a.action == "confirm" and Game.set_volume_at(option_items[i], ev.position.x, 182.0):
 			Sfx.refresh_volume()
 			Sfx.play("menu_select")
 			return null   # a click on a volume slider sets it there
 	else:
+		if wheel:
+			return UIKit.wheel_action(ev, "up", "down")
 		i = UIKit.row_at(ev.position, 114, 44, 92, 14, pause_items.size())
 		if i >= 0 and i != pause_sel:
 			pause_sel = i

@@ -96,6 +96,14 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
+	if ev is InputEventMouse:
+		# a click reads as Confirm (right click as Back); the wheel scrolls
+		var d := UIKit.wheel_step(ev)
+		if d != 0 and not ended:
+			scroll = maxf(scroll + 40.0 * d, 0.0)
+		ev = UIKit.click_action(ev)
+		if ev == null:
+			return
 	if ev.is_action_pressed("back") or ev.is_action_pressed("pause"):
 		Game.goto_title()
 	elif ev.is_action_pressed("confirm"):

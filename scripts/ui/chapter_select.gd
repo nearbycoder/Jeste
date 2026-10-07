@@ -136,9 +136,12 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 ## Mouse: click a chapter's marker or a side arrow to select it, the card to
 ## choose it; in the picker, the postcard's arrows or a reached room's pip,
-## then the card to start. Right click goes back. Returns the action to
+## then the card to start. Right click goes back. The wheel steps through
+## chapters, or checkpoints in the picker, as Left/Right. Returns the action to
 ## handle, or null when the event is used up here.
 func _mouse(ev: InputEventMouse) -> InputEvent:
+	if UIKit.is_wheel(ev):
+		return UIKit.wheel_action(ev, "left", "right")   # down = the next chapter or checkpoint
 	var a := UIKit.click_action(ev)
 	if a == null or a.action == "back":
 		return a

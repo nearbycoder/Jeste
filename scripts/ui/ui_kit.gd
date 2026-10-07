@@ -75,10 +75,61 @@ static func click_action(ev: InputEvent) -> InputEventAction:
 	var b := (ev as InputEventMouseButton).button_index
 	if b != MOUSE_BUTTON_LEFT and b != MOUSE_BUTTON_RIGHT:
 		return null
+	return press("confirm" if b == MOUSE_BUTTON_LEFT else "back")
+
+
+## A pressed action event, for turning mouse input into what a key would do.
+static func press(action: String) -> InputEventAction:
 	var a := InputEventAction.new()
-	a.action = "confirm" if b == MOUSE_BUTTON_LEFT else "back"
+	a.action = action
 	a.pressed = true
 	return a
+
+
+## A vertical mouse wheel event (either direction, pressed or released).
+static func is_wheel(ev: InputEvent) -> bool:
+	return ev is InputEventMouseButton and ((ev as InputEventMouseButton).button_index == MOUSE_BUTTON_WHEEL_UP \
+		or (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_WHEEL_DOWN)
+
+
+static var _wheel_acc := 0.0
+
+## Mouse wheel: -1 for a notch up, +1 for a notch down, 0 otherwise. A
+## touchpad scrolls in small steps (the event's factor); they add up to a
+## notch, and a fast fling still moves one step per event.
+static func wheel_step(ev: InputEvent) -> int:
+	if not is_wheel(ev) or not ev.pressed:
+		return 0
+	var mb := ev as InputEventMouseButton
+	var d := -1 if mb.button_index == MOUSE_BUTTON_WHEEL_UP else 1
+	if signf(_wheel_acc) != float(d):
+		_wheel_acc = 0.0   # changed direction
+	_wheel_acc += d * (mb.factor if mb.factor > 0.0 else 1.0)
+	if absf(_wheel_acc) < 0.999:
+		return 0
+	_wheel_acc = 0.0
+	return d
+
+
+## A wheel event as the action to handle: `up` for a notch up, `down` for a
+## notch down, or null.
+static func wheel_action(ev: InputEvent, up: String, down: String) -> InputEventAction:
+	var d := wheel_step(ev)
+	return null if d == 0 else press(up if d < 0 else down)
+
+
+## Rows whose value the wheel steps when the pointer is on them (elsewhere in
+## a list it moves the selection).
+const WHEEL_VALUE_ROWS := ["Music Volume", "Sound Volume", "Window Size", "Smooth Motion", "Game Speed", "Air Dashes", "Route Ghost"]
+
+
+## Wheel on a menu list: over a row in WHEEL_VALUE_ROWS it steps that value
+## (up = more, as Right), otherwise it moves the selection. `hovered` is the
+## row under the pointer (-1 for none).
+static func wheel_menu(ev: InputEvent, items: Array, hovered: int) -> InputEventAction:
+	if hovered >= 0 and WHEEL_VALUE_ROWS.has(items[hovered]):
+		return wheel_action(ev, "right", "left")
+	return wheel_action(ev, "up", "down")
 
 
 ## Menu row. `k` is the 0..1 animated selection amount.

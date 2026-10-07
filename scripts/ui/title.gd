@@ -229,6 +229,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 ## Mouse on the main menu, Options and Controls: pointing at a row selects it,
 ## a left click confirms it and a right click goes back (see
 ## UIKit.click_action). Erase Save's box takes a click only on its prompts.
+## The wheel moves the selection, or steps a value row under the pointer
+## (UIKit.wheel_menu).
 ## Returns the action to handle, or null when the event is used up here.
 func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 	if screen == "controls":
@@ -244,14 +246,19 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 	var i := -1
 	if screen == "main":
 		i = UIKit.row_at(ev.position, MENU_X, MENU_Y, 92, 14, items.size())
+		if UIKit.is_wheel(ev):
+			return UIKit.wheel_action(ev, "up", "down")
 		if i >= 0 and i != sel:
 			sel = i
 			Sfx.play("menu_move")
 	else:
 		i = UIKit.row_at(ev.position, 96, 16, 140, 12, OPTIONS.size())
-		if i >= 0 and i != opt_sel:
+		# the wheel selects only a value row it steps; elsewhere it moves the selection
+		if i >= 0 and i != opt_sel and (not UIKit.is_wheel(ev) or UIKit.WHEEL_VALUE_ROWS.has(OPTIONS[i])):
 			opt_sel = i
 			Sfx.play("menu_move")
+		if UIKit.is_wheel(ev):
+			return UIKit.wheel_menu(ev, OPTIONS, i)
 	var a := UIKit.click_action(ev)
 	if a and a.action == "confirm" and i >= 0 and screen == "options" and Game.set_volume_at(OPTIONS[i], ev.position.x, 186.0):
 		Sfx.refresh_volume()

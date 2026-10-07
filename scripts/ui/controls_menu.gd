@@ -92,8 +92,9 @@ func navigate(ev: InputEvent) -> bool:
 
 ## Mouse: pointing at a row selects it, a left click confirms it (starting a
 ## rebind) and a right click goes back, or cancels a rebind (mouse buttons
-## can't be bound). Returns the action for navigate(), or null when the event
-## is used up here.
+## can't be bound). The wheel moves the selection, and does nothing while
+## waiting for a key. Returns the action for navigate(), or null when the
+## event is used up here.
 func mouse(ev: InputEventMouse) -> InputEvent:
 	var a := UIKit.click_action(ev)
 	if waiting_key:
@@ -101,6 +102,8 @@ func mouse(ev: InputEventMouse) -> InputEvent:
 			waiting_key = false
 			Sfx.play("menu_move")
 		return null
+	if UIKit.is_wheel(ev):
+		return UIKit.wheel_action(ev, "up", "down")
 	var i := UIKit.row_at(ev.position, PANEL.position.x + 12, PANEL.position.y + 10, 140, 12, ITEMS.size())
 	if i >= 0 and i != sel:
 		sel = i

@@ -70,7 +70,9 @@ is always one menu away.
   and then the card; in the checkpoint picker, click a room's pip or the postcard's arrows.
   A click on a volume slider sets it there, a click in Controls starts a rebind (right-click
   cancels it), and a click reads the next line of a cutscene. *Erase Save* only erases on a
-  click on its *Erase* prompt.
+  click on its *Erase* prompt. The **mouse wheel** steps through chapters and checkpoints,
+  changes a volume slider or a setting like Window Size under the pointer, moves the selection
+  in other lists, and scrolls the credits (which also take a click).
 - **Hold Pause** (Esc or Start) during a cutscene to skip the rest of it. Tapping jump or dash still advances line by line.
 - **Start from any checkpoint.** Once you've reached more than one room of a chapter, choosing
   it on the map lets you pick where to start with Left/Right: *Continue*, the start, or any

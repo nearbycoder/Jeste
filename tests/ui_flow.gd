@@ -10,6 +10,7 @@ var idx := 0
 var wait := 0
 var failed := ""
 var music_before := 0.0
+var scroll_before := 0.0
 var skip_id := ""
 var speed_from := 0
 var frames_btn := 0
@@ -74,6 +75,9 @@ func _ready() -> void:
 		["click", "211,19", 4], ["check", "volume_music_7", 0],
 		["click", "120,19", 4], ["check", "volume_music_8", 0],  # a click on the label still steps it
 		["click", "211,19", 4], ["check", "volume_music_7", 0],
+		["wheel", "211,19,up", 4], ["check", "volume_music_8", 0],     # the wheel over a slider steps it
+		["wheel", "211,19,down", 4], ["check", "volume_music_7", 0],
+		["mouse_at", "150,40", 2], ["wheel", "150,40,down", 4], ["check", "opt_sel_3", 0],   # elsewhere it moves the selection
 		["mark_save", "", 0],
 		["click", "150,139", 10], ["check", "erase_asks", 0],    # Erase Save asks...
 		["click", "160,84", 6], ["check", "erase_asks", 0],      # ...a click off its prompts does nothing...
@@ -85,6 +89,10 @@ func _ready() -> void:
 		["mouse_at", "150,40", 2], ["check", "opt_sel_2", 0],
 		["rclick", "150,40", 10], ["check", "main", 0],          # a right click goes back
 		["mouse_at", "60,102", 2], ["check", "title_sel_0", 0],
+		["wheel", "60,102,down", 4], ["check", "title_sel_1", 0],          # the wheel moves the selection
+		["wheel", "60,102,down,0.4", 2], ["wheel", "60,102,down,0.4", 2], ["check", "title_sel_1", 0],   # a touchpad's small
+		["wheel", "60,102,down,0.4", 4], ["check", "title_sel_2", 0],      # scroll steps add up to one notch
+		["wheel", "60,102,up", 4], ["wheel", "60,102,up", 4], ["check", "title_sel_0", 0],
 		["press", "down", 6], ["press", "confirm", 20],          # Options
 		["check", "options", 0],
 		["hold", "dpad_down", 40], ["release", "dpad_down", 4],  # holding repeats
@@ -137,7 +145,9 @@ func _ready() -> void:
 		["check", "grab_mode_kept", 0],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "right", 4], ["check", "grab_hold", 0],
 		["mouse_at", "160,39", 2], ["check", "ctl_sel_1", 0],    # the mouse in Controls
+		["wheel", "160,39,down", 4], ["check", "ctl_sel_2", 0], ["wheel", "160,39,up", 4], ["check", "ctl_sel_1", 0],
 		["click", "160,39", 4], ["check", "ctl_waiting", 0],     # a click starts a rebind...
+		["wheel", "160,39,down", 4], ["check", "ctl_waiting", 0],   # ...the wheel can't be bound or move it...
 		["click", "160,39", 4], ["check", "ctl_waiting", 0],     # ...a mouse button can't be bound...
 		["rclick", "160,39", 4], ["check", "ctl_cancelled", 0],  # ...a right click cancels it
 		["click", "160,63", 4], ["check", "grab_toggle", 0],     # Grab Mode
@@ -181,8 +191,12 @@ func _ready() -> void:
 		["mouse_at", "160,74", 2], ["check", "pause_sel_2", 0],  # the mouse in the pause menu
 		["click", "160,74", 10], ["check", "assist", 0],
 		["mouse_at", "160,110", 2], ["check", "assist_sel_4", 0],
+		["wheel", "160,110,up", 6], ["check", "ghost_on", 0],    # the wheel steps Route Ghost under the pointer
+		["wheel", "160,110,down", 6], ["check", "ghost_off", 0],
+		["mouse_at", "160,98", 2], ["wheel", "160,98,down", 4], ["check", "assist_sel_4_not_invincible", 0],   # and moves past a toggle
 		["rclick", "160,110", 10], ["check", "assist_closed", 0],
 		["mouse_at", "160,46", 2], ["check", "pause_sel_0", 0],
+		["wheel", "160,46,down", 4], ["check", "pause_sel_1", 0], ["wheel", "160,46,up", 4], ["check", "pause_sel_0", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
 		["check", "assist", 0],
 		["press", "down", 4], ["press", "down", 4], ["check", "on_air_dashes", 0],
@@ -212,10 +226,12 @@ func _ready() -> void:
 		["rclick", "160,39", 6], ["check", "pause_controls_closed", 0],   # a right click closes Controls
 		["click", "180,37", 4], ["check", "volume_sfx_0", 0],    # the pause menu's sliders take a click too
 		["click", "211,37", 4], ["check", "volume_sfx_8", 0],
+		["wheel", "211,37,down", 4], ["check", "volume_sfx_7", 0], ["wheel", "211,37,up", 4], ["check", "volume_sfx_8", 0],
 		["press", "back", 10],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
 		["check", "unpaused", 0],
 		["check", "ghost_running", 0],
+		["wheel", "160,90,down", 4], ["wheel", "160,90,up", 4], ["check", "unpaused", 0],   # play ignores the wheel
 		["ghost_buttons", "", 0],                                 # the HUD strip follows the ghost's inputs
 		["speed", "0.5", 40], ["check", "half_speed", 0],        # Game Speed 50% = half the simulation steps
 		["speed", "1.0", 40], ["check", "full_speed", 0],
@@ -250,13 +266,16 @@ func _ready() -> void:
 		["rclick", "160,10", 60], ["expect", "Title", 0],         # the mouse in chapter select: right click goes back
 		["scene", "res://scenes/chapter_select.tscn", 60],
 		["unlock", "5", 0], ["click_marker", "7", 6], ["check", "cs_sel_8", 0],   # a locked chapter can't be clicked
+		["click_marker", "5", 6], ["check", "cs_sel_5", 0], ["wheel", "160,10,down", 6], ["check", "cs_sel_5", 0],   # nor wheeled to
 		["unlock", "8", 0], ["click_marker", "3", 6], ["check", "cs_sel_3", 0],
 		["click", "6,80", 6], ["check", "cs_sel_2", 0],          # the side arrows
 		["click", "314,80", 6], ["check", "cs_sel_3", 0],
 		["click", "160,10", 6], ["check", "cs_sel_3", 0],        # a click on nothing does nothing
 		["click_marker", "1", 6], ["check", "cs_sel_1", 0],
+		["wheel", "160,10,down", 6], ["check", "cs_sel_2", 0], ["wheel", "160,10,up", 6], ["check", "cs_sel_1", 0],   # the wheel steps chapters
 		["click", "240,60", 10], ["check", "picker_open", 0],    # a click on the card chooses it
 		["click_pip", "2", 6], ["check", "cp_sel_2", 0],         # a reached room's pip
+		["wheel", "160,10,down", 6], ["check", "cp_sel_3", 0], ["wheel", "160,10,up", 6], ["check", "cp_sel_2", 0],   # and checkpoints
 		["click_pip", "5", 6], ["check", "cp_sel_2", 0],         # an unreached one does nothing
 		["click", "177,81", 6], ["check", "cp_sel_3", 0],        # the postcard's arrows
 		["click", "19,81", 6], ["check", "cp_sel_2", 0],
@@ -264,6 +283,7 @@ func _ready() -> void:
 		["press", "confirm", 10], ["check", "picker_open", 0],
 		["press", "right", 6], ["press", "right", 6], ["press", "right", 6], ["press", "right", 6],
 		["check", "picker_last", 0],
+		["wheel", "160,10,down", 6], ["check", "picker_last", 0],   # the wheel stops at the last one
 		["press", "back", 6], ["check", "picker_closed", 0],
 		["press", "confirm", 10], ["press", "right", 6], ["press", "right", 6],
 		["click", "240,60", 120],                                # a click on the card starts there
@@ -271,6 +291,7 @@ func _ready() -> void:
 		["check", "from_checkpoint", 0],
 		["press", "pause", 20], ["press", "up", 4], ["press", "up", 4],   # Restart Chapter
 		["press", "confirm", 6], ["check", "restart_asks", 0],
+		["wheel", "250,60,down", 4], ["check", "restart_asks", 0],   # the wheel does nothing here
 		["mouse_at", "160,105", 2], ["check", "restart_yes", 0],        # the mouse picks a choice...
 		["click", "160,75", 4], ["check", "restart_yes", 0],            # ...a click off them does nothing...
 		["mouse_at", "160,93", 2], ["check", "restart_asks", 0],
@@ -289,6 +310,10 @@ func _ready() -> void:
 		["check", "continued", 0],
 		["scene", "res://scenes/credits.tscn", 240],
 		["expect", "Credits", 0],
+		["mark_scroll", "", 0], ["wheel", "160,90,down", 2], ["check", "credits_ahead_40", 0],   # the wheel scrolls the credits
+		["wheel", "160,90,up", 2], ["check", "credits_ahead_0", 0],
+		["click", "160,90", 2], ["check", "credits_ahead_40", 0],   # a click skips ahead, as Confirm does
+		["rclick", "160,90", 90], ["expect", "Title", 0],          # a right click leaves
 		["done", "", 0],
 	]
 
@@ -509,6 +534,20 @@ func _process(_d: float) -> void:
 			wait = int(s[1])
 		"set_opt0":
 			cur.opt_sel = 0
+		"mark_scroll":
+			scroll_before = cur.scroll
+		"wheel":
+			# "x,y,up|down[,factor]": one wheel notch (or a touchpad's partial
+			# one) there, without moving the pointer
+			var w: PackedStringArray = str(s[1]).split(",")
+			for down in [true, false]:
+				var b := InputEventMouseButton.new()
+				b.position = Vector2(float(w[0]), float(w[1]))
+				b.button_index = MOUSE_BUTTON_WHEEL_UP if w[2] == "up" else MOUSE_BUTTON_WHEEL_DOWN
+				b.factor = float(w[3]) if w.size() > 3 else 1.0
+				b.pressed = down
+				input_log.append("%d step %d mouse %s" % [frame, idx, b.as_text()])
+				get_viewport().push_input(b, true)
 		"mark_music":
 			music_before = float(get_node("/root/Game").settings.music)
 		"key":
@@ -539,6 +578,14 @@ func _process(_d: float) -> void:
 				"smooth_off": ok = not get_node("/root/Game").smooth_motion() and get_node("/root/Game").smooth_motion_label() == "Off"
 				"window_2x": ok = int(get_node("/root/Game").settings.window_scale) == 2 and get_node("/root/Game").window_scale_label() == "2x"
 				"title_sel_0": ok = cur.sel == 0
+				"title_sel_2": ok = cur.sel == 2 and cur.screen == "main"
+				"opt_sel_3": ok = cur.screen == "options" and cur.opt_sel == 3 and not bool(get_node("/root/Game").settings.fullscreen)
+				"ctl_sel_2": ok = cur.screen == "controls" and cur.controls.sel == 2 and not cur.controls.waiting_key
+				"assist_sel_4_not_invincible": ok = cur.hud.assist_open and cur.hud.assist_sel == 4 and not bool(get_node("/root/Game").settings.invincible)
+				"credits_ahead_0", "credits_ahead_40":
+					var ahead: float = cur.scroll - scroll_before
+					var want := float(str(s[1]).get_slice("_", 2))
+					ok = ahead >= want and ahead < want + 3.0
 				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
 				"one_step": ok = cur.opt_sel == 1
 				"still_waiting": ok = cur.controls.waiting_key and cur.controls.ITEMS[cur.controls.sel] == "jump"
