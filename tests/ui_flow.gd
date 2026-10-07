@@ -49,6 +49,7 @@ func _ready() -> void:
 		["check", "ghost_pickups", 0],
 		["check", "ghost_goal", 0],
 		["check", "air_dash_sim", 0],
+		["check", "invincible_sim", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -634,6 +635,7 @@ func _process(_d: float) -> void:
 				"main": ok = cur.screen == "main"
 				"paused": ok = cur.paused and cur.hud.paused
 				"air_dash_sim": ok = _air_dashes_ok()
+				"invincible_sim": ok = _invincible_ok()
 				"on_air_dashes": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Air Dashes"
 				"air_two": ok = str(get_node("/root/Game").settings.air_dashes) == "two" and cur.world.assist_air_dashes == World.AIR_DASHES_TWO \
 					and cur.room_id == "1-01" and cur.world.max_dashes == 2
@@ -1076,6 +1078,83 @@ func _air_dash_run(ch_key: String, rid: String, mode: int) -> Array:
 		if w.events.has("dash"):
 			fired += 1
 	return [fired, w.dashes]
+
+
+## Invincibility in the simulation, each case off and on: a fall into the
+## prologue's first pit (0-02), a dash through 7-03's middle curtain into the
+## wall behind it, and a gondola in 4-02 pushing Mira into the right-hand
+## wall. Off, each one kills. On, she bounces up out of the pit, turns back
+## out of the curtain, or is set down beside the gondola, never inside
+## anything solid and never stuck in the curtain.
+func _invincible_ok() -> bool:
+	var ok := true
+	for inv in [false, true]:
+		var cases := {"pit": _inv_pit(inv), "curtain": _inv_curtain(inv), "gondola": _inv_gondola(inv)}
+		for k in cases:
+			var r: Dictionary = cases[k]
+			var good: bool = r.dead if not inv else (not r.dead and r.bounced and r.free)
+			if not good:
+				print("invincibility %s, %s: %s" % ["on" if inv else "off", k, r])
+				ok = false
+	return ok
+
+
+func _inv_world(ch_n: int, rid: String, inv: bool) -> World:
+	var ch := LevelDB.get_chapter(ch_n)
+	var w := World.new()
+	w.load_room(ch.room(rid), 0, ch.dashes)
+	w.assist_invincible = inv
+	return w
+
+
+func _inv_result(w: World, bounced: bool) -> Dictionary:
+	return {"dead": w.dead, "bounced": bounced, "free": not w._collide(w.x, w.y) and w.state != World.ST_DREAM \
+		and w.x >= 0 and w.x <= w.w * 8 - World.PW and w.y <= w.h * 8 - World.PH}
+
+
+func _inv_pit(inv: bool) -> Dictionary:
+	var w := _inv_world(0, "0-02", inv)
+	w.x = 80
+	w.y = 140
+	var bounced := false
+	for i in 180:
+		w.step(0)
+		bounced = bounced or w.events.has("bounce")
+		if w.dead:
+			break
+	return _inv_result(w, bounced)
+
+
+func _inv_curtain(inv: bool) -> Dictionary:
+	var w := _inv_world(7, "7-03", inv)
+	w.x = 150
+	w.y = 88
+	var bounced := false
+	var dreamed := false
+	for i in 150:
+		w.step(World.IN_DASH | World.IN_RIGHT if i == 0 else 0)
+		dreamed = dreamed or w.events.has("dream_in")
+		bounced = bounced or w.events.has("bounce")
+		if w.dead:
+			break
+	var r := _inv_result(w, bounced)
+	r.dead = r.dead and dreamed   # the crash, not a later fall
+	return r
+
+
+func _inv_gondola(inv: bool) -> Dictionary:
+	var w := _inv_world(4, "4-02", inv)
+	w.zip_px[0] = 280 - w.zip_w[0] - World.PW   # parked a player's width from the wall
+	w.zip_px[1] = 80
+	w.x = 280 - World.PW
+	w.y = 78
+	var before := w._collide(w.x, w.y)
+	w._move_solid(0, 1, 0)
+	var r := _inv_result(w, true)
+	if before:
+		r.dead = false
+		r.free = false
+	return r
 
 
 ## Grab as the simulation sees it over press, release, idle, press, release,

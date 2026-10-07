@@ -515,6 +515,11 @@ func _handle_event(ev: String) -> void:
 			effects.ring(feet, Color("f2c14e"), 12.0, 0.25)
 			effects.dust(feet, 0.0, 4)
 			Game.rumble(0.4, 0.12)
+		"bounce":   # Invincibility caught a fall or a curtain crash
+			Sfx.play("spring", 1.2)
+			effects.ring(_pc(), Color("b2e6ff"), 14.0, 0.3)
+			effects.burst(_pc(), Color("b2e6ff"), 8, 50.0, 0.3)
+			Game.rumble(0.3, 0.1)
 		"crumble_back":
 			pass
 		"break":

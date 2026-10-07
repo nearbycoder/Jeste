@@ -70,6 +70,7 @@ const BUMPER_SPEED := 280.0
 const DREAM_SPEED := 240.0
 const LIFT_X_CAP := 250.0
 const LIFT_Y_CAP := -130.0
+const INVINCIBLE_BOUNCE := -330.0   # Invincibility: out of a bottomless pit, about 7 tiles up
 const DIAG := 0.70710678118
 
 # Timers in frames
@@ -234,6 +235,7 @@ var lift_timer: int = 0
 var boost_idx: int = -1
 var boost_timer: int = 0
 var dead := false
+var dream_turned := false          # Invincibility already turned this curtain dash round once
 var frame: int = 0
 var spawn_x: int = 0
 var spawn_y: int = 0
@@ -494,7 +496,7 @@ func save_state() -> Array:
 		climb_no_move, last_climb_move, 1 if ducking else 0, 1 if on_ground else 0, 1 if was_on_ground else 0,
 		prev_input, lift_vx, lift_vy, lift_timer, boost_idx, boost_timer, 1 if dead else 0, frame,
 		mask_active, trigger_fired, key_count, 1 if golden_held else 0,
-		1 if exited else 0, 1 if end_reached else 0, 1 if chase_active else 0,
+		1 if exited else 0, 1 if end_reached else 0, 1 if chase_active else 0, 1 if dream_turned else 0,
 	])
 	# Packed arrays are shared by reference in Godot 4, so snapshots must copy.
 	return [p, gem_t.duplicate(), berry_s.duplicate(), key_s.duplicate(), bell_s.duplicate(),
@@ -520,6 +522,7 @@ func load_state(s: Array) -> void:
 	var old_mask := mask_active
 	mask_active = int(p[42]); trigger_fired = int(p[43]); key_count = int(p[44]); golden_held = p[45] != 0.0
 	exited = p[46] != 0.0; end_reached = p[47] != 0.0; chase_active = p[48] != 0.0
+	dream_turned = p[49] != 0.0
 	gem_t = (s[1] as PackedInt32Array).duplicate()
 	berry_s = (s[2] as PackedInt32Array).duplicate()
 	key_s = (s[3] as PackedInt32Array).duplicate()
@@ -704,7 +707,7 @@ func _move_v_exact(m: int) -> void:
 
 func _on_collide_h(s: int) -> void:
 	if state == ST_DREAM:
-		_die()
+		_dream_crash()
 		return
 	if state == ST_DASH and vy == 0.0 and vx != 0.0:
 		for i in range(1, 5):
@@ -719,7 +722,7 @@ func _on_collide_h(s: int) -> void:
 
 func _on_collide_v(s: int) -> void:
 	if state == ST_DREAM:
-		_die()
+		_dream_crash()
 		return
 	if s < 0:
 		if vx <= 0.01:
@@ -1247,11 +1250,32 @@ func _enter_dream() -> void:
 	if dash_dir_x == 0 and dash_dir_y == 0:
 		vx = facing * DREAM_SPEED
 	curtain_pass = true
+	dream_turned = false
 	events.append("dream_in")
 
 
 func _dream_update() -> void:
 	pass
+
+
+## Dashing out of a curtain into a wall kills, unless Invincibility is on:
+## then she turns round and travels back out the way she came. If that path
+## is blocked too (a pixel off at a corner), she dies rather than bouncing
+## inside the curtain for ever.
+func _dream_crash() -> void:
+	if not assist_invincible or dream_turned:
+		_die()
+		return
+	dream_turned = true
+	vx = -vx
+	vy = -vy
+	rx = 0.0
+	ry = 0.0
+	dash_dir_x = -dash_dir_x
+	dash_dir_y = -dash_dir_y
+	if dash_dir_x != 0:
+		facing = dash_dir_x
+	events.append("bounce")
 
 
 func _exit_dream() -> void:
@@ -1606,20 +1630,77 @@ func _check_bounds() -> void:
 		side = "right"; along = clampi(cyp >> 3, 0, h - 1)
 	elif cyp < 0:
 		side = "top"; along = clampi(cxp >> 3, 0, w - 1)
-	elif y > h * 8:
+	elif y > h * 8 or (y == h * 8 and room.exit_target("bottom", clampi(cxp >> 3, 0, w - 1)) == ""):
+		# Just out of sight below a floor with no exit counts as fallen, so
+		# a dash along the bottom edge can't carry her under the floor.
 		side = "bottom"; along = clampi(cxp >> 3, 0, w - 1)
 	if side == "":
 		return
 	var t := room.exit_target(side, along)
 	if t == "":
-		if side == "bottom":
-			_die()
+		# Below the room counts as a fall even past a side wall.
+		if side == "bottom" or y >= h * 8:
+			if assist_invincible:
+				_pit_bounce()
+			else:
+				_die()
 		return
 	exited = true
 	exit_side = side
 	exit_target = t
 	_collect_held()
 	events.append("exit")
+
+
+## Invincibility: a fall out of the bottom of a room with no exit there
+## bounces her back up into it, dash and stamina refilled, instead of dying.
+func _pit_bounce() -> void:
+	x = clampi(x, 0, w * 8 - PW)
+	y = h * 8 - PH
+	rx = 0.0
+	ry = 0.0
+	if _collide(x, y) and not _unstick():
+		_die()
+		return
+	state = ST_NORMAL
+	curtain_pass = false
+	vy = INVINCIBLE_BOUNCE
+	var_jump_timer = 0
+	auto_jump = true
+	dash_attack_timer = 0
+	ducking = false
+	_refill_all()
+	events.append("bounce")
+
+
+## Invincibility: moves her to the nearest spot (within 3 tiles) where she
+## isn't inside anything solid, after a gondola has crushed her into a wall
+## or a pit bounce put her under a ledge. False if there's none.
+func _unstick() -> bool:
+	if not _collide(x, y):
+		return true
+	var best := Vector2i.ZERO
+	var best_d := 1 << 30
+	for r in range(1, 25):
+		if r * r >= best_d:
+			break
+		for dy in range(-r, r + 1):
+			for dx in range(-r, r + 1):
+				if maxi(absi(dx), absi(dy)) != r:
+					continue
+				var d := dx * dx + dy * dy
+				if d < best_d and not _collide(x + dx, y + dy):
+					best = Vector2i(dx, dy)
+					best_d = d
+	if best_d == 1 << 30:
+		return false
+	x += best.x
+	y += best.y
+	rx = 0.0
+	ry = 0.0
+	if state == ST_CLIMB:
+		state = ST_NORMAL
+	return true
 
 
 func _update_chaser() -> void:
@@ -1743,7 +1824,7 @@ func _move_solid(i: int, dx: int, dy: int) -> void:
 			var push := (zx + zw - x) if dx > 0 else (zx - (x + PW))
 			if not _carry_x(push):
 				zip_ignore = -1
-				if not assist_invincible:
+				if not assist_invincible or not _unstick():
 					_die()
 					return
 			_set_lift(i)
@@ -1760,7 +1841,7 @@ func _move_solid(i: int, dx: int, dy: int) -> void:
 			var push := (zy + zh - y) if dy > 0 else (zy - (y + PH))
 			if not _carry_y(push):
 				zip_ignore = -1
-				if not assist_invincible:
+				if not assist_invincible or not _unstick():
 					_die()
 					return
 			_set_lift(i)

@@ -231,7 +231,7 @@ func on_event(ev: String) -> void:
 			_kick(Vector2(-0.35, 0.45))
 		"super", "hyper", "wallbounce":
 			_kick(Vector2(0.4, -0.3))
-		"spring", "bumper":
+		"spring", "bumper", "bounce":
 			_kick(Vector2(-0.45, 0.6))
 		"land":
 			var hard := clampf(prev_vy / 240.0, 0.3, 1.0)
