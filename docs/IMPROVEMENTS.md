@@ -532,3 +532,77 @@ the fix.
   notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
   still has three bugs that `main` fixes: Game Speed, saves lost to a crash, and the stuck Dash
   after rebinding.
+
+## Round 5 scope (2026-10-06)
+
+Baseline on `improvements-5` (from `main` = `origin/main` = `7dfdc52`): ui_flow passes standalone
+in 6 s at load average 5. All runs this round use a throwaway user-data and temp directory
+under the git-ignored `build/r5/`, and the real save's checksum is compared before and after.
+
+**The round 4 flake, first.** Round 4's log shows the failure was `check window_auto failed
+(opt_sel 3)`: the cursor was on Window Size but the setting wasn't Auto. ui_flow runs at
+`--fixed-fps 60` and reads no wall-clock time, so load alone shouldn't change it. 30 standalone
+runs, three at a time (load up to 14), all passed. Rather than guess at a fix, ui_flow will log
+the last menu inputs and the relevant state when a check fails, so the next failure says why.
+
+Picked for a real player's experience, and because each can be checked here:
+
+### A. A controller that disconnects pauses the game
+- **Why:** a pad whose battery dies or whose cable is pulled mid-climb leaves Mira running
+  without input until the player notices. Pausing on disconnect is standard on consoles and
+  Steam. Also, the rebind screen says "Esc Cancel" even when the player is on a pad, where
+  Start cancels.
+- **Do:** pause (with the pause menu) when any connected pad disconnects during play; if it was
+  the pad driving prompts, prompts go back to the keyboard. The rebind hint names Start on a pad.
+- **Accept:** a disconnect during play opens the pause menu; during the results screen, a
+  cutscene's own pause or an open menu nothing breaks; a connect does nothing.
+- **Verify:** ui_flow emits `Input.joy_connection_changed` (disconnect, then connect) in a level
+  and checks the pause state and prompt device.
+
+### B. The mouse cursor hides itself
+- **Why:** the game has no mouse controls, but the cursor stays visible over the game, worst in
+  fullscreen, where it sits in the middle of the screen.
+- **Do:** hide the cursor once a key or pad button is used or after a couple of seconds still;
+  show it again when the mouse moves.
+- **Accept:** cursor hidden after keyboard or pad input and after 2 s without mouse movement;
+  visible right after mouse movement.
+- **Verify:** a headless unit check of the rule, and a windowed run that reads
+  `DisplayServer.mouse_get_mode()` back (headless has no cursor).
+
+### C. Assist → Air Dashes: Default / Two / Infinite
+- **Why:** the assist menu has speed, stamina, invincibility and the Route Ghost, but no help
+  with the game's central skill. Celeste's assist mode, the genre's reference, offers two or
+  infinite air dashes, and many dash-heavy rooms (gems over spike pits, the Summit) are where
+  players get stuck.
+- **Do:** a new assist row. *Two* gives two dashes wherever the room gives at least one;
+  *Infinite* never spends a dash. Rooms before the story gives Mira her dash stay dashless.
+  The Route Ghost keeps running the proven default route.
+- **Accept:** the setting changes the simulation as described, applies on the next step after
+  the menu closes, survives respawns and room changes, and Default behaves exactly as today
+  (all proofs and playthroughs unchanged).
+- **Verify:** a headless check of the world with each setting (dashes after one, two and five
+  dashes, prologue room stays at 0); ui_flow steps the row; the full suite; a screenshot.
+
+### D. Controls in the pause menu
+- **Why:** rebinding and Grab Mode are only on the title screen. A player who finds holding
+  grab tiring halfway up a chapter, or a key awkward, has to quit to the title to change it.
+- **Do:** move the controls panel into a shared piece both menus use, and add *Controls* to
+  the pause screen's Options.
+- **Accept:** rebinding a key, a pad button and Grab Mode from the pause menu behave as on the
+  title (swaps, Reset Defaults, Esc/Start cancels) and take effect on resume. The title's
+  controls screen is unchanged.
+- **Verify:** ui_flow's existing title controls steps still pass on the shared code, plus new
+  pause steps: rebind Jump, check it, toggle Grab Mode, Reset Defaults, resume. Screenshot.
+
+### E. Route Ghost: show where she passes through your blocks (if A–D land cleanly)
+- **Why:** round 3's known limit: a crumbling board or mask block that is solid for the player
+  but not for her is drawn normally, so she seems to walk through a wall.
+- **Do:** without hiding the player's own blocks, outline those cells in her tint while she is
+  near them.
+- **Accept:** only cells solid for the player and open for her, near her, are marked; nothing
+  changes when the ghost is off.
+- **Verify:** a unit check of the cell rule beside ui_flow's existing ghost-parts check, and a
+  screenshot of 3-02 where her mask blocks have swapped.
+
+Not picked: physical controllers and 144/165 Hz displays (no hardware here); builds, license
+and releases (owner decisions); new content (too large).
