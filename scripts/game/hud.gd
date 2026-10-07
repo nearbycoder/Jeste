@@ -133,12 +133,18 @@ func show_results(d: Dictionary) -> void:
 
 func handle_menu_input(ev: InputEvent) -> bool:
 	if results:
+		if UIKit.click_action(ev):
+			ev = UIKit.click_action(ev)   # a click continues too
 		if results_t > 1.0 and ev.is_action_pressed("confirm"):
 			results = false
 			results_closed.emit()
 		return true
 	if not paused:
 		return false
+	if ev is InputEventMouse and not controls_open and not confirm_restart:
+		ev = _mouse_menu(ev)
+		if ev == null:
+			return true
 	if controls_open:
 		if not controls.capture(ev) and controls.navigate(ev):
 			controls_open = false
@@ -257,6 +263,32 @@ func handle_menu_input(ev: InputEvent) -> bool:
 	elif ev.is_action_pressed("back") or ev.is_action_pressed("pause"):
 		pause_choice.emit("Resume")
 	return true
+
+
+## Mouse in the pause, assist and options menus: pointing at a row selects it,
+## a left click confirms it and a right click goes back (see UIKit.click_action).
+## Returns the action to handle, or null when the event is used up here.
+func _mouse_menu(ev: InputEventMouse) -> InputEvent:
+	var i := -1
+	if assist_open:
+		i = UIKit.row_at(ev.position, 90, 56, 140, 13, assist_items.size())
+		if i >= 0 and i != assist_sel:
+			assist_sel = i
+			Sfx.play("menu_move")
+	elif options_open:
+		i = UIKit.row_at(ev.position, 100, 22, 132, 12, option_items.size())
+		if i >= 0 and i != option_sel:
+			option_sel = i
+			Sfx.play("menu_move")
+	else:
+		i = UIKit.row_at(ev.position, 114, 44, 92, 14, pause_items.size())
+		if i >= 0 and i != pause_sel:
+			pause_sel = i
+			Sfx.play("menu_move")
+	var a := UIKit.click_action(ev)
+	if a and a.action == "confirm" and i < 0:
+		return null   # a click outside the rows does nothing
+	return a
 
 
 func _panel(r: Rect2, col: Color = Color(0.06, 0.04, 0.1, 0.92)) -> void:

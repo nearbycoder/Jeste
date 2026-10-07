@@ -56,6 +56,31 @@ static func panel_title(ci: CanvasItem, r: Rect2, text: String, a: float = 1.0) 
 	PixelText.draw_centered(ci, tr.get_center().x, tr.position.y + 2, text, Color(CREAM, a), Color(INK, 0.8 * a))
 
 
+## Mouse in menus: the row under `p` for rows drawn by menu_row() at
+## (x, y0 + i * step), w wide, or -1. Rows are hit from just above their text
+## to the next row, plus the selection marker's margin on the left.
+static func row_at(p: Vector2, x: float, y0: float, w: float, step: float, n: int) -> int:
+	if p.x < x - 10.0 or p.x > x + w:
+		return -1
+	var i := floori((p.y - y0 + 3.0) / step)
+	return i if i >= 0 and i < n else -1
+
+
+## A left click on a menu row confirms it and a right click goes back: the
+## click becomes the matching action press, so menus handle it as they would
+## a key. Returns null for anything else.
+static func click_action(ev: InputEvent) -> InputEventAction:
+	if not (ev is InputEventMouseButton) or not ev.pressed:
+		return null
+	var b := (ev as InputEventMouseButton).button_index
+	if b != MOUSE_BUTTON_LEFT and b != MOUSE_BUTTON_RIGHT:
+		return null
+	var a := InputEventAction.new()
+	a.action = "confirm" if b == MOUSE_BUTTON_LEFT else "back"
+	a.pressed = true
+	return a
+
+
 ## Menu row. `k` is the 0..1 animated selection amount.
 static func menu_row(ci: CanvasItem, x: float, y: float, w: float, text: String, k: float, t: float, a: float = 1.0, centered := false) -> void:
 	var e := ease(clampf(k, 0.0, 1.0), 0.4)

@@ -60,6 +60,12 @@ func _ready() -> void:
 		["wait_n", "100", 0], ["check", "cursor_shown", 0],
 		["wait_n", "30", 0], ["check", "cursor_hidden", 0],     # ...and hides again after 2 s still
 		["key", "Up", 6], ["check", "title_sel_0", 0],
+		["mouse_at", "60,116", 2], ["check", "title_sel_1", 0],  # pointing at a row selects it
+		["click", "200,40", 6], ["check", "title_sel_1", 0], ["check", "main", 0],   # a click off the rows does nothing
+		["click", "60,116", 20], ["check", "options", 0],        # a click confirms (Options)
+		["mouse_at", "150,40", 2], ["check", "opt_sel_2", 0],
+		["rclick", "150,40", 10], ["check", "main", 0],          # a right click goes back
+		["mouse_at", "60,102", 2], ["check", "title_sel_0", 0],
 		["press", "down", 6], ["press", "confirm", 20],          # Options
 		["check", "options", 0],
 		["hold", "dpad_down", 40], ["release", "dpad_down", 4],  # holding repeats
@@ -136,6 +142,11 @@ func _ready() -> void:
 		["stick", "down", 4],
 		["check", "pause_sel_1", 0],
 		["stick", "up", 4],
+		["mouse_at", "160,74", 2], ["check", "pause_sel_2", 0],  # the mouse in the pause menu
+		["click", "160,74", 10], ["check", "assist", 0],
+		["mouse_at", "160,110", 2], ["check", "assist_sel_4", 0],
+		["rclick", "160,110", 10], ["check", "assist_closed", 0],
+		["mouse_at", "160,46", 2], ["check", "pause_sel_0", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
 		["check", "assist", 0],
 		["press", "down", 4], ["press", "down", 4], ["check", "on_air_dashes", 0],
@@ -191,7 +202,7 @@ func _ready() -> void:
 		["scene", "res://scenes/level.tscn", 60],
 		["best_rows", "", 0],
 		["results", "", 120],
-		["press", "confirm", 90],
+		["click", "160,90", 90],                                 # a click continues from the results
 		["expect", "ChapterSelect", 0],
 		["check", "backfill", 0],                                # checkpoint select
 		["seed_checkpoints", "", 0],
@@ -405,9 +416,28 @@ func _process(_d: float) -> void:
 				idx -= 1
 		"mouse":
 			var ev := InputEventMouseMotion.new()
-			ev.position = Vector2(100, 100)
+			ev.position = Vector2(300, 5)   # off every menu
 			ev.relative = Vector2(3, 1)
 			Input.parse_input_event(ev)
+		"mouse_at", "click", "rclick":
+			# in the 320x180 canvas: a move there, then a press and release
+			var xy: PackedStringArray = str(s[1]).split(",")
+			var pos := Vector2(float(xy[0]), float(xy[1]))
+			var evs: Array = []
+			var m := InputEventMouseMotion.new()
+			m.position = pos
+			m.relative = Vector2(1, 0)
+			evs.append(m)
+			if s[0] != "mouse_at":
+				for down in [true, false]:
+					var b := InputEventMouseButton.new()
+					b.position = pos
+					b.button_index = MOUSE_BUTTON_LEFT if s[0] == "click" else MOUSE_BUTTON_RIGHT
+					b.pressed = down
+					evs.append(b)
+			for e in evs:
+				input_log.append("%d step %d mouse %s" % [frame, idx, e.as_text()])
+				get_viewport().push_input(e, true)
 		"wait_n":
 			wait = int(s[1])
 		"set_opt0":
@@ -428,6 +458,11 @@ func _process(_d: float) -> void:
 			match s[1]:
 				"options": ok = cur.screen == "options"
 				"title_sel_1": ok = cur.sel == 1
+				"opt_sel_2": ok = cur.screen == "options" and cur.opt_sel == 2
+				"pause_sel_2": ok = cur.paused and cur.hud.pause_sel == 2 and not cur.hud.assist_open
+				"pause_sel_0": ok = cur.paused and cur.hud.pause_sel == 0
+				"assist_sel_4": ok = cur.hud.assist_open and cur.hud.assist_sel == 4
+				"assist_closed": ok = cur.paused and not cur.hud.assist_open
 				"reduced_flashing": ok = bool(get_node("/root/Game").settings.reduce_flashing) and is_equal_approx(get_node("/root/Game").flash_scale(), 0.2)
 				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
 				"smooth_auto": ok = cur.OPTIONS[cur.opt_sel] == "Smooth Motion" and str(get_node("/root/Game").settings.smooth_motion) == "auto" \

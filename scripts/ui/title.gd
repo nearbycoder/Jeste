@@ -175,6 +175,10 @@ func _input(ev: InputEvent) -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if leaving != "" or time < 0.8 or controls.waiting_key:
 		return
+	if ev is InputEventMouse and (screen == "main" or screen == "options"):
+		ev = _mouse_menu(ev)
+		if ev == null:
+			return
 	match screen:
 		"main":
 			if ev.is_action_pressed("up"):
@@ -218,6 +222,27 @@ func _unhandled_input(ev: InputEvent) -> void:
 				Sfx.play("death")
 			elif ev.is_action_pressed("back"):
 				screen = "options"
+
+
+## Mouse on the main menu and Options: pointing at a row selects it, a left
+## click confirms it and a right click goes back (see UIKit.click_action).
+## Returns the action to handle, or null when the event is used up here.
+func _mouse_menu(ev: InputEventMouse) -> InputEvent:
+	var i := -1
+	if screen == "main":
+		i = UIKit.row_at(ev.position, MENU_X, MENU_Y, 92, 14, items.size())
+		if i >= 0 and i != sel:
+			sel = i
+			Sfx.play("menu_move")
+	else:
+		i = UIKit.row_at(ev.position, 96, 16, 140, 12, OPTIONS.size())
+		if i >= 0 and i != opt_sel:
+			opt_sel = i
+			Sfx.play("menu_move")
+	var a := UIKit.click_action(ev)
+	if a and a.action == "confirm" and i < 0:
+		return null   # a click outside the rows does nothing
+	return a
 
 
 func _change_option(d: int, confirm: bool) -> void:
