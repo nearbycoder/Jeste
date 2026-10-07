@@ -877,3 +877,71 @@ probes ran inside a private, invisible KWin session (`kwin_wayland --virtual`, a
   notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
   still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, and the wrong key
   names on non-US keyboards.
+
+## Round 8 scope (2026-10-07)
+
+Baseline on `improvements-8` (from `main` = `origin/main` = `2871e89`): the full suite passes in
+23 s at load average 3. All runs this round use a throwaway user-data directory (the suite's
+`build/test_user/`, or `build/r8/` for probes), with `TMPDIR` in `build/r8/tmp/` so scratch
+files stay off the shared `/tmp`. The real user-data folder's checksums (save and log files)
+were recorded before the first run and are compared at the end. Window probes run inside a
+private, invisible KWin session as in round 7.
+
+**What the code and a probe show (read for this plan):**
+1. *Her gems and balloons.* A survey of all 132 ghost routes against an idle player: in 15 rooms
+   (26 routes, chapters 1, 2, 3, 5, 6 and 7) her dash gems or balloons are in a different state
+   from the player's for 21–282 frames per route. Only the player's are drawn, so a gem she has
+   just used still sparkles as ready, and the balloon she's riding sits idle.
+2. *A berry the player already found* is drawn for her (round 7) as her tinted berry over the
+   player's found-berry outline. In a 1-03 screenshot it reads as a grey blob, not as hers.
+3. *Mouse wheel.* No screen reads it. Chapter select and the checkpoint picker can only be
+   browsed by clicking small markers and arrows, volume sliders need a click at the right spot,
+   and the credits ignore the mouse entirely (no click, no scroll).
+4. *X11 window size.* In round 7's private KWin session (a 1280×720 screen) the X11 window
+   started maximised instead of at its 3× size. The project's first window is 1280×720 before
+   the game resizes it, which is the whole of that screen.
+
+Picked for a real player's experience, and because each can be checked here:
+
+### A. Route Ghost draws her own dash gems and balloons
+- **Do:** where her gem or balloon differs from the player's, draw hers in her tint: one she has
+  used (the player's still ready) gets a ring in her tint that drains until hers comes back; one
+  that is ready for her but spent for the player is drawn whole in her tint; the balloon she's
+  riding squashes in her tint.
+- **Accept:** with the player idle, a gem or balloon she uses is marked for exactly as long as
+  hers is gone; with the player having used one she hasn't, hers is drawn; nothing extra is
+  drawn where both match, and nothing with the ghost off.
+- **Verify:** a ui_flow unit check of the rule on 1-04 (three gems) and 5-02 (three balloons)
+  both ways round, which a mutated rule fails; a survey of all routes (every marked frame
+  matches the sim state); screenshots in 1-04 and 5-02.
+
+### B. Berries she still has to take read as hers
+- **Do:** give her berries, bells, keys and golden berry a soft halo in her tint, and draw the
+  ones sitting over the player's found-berry outline strongly enough to read as hers.
+- **Accept:** in 1-03 with one berry found, her berry over its outline is clearly in her colour
+  (measured on the screenshot against the outline alone and against the round 7 drawing); her
+  carried berries still read as before; nothing changes with the ghost off.
+- **Verify:** before/after screenshots and a pixel measurement of the berry's spot; round 7's
+  ghost-items check still passes.
+
+### C. Mouse wheel in menus and the credits
+- **Do:** on chapter select the wheel moves between chapters, and in the checkpoint picker
+  between checkpoints. Over a volume slider or a multi-choice row (Window Size, Smooth Motion,
+  Game Speed, Air Dashes, Route Ghost) it steps the value; elsewhere in a list it moves the
+  selection. The credits scroll with the wheel and take a click as Confirm. A touchpad's
+  fractional scroll steps add up, so a notch is one step. Gameplay ignores the wheel, and it
+  can't be bound in Controls.
+- **Accept:** each of those works by wheel alone, one notch per step, without unlocking a locked
+  chapter or an unreached checkpoint; keyboard, pad and click behaviour unchanged.
+- **Verify:** ui_flow wheel steps on each screen, including fractional (touchpad) events and a
+  wheel during play and while rebinding; fails with the wheel code disabled.
+
+### D. The first window on small and X11 screens (a check, fixed if simple)
+- **Do:** find why the X11 window started maximised; if it is the 1280×720 first window filling
+  a 1280×720 screen, start smaller so the game's own sizing decides.
+- **Verify:** read back the window mode and size under Wayland and X11 (Xwayland) in a private
+  KWin session with 1280×720, 1366×768 and 1920×1080 screens, before and after.
+
+Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
+builds, license and releases (owner decisions); new content (too large); mouse control of
+gameplay itself (keyboard and pad are the game's controls, as in the genre).
