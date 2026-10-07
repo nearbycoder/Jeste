@@ -9,7 +9,10 @@ const NAMES := {"jump": "Jump", "dash": "Dash", "grab": "Grab / Climb", "up": "U
 const PANEL := Rect2(78, 14, 164, 16 + 10 * 12 + 12)   # ITEMS.size() rows
 
 var sel := 0
-var waiting_key := false
+var waiting_key := false:
+	set(v):
+		waiting_key = v
+		Game.rebinding = v   # Game leaves F11 / Alt+Enter to the new binding
 var k: Array = []
 
 

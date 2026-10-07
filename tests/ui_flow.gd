@@ -61,6 +61,8 @@ func _ready() -> void:
 		["wait_n", "100", 0], ["check", "cursor_shown", 0],
 		["wait_n", "30", 0], ["check", "cursor_hidden", 0],     # ...and hides again after 2 s still
 		["key", "Up", 6], ["check", "title_sel_0", 0],
+		["key", "F11", 4], ["check", "fs_on_title", 0],         # F11 toggles fullscreen...
+		["alt_enter", "", 4], ["check", "fs_off_title", 0],     # ...so does Alt+Enter, without choosing Climb
 		["mouse_at", "60,116", 2], ["check", "title_sel_1", 0],  # pointing at a row selects it
 		["click", "200,40", 6], ["check", "title_sel_1", 0], ["check", "main", 0],   # a click off the rows does nothing
 		["click", "60,116", 20], ["check", "options", 0],        # a click confirms (Options)
@@ -114,6 +116,9 @@ func _ready() -> void:
 		["press", "confirm", 6],                                  # rebind Jump
 		["key", "N", 6],
 		["check", "jump_is_n", 0],
+		["press", "confirm", 6], ["key", "F11", 6], ["check", "jump_is_f11", 0],   # while rebinding, F11 is the new key
+		["key", "F11", 6], ["check", "f11_is_jump", 0],          # bound to Jump, it's Jump (Select), not fullscreen
+		["key", "Escape", 6], ["check", "jump_is_f11", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
 		["check", "jump_default", 0],
@@ -145,6 +150,8 @@ func _ready() -> void:
 		["press", "up", 6],                                      # Climb
 		["press", "confirm", 90],
 		["expect", "ChapterSelect", 0],
+		["key", "F11", 6], ["check", "fs_on_cs", 0],            # fullscreen keys in chapter select
+		["alt_enter", "", 6], ["check", "fs_off_cs", 0],
 		["press", "left", 10], ["press", "right", 10],
 		["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
 		["press", "left", 10], ["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
@@ -157,6 +164,8 @@ func _ready() -> void:
 		["release", "pause_key", 10],
 		["check", "skipped", 0],
 		["skip_dialogue", "", 60],
+		["alt_enter", "", 6], ["check", "fs_on_play", 0],       # in play: Alt+Enter doesn't pause
+		["key", "F11", 6], ["check", "fs_off_play", 0],
 		["pad_lost", "", 6], ["check", "pad_paused", 0],         # an unplugged pad pauses the game
 		["press", "pause", 10], ["check", "unpaused", 0],
 		["pad_found", "", 6], ["check", "unpaused", 0],          # plugging one in doesn't
@@ -189,6 +198,7 @@ func _ready() -> void:
 		["press", "right", 4], ["press", "left", 4],
 		["press", "up", 4], ["press", "up", 4], ["check", "on_pause_controls", 0],   # Options > Controls, mid-climb
 		["press", "confirm", 6], ["check", "pause_controls", 0],
+		["press", "confirm", 6], ["key", "F11", 6], ["check", "pause_jump_f11", 0], # F11 can be bound here too
 		["press", "confirm", 6], ["key", "M", 6], ["check", "pause_jump_m", 0],     # rebind Jump to M
 		["press", "confirm", 6], ["key", "Escape", 6], ["check", "pause_jump_m", 0], # Esc cancels, still paused
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Grab Mode
@@ -621,6 +631,15 @@ func _process(_d: float) -> void:
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"pause_ctl_sel_1": ok = cur.hud.controls_open and cur.hud.controls.sel == 1
 				"ghost_items": ok = _ghost_items_ok()
+				"fs_on_title", "fs_off_title":
+					ok = bool(gm.settings.fullscreen) == (s[1] == "fs_on_title") and cur.screen == "main" and cur.sel == 0 and cur.leaving == ""
+				"fs_on_cs", "fs_off_cs":
+					ok = bool(gm.settings.fullscreen) == (s[1] == "fs_on_cs") and cur.sel == 8 and cur.leaving < 0 and not cur.picking
+				"fs_on_play", "fs_off_play":
+					ok = bool(gm.settings.fullscreen) == (s[1] == "fs_on_play") and cur.mode == "play" and not cur.paused
+				"jump_is_f11": ok = _has_key("jump", KEY_F11) and not gm.rebinding and not bool(gm.settings.fullscreen) and cur.screen == "controls"
+				"f11_is_jump": ok = _has_key("jump", KEY_F11) and gm.rebinding and not bool(gm.settings.fullscreen) and cur.screen == "controls"
+				"pause_jump_f11": ok = _has_key("jump", KEY_F11) and cur.paused and cur.hud.controls_open and not gm.rebinding and not bool(gm.settings.fullscreen)
 				"line_advanced": ok = cur.dialogue.active and cur.dialogue.idx > int(skip_id)
 			if str(s[1]).begins_with("volume_"):        # volume_<music|sfx>_<tenths>
 				ok = is_equal_approx(float(gm.settings[str(s[1]).get_slice("_", 1)]), int(str(s[1]).get_slice("_", 2)) / 10.0)
@@ -673,6 +692,16 @@ func _process(_d: float) -> void:
 			g.data.collected = {"1-04:berry0": true}
 		"unlock":
 			get_node("/root/Game").data.unlocked = int(s[1])
+		"alt_enter":
+			var ev := InputEventKey.new()
+			ev.physical_keycode = KEY_ENTER
+			ev.keycode = KEY_ENTER
+			ev.alt_pressed = true
+			ev.pressed = true
+			Input.parse_input_event(ev)
+			var up := ev.duplicate()
+			up.pressed = false
+			Input.parse_input_event.call_deferred(up)
 		"mark_save":
 			get_node("/root/Game").data.total_deaths = 7   # something Erase Save would clear
 		"mark_line":

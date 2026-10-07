@@ -44,6 +44,7 @@ const REPEAT_DELAY := 0.35
 const REPEAT_RATE := 0.09
 const REPEAT_ACTIONS := ["up", "down", "left", "right"]
 var _held := {}                # action -> seconds held
+var rebinding := false         # a Controls panel is waiting for a key
 ## A gamepad was unplugged (or its battery died); a level pauses on it.
 signal pad_disconnected
 
@@ -121,6 +122,12 @@ func _menu_repeat(dt: float) -> void:
 
 
 func _input(ev: InputEvent) -> void:
+	if ev is InputEventKey and fullscreen_key(ev):
+		toggle_fullscreen()
+		save_settings()
+		if is_inside_tree():
+			get_viewport().set_input_as_handled()   # so Alt+Enter doesn't also pause or confirm
+		return
 	if ev is InputEventMouse:
 		_mouse_still = 0.0
 		if cursor_hidden:
@@ -138,6 +145,21 @@ func _input(ev: InputEvent) -> void:
 	# Input state, which this doesn't touch.
 	if ev is InputEventJoypadMotion and not stick_edge(ev) and is_inside_tree():
 		get_viewport().set_input_as_handled()
+
+
+## F11, or Alt+Enter, toggles fullscreen: not while a Controls panel waits
+## for a key (it may be the new binding), and F11 not when it's bound to a
+## game action.
+func fullscreen_key(ev: InputEventKey) -> bool:
+	if not ev.pressed or ev.echo or rebinding or OS.has_feature("web"):
+		return false
+	var k := ev.physical_keycode
+	if k == KEY_F11 and not (ev.alt_pressed or ev.ctrl_pressed or ev.shift_pressed or ev.meta_pressed):
+		for a in REBINDABLE:
+			if keys_for(a).has(KEY_F11):
+				return false
+		return true
+	return (k == KEY_ENTER or k == KEY_KP_ENTER) and ev.alt_pressed and not ev.ctrl_pressed
 
 
 ## True when this motion event pushes its axis into a new direction.

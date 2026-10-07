@@ -63,6 +63,8 @@ is always one menu away.
 - **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
 - Menus repeat when you hold a direction (keys, D-pad or stick).
+- **F11 or Alt+Enter** switches between fullscreen and a window anywhere in the game (F11
+  only if you haven't bound it to an action).
 - **The mouse works in every menu**: point at a row to select it, left-click to choose it,
   right-click to go back. On chapter select, click a chapter's marker on the trail (or an arrow)
   and then the card; in the checkpoint picker, click a room's pip or the postcard's arrows.
