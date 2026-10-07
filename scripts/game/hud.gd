@@ -31,7 +31,9 @@ var wipe_dir := 1.0
 
 # Pause menu
 var paused := false
-var pause_items := ["Resume", "Retry Room", "Assist", "Options", "Return to Map"]
+var pause_items := ["Resume", "Retry Room", "Assist", "Options", "Restart Chapter", "Return to Map"]
+var confirm_restart := false    # "Restart the chapter?" (a misclick shouldn't end a long climb)
+var restart_sel := 0            # 0 = keep climbing, 1 = restart
 var pause_sel := 0
 var pause_k := 0.0
 var row_k: Array = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -68,7 +70,9 @@ func _process(delta: float) -> void:
 	wipe = move_toward(wipe, wipe_target, wipe_speed * delta)
 	pause_k = move_toward(pause_k, 1.0 if paused else 0.0, delta * 7.0)
 	var cur := pause_sel
-	if assist_open:
+	if confirm_restart:
+		cur = 10 + restart_sel   # rows 10 and 11 animate the two choices
+	elif assist_open:
 		cur = assist_sel
 	elif options_open:
 		cur = option_sel
@@ -107,6 +111,7 @@ func open_pause() -> void:
 	pause_sel = 0
 	assist_open = false
 	options_open = false
+	confirm_restart = false
 
 
 func close_pause() -> void:
@@ -128,6 +133,18 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		return true
 	if not paused:
 		return false
+	if confirm_restart:
+		if ev.is_action_pressed("up") or ev.is_action_pressed("down"):
+			restart_sel = 1 - restart_sel
+			Sfx.play("menu_move")
+		elif ev.is_action_pressed("confirm"):
+			Sfx.play("menu_select")
+			confirm_restart = false
+			if restart_sel == 1:
+				pause_choice.emit("Restart Chapter")
+		elif ev.is_action_pressed("back") or ev.is_action_pressed("pause"):
+			confirm_restart = false
+		return true
 	if assist_open:
 		if ev.is_action_pressed("up"):
 			assist_sel = (assist_sel + assist_items.size() - 1) % assist_items.size()
@@ -216,6 +233,9 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		elif item == "Options":
 			options_open = true
 			option_sel = 0
+		elif item == "Restart Chapter":
+			confirm_restart = true
+			restart_sel = 0
 		else:
 			pause_choice.emit(item)
 	elif ev.is_action_pressed("back") or ev.is_action_pressed("pause"):
@@ -327,15 +347,49 @@ func _draw_pause(e: float) -> void:
 	if options_open:
 		_draw_options(e)
 		return
-	var r := Rect2(108, 44 + (1.0 - e) * 10.0, 104, 14 + pause_items.size() * 14)
+	var r := Rect2(108, 34 + (1.0 - e) * 10.0, 104, 14 + pause_items.size() * 14)
 	UIKit.panel(self, r, e)
 	UIKit.panel_title(self, r, "PAUSED", e)
 	for i in pause_items.size():
-		UIKit.menu_row(self, r.position.x + 6, r.position.y + 10 + i * 14, r.size.x - 12, pause_items[i], row_k[i], time, e, true)
+		UIKit.menu_row(self, r.position.x + 6, r.position.y + 10 + i * 14, r.size.x - 12, pause_items[i], 0.0 if confirm_restart else row_k[i], time, e, true)
 	if level:
 		var info := "%s   Deaths %d" % [str(level.chapter.name), level.deaths_this_chapter]
-		PixelText.draw_centered_outlined(self, 160, r.end.y + 8, info, Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
+		PixelText.draw_centered_outlined(self, 160, r.end.y + 6, info, Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
+		_draw_pause_berries(r.end.y + 17, e)
+	if confirm_restart:
+		_draw_confirm_restart(e)
+		return
 	var pairs := [[Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Resume"]]
+	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
+
+
+## This chapter's berries (and its bell, found or not) under the pause menu.
+func _draw_pause_berries(y: float, e: float) -> void:
+	var ch: LevelDB.ChapterDef = level.chapter
+	var total := ch.berry_count()
+	if total == 0 and not ch.has_bell():
+		return
+	var txt := "%d / %d" % [Game.berries_in_chapter(level.chapter_n), total]
+	var w := 14.0 + PixelText.width(txt) + (18.0 if ch.has_bell() else 0.0)
+	var x := roundf(160 - w / 2.0)
+	if total > 0:
+		draw_texture_rect_region(Art.objects(), Rect2(x - 3, y - 4, 16, 16), Art.obj_rect("berry0"), Color(1, 1, 1, e))
+		PixelText.draw_outlined(self, Vector2(x + 13, y), txt, Color(UIKit.CREAM, e), Color(UIKit.INK, e))
+	if ch.has_bell():
+		var got := Game.bell_in_chapter(level.chapter_n)
+		draw_texture_rect_region(Art.objects(), Rect2(x + w - 13, y - 4, 16, 16), Art.obj_rect("bell0" if got else "bell_ghost"), Color(1, 1, 1, e if got else 0.6 * e))
+
+
+func _draw_confirm_restart(e: float) -> void:
+	draw_rect(Rect2(0, 0, 320, 180), Color(0, 0, 0, 0.45 * e))
+	var r := Rect2(90, 62, 140, 56)
+	UIKit.panel(self, r, e, UIKit.CRIMSON)
+	PixelText.draw_centered(self, 160, r.position.y + 7, "Restart the chapter?", Color(Color.WHITE, e))
+	PixelText.draw_centered(self, 160, r.position.y + 17, "Time and deaths start over", Color(UIKit.MUTED, 0.9 * e))
+	var opts := ["Keep climbing", "Restart"]
+	for i in 2:
+		UIKit.menu_row(self, r.position.x + 8, r.position.y + 28 + i * 12, r.size.x - 16, opts[i], row_k[10 + i], time, e, true)
+	var pairs := [[Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
 
 

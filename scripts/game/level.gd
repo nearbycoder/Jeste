@@ -738,6 +738,9 @@ func _on_pause_choice(choice: String) -> void:
 			if mode == "play":
 				world._die()
 				_on_death()
+		"Restart Chapter":
+			Game.save()
+			Game.start_chapter(chapter_n)   # a fresh full run: Best and the golden berry count
 		"Return to Map":
 			Game.save()
 			Game.goto_chapter_select()

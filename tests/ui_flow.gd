@@ -167,6 +167,13 @@ func _ready() -> void:
 		["press", "confirm", 120],
 		["expect", "Level", 0],
 		["check", "from_checkpoint", 0],
+		["press", "pause", 20], ["press", "up", 4], ["press", "up", 4],   # Restart Chapter
+		["press", "confirm", 6], ["check", "restart_asks", 0],
+		["press", "confirm", 10], ["check", "restart_kept", 0],          # "Keep climbing" is the default
+		["press", "confirm", 6], ["press", "down", 4], ["check", "restart_yes", 0],
+		["press", "confirm", 120],
+		["expect", "Level", 0],
+		["check", "restarted", 0],
 		["seed_continue", "", 0],                                # Continue from a secret room
 		["scene", "res://scenes/chapter_select.tscn", 60],
 		["press", "confirm", 10], ["check", "picker_continue", 0],
@@ -383,6 +390,10 @@ func _process(_d: float) -> void:
 				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02" and cur.chapter_time >= 100.0 and cur.deaths_this_chapter == 7 and not cur.full_run
 				"has_continue": ok = cur.items.size() > 0 and cur.items[0] == "Continue" and cur.sel == 0
 				"backfill": ok = _backfill_ok()
+				"restart_asks": ok = cur.paused and cur.hud.confirm_restart and cur.hud.restart_sel == 0
+				"restart_kept": ok = cur.paused and not cur.hud.confirm_restart and cur.room_id == "1-03" and cur.hud.pause_items[cur.hud.pause_sel] == "Restart Chapter"
+				"restart_yes": ok = cur.hud.confirm_restart and cur.hud.restart_sel == 1
+				"restarted": ok = cur.chapter_n == 1 and cur.room_id == "1-01" and cur.full_run and cur.chapter_time < 5.0 and cur.deaths_this_chapter == 0 and not cur.paused
 				"picker_open": ok = cur.sel == 1 and cur.picking and Array(cur.cp_rooms) == ["1-01", "1-02", "1-03", "1-04"] and cur.cp_sel == 0
 				"picker_last": ok = cur.picking and cur.cp_sel == 3
 				"picker_closed": ok = not cur.picking and cur.leaving < 0
