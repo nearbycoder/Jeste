@@ -382,6 +382,18 @@ and credits. It is a first release, so expect rough edges.
   - *On a 1280×720 screen under X11 the window opened maximised.* The game's first window was
     1280×720 before it sized itself, the whole screen, so KWin maximised it. It now starts at
     640×360. Checked in a private KWin session, not on other window managers.
+  - *Closing the pause menu could make Mira jump or dash.* Choosing Resume with Jump, or closing
+    the menu with Dash (which the pause screen offers as Resume), still had the key down when play
+    came back, so she jumped or dashed. A held Jump as a cutscene's last line closed could too.
+    A key held when play comes back now counts only after it's let go.
+  - *Invincibility didn't stop every death.* Falling into a bottomless pit and dashing out of a
+    curtain into a wall still killed, and a gondola that crushed Mira left her stuck inside the
+    wall. All three are now caught (see Assist above). A rare dash along the very bottom edge of
+    a room could also carry her under the floor and past a side wall to fall for ever; that now
+    counts as a fall.
+- **Dash Aim** was checked with simulated key presses, not played by hand with a keyboard or a
+  pad. Time stops only when a dash would start right then, and pausing drops the aim without
+  dashing.
 - **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
   gate she has opened, a mask block that swapped for her) is still drawn as your solid block,
   with an outline in her tint while she is near it. Her own berries, bells and keys are pale

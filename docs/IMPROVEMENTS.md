@@ -1059,3 +1059,56 @@ Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no h
 builds, license and releases (owner decisions); new content (too large). Descriptions for the
 Options rows would need the panel redrawn (it already reaches the hints line) and are left for
 later.
+
+## Round 9 results (2026-10-07)
+
+All commits are on `improvements-9`; nothing has been pushed. The full suite passes after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow). The final run took 68 s at load average 31–38, and ui_flow then
+passed two more standalone runs at load 28–33 (it runs at a fixed 60 fps, so load slows it
+without changing its result). Every run used a throwaway user-data directory
+(`build/test_user/` or `build/r9/`), with `TMPDIR` in `build/r9/tmp/`, and the real user-data
+folder (save and log files) had the same checksums before and after. Window captures ran inside
+a private, invisible KWin session as in round 8. Screenshots are in
+`docs/media/improvements/round9/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Invincibility catches pit falls, curtain crashes and gondola crushes | Done | `257b46b` | Probe 2 rerun: 5.4 million random steps in all 69 rooms with Invincibility on, no deaths, never inside a wall or outside a room. Off, the same walks die 27,574 times and still never end up inside a wall or outside a room. A curtain survey (from every free spot two tiles off a curtain, a dash in each of 8 directions, 2,056 of them through a curtain): 1,148 deaths off, none on, none left stuck in a curtain. A ui_flow sim check (a fall in 0-02, a crash in 7-03, a gondola pushing Mira into 4-02's wall) dies off and survives on, never inside anything; each of the three parts disabled fails it. All 266 cached routes replay with identical inputs (the files only carry the new sim hash). |
+| Found on the way: closing the pause menu jumped or dashed | Fixed | `77dedc7` | A probe with real key events in 1-02: choosing Resume with Jump made Mira jump on the next step, and closing the menu with Dash (the pause screen's own hint for Resume) made her dash; both since v0.1.0. ui_flow now holds Jump on Resume and Dash for 20 frames each (nothing fires), checks a fresh Jump still jumps, and holds Jump as a cutscene closes (nothing fires). It fails without the fix, and with only the cutscene part removed. |
+| B. Assist → Dash Aim | Done | `940f3a9` | ui_flow with real keys: the row toggles; holding Dash stops the world's frame count and the chapter timer; Up+Right let go one key at a time still dashes up-right; a stick rolled from Up-Right to Up dashes up; a press with no dash left doesn't aim; a pause drops the aim and nothing fires on resume. Four mutations (feature off, no grace, no "would a dash start" test, pause keeping the aim) each fail it. The test that asks the world whether a dash would start was asked 20,949 times along all 132 Route Ghost routes and left the world identical every time; ui_flow repeats this on five rooms, and a broken restore fails it. Screenshot: `dash_aim.png` (1-04 up-right, 2-02 up-left). |
+| C. Assist rows say what they do | Done | `7e9ec50` | ui_flow: all 11 texts (7 rows, plus the other Air Dashes and Route Ghost values) are different, at most two lines, and fit 300 px in the pixel font; dropping one fails it. Screenshot: `assist_help.png`. |
+
+### Deviations and limits
+- **A went further than planned.** The scope named pits and curtains. The random walks then
+  found a third death that Invincibility didn't stop, an older bug: a gondola crushing Mira into
+  a wall left her inside it, stuck until Retry Room. She is now moved to the nearest free spot
+  within 3 tiles (she dies if there's none). They also found a rare escape with or without the
+  assist: a horizontal dash at exactly the bottom edge carried her under the floor and past a
+  side wall, where she fell for ever. Being just out of sight below a floor with no exit now
+  counts as a fall. If a curtain crash's way back is blocked too, she dies rather than bouncing
+  inside the curtain. The pit bounce reaches about 7 tiles and refills her dash.
+- **Dash Aim:** the scope said pausing would keep the aim; it drops it instead, because resuming
+  with Dash already let go would have fired the dash at once. The row sits after Air Dashes,
+  so Invincibility and Route Ghost moved down one (ui_flow's mouse positions were updated).
+  While aiming, effects, the cap's tails and the music carry on; only the game world stops.
+  Nobody has played it by hand, on a keyboard or a pad.
+- **The pause fix** applies to Jump and Dash, the two keys menus and cutscenes use. If a player
+  pauses mid-jump with Esc and resumes while still holding Jump, the held jump counts as
+  released until they let go, so that jump ends early.
+- **C:** the help replaces the panel's old tagline, which now shows on *Back*. The Route Ghost's
+  button strip is hidden while the Assist panel is open (the text overlapped it). Options rows
+  still have no descriptions.
+- **Colour vision (probe 3)** was a calculation on the three cap colours, not a check with
+  players.
+
+### Still open
+- A human playtest (Dash Aim, the invincible bounce, Air Dashes, ghost outlines, Berries mode),
+  physical controllers, a physical mouse and touchpad, a real 144/165 Hz display, and a non-US
+  keyboard in hand.
+- Descriptions for the Options rows.
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, the wrong key names
+  on non-US keyboards, the maximised window on 720p X11 screens, and now the jump or dash on
+  closing the pause menu and the deaths Invincibility missed.
