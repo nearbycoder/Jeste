@@ -599,7 +599,45 @@ func _ghost_parts_ok() -> bool:
 		p4.step(0)
 		if g4.zip_view_pos(0) != p4.zip_view_pos(0):
 			apart += 1
-	return seen > 0 and apart > 0 and pw.exited and g4.exited
+	return seen > 0 and apart > 0 and pw.exited and g4.exited and _ghost_open_ok("1", "1-03", RoomDef.CRUMBLE, false) \
+		and _ghost_open_ok("3", "3-02", -1, true)
+
+
+## The other direction: the player stands still while the ghost runs her
+## route. Cells open for her but solid for the player are only boards (1-03)
+## or mask blocks (3-02), none at the start, and the near ones are a subset
+## within the radius. Her boards fall after she has left them, so only the
+## mask room must have some near her.
+func _ghost_open_ok(ch_key: String, rid: String, kind: int, need_near: bool) -> bool:
+	var ch := LevelDB.get_chapter(int(ch_key))
+	var def := ch.room(rid)
+	var pw := World.new()
+	pw.load_room(def, 0, ch.dashes)
+	var gw := World.new()
+	gw.load_room(def, 0, ch.dashes)
+	if not RoomView.ghost_open_cells(pw, gw).is_empty():
+		return false
+	var seen := 0
+	var near := 0
+	for inp in Solver.decode(str(Level._hint(rid, 0, ch_key).inputs)):
+		gw.step(inp)
+		var all := RoomView.ghost_open_cells(pw, gw)
+		for i in all:
+			var t := def.cells[i]
+			if (kind >= 0 and t != kind) or (kind < 0 and t != RoomDef.MASK_A and t != RoomDef.MASK_B):
+				print("ghost open cell %d in %s is %d" % [i, rid, t])
+				return false
+		seen += all.size()
+		var c := Vector2(gw.x + World.PW / 2.0, gw.y + World.PH / 2.0)
+		for i in RoomView.ghost_open_cells(pw, gw, RoomView.GHOST_OPEN_RADIUS):
+			if not all.has(i) or c.distance_to(Vector2((i % def.w) * 8 + 4, (i / def.w) * 8 + 4)) > RoomView.GHOST_OPEN_RADIUS:
+				return false
+			near += 1
+		if gw.exited or gw.dead:
+			break
+	if seen == 0 or (need_near and near == 0):
+		print("ghost open cells in %s: %d seen, %d near" % [rid, seen, near])
+	return seen > 0 and (near > 0 or not need_near) and gw.exited
 
 
 ## Air Dashes assist in the simulation: from a jump, Mira dashes up, then

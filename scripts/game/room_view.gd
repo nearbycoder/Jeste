@@ -580,12 +580,47 @@ static func ghost_only_cells(w: World, gw: World) -> PackedInt32Array:
 	return out
 
 
+## The other way round: cells solid for the player but open for the ghost
+## (her boards have crumbled, her mask blocks have swapped), within `radius`
+## pixels of her centre (any distance when radius < 0).
+static func ghost_open_cells(w: World, gw: World, radius := -1.0) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	var c := Vector2(gw.x + World.PW / 2.0, gw.y + World.PH / 2.0)
+	for i in gw.dyn_cells:
+		if w.solid[i] == 1 and gw.solid[i] != 1:
+			if radius < 0.0 or c.distance_to(Vector2((i % gw.w) * T + T / 2.0, (i / gw.w) * T + T / 2.0)) <= radius:
+				out.append(i)
+	return out
+
+
+## How near the ghost a block that's open only for her gets outlined.
+const GHOST_OPEN_RADIUS := 28.0
+
+
 func _draw_ghost_parts() -> void:
 	var gw: World = level.ghost_world if level and level.get("ghost_world") else null
 	if gw == null or gw.room != def or not level.ghost_view.visible:
 		return
 	var tint: Color = level.ghost_view.modulate
 	_draw_zips(gw, tint)
+	# The player's own blocks stay as they are; where she passes through them,
+	# an outline in her tint (fading with distance) shows they're open for her.
+	var open := ghost_open_cells(world, gw, GHOST_OPEN_RADIUS)
+	var marked := {}
+	for i in open:
+		marked[i] = true
+	var gc := Vector2(gw.x + World.PW / 2.0, gw.y + World.PH / 2.0)
+	for i in open:
+		var cx := i % def.w
+		var cy := i / def.w
+		var p := Vector2(cx * T, cy * T)
+		var a := clampf(1.2 - gc.distance_to(p + Vector2(T, T) / 2.0) / GHOST_OPEN_RADIUS, 0.0, 1.0)
+		var col := Color(tint, a)
+		draw_rect(Rect2(p, Vector2(T, T)), Color(tint, 0.18 * a))
+		if not marked.has(i - def.w) or cy == 0: draw_rect(Rect2(p, Vector2(T, 1)), col)
+		if not marked.has(i + def.w): draw_rect(Rect2(p + Vector2(0, T - 1), Vector2(T, 1)), col)
+		if cx == 0 or not marked.has(i - 1): draw_rect(Rect2(p, Vector2(1, T)), col)
+		if cx == def.w - 1 or not marked.has(i + 1): draw_rect(Rect2(p + Vector2(T - 1, 0), Vector2(1, T)), col)
 	for i in ghost_only_cells(world, gw):
 		var cx := i % def.w
 		var col := -1
