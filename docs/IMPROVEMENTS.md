@@ -714,3 +714,49 @@ Picked for a real player's experience, and because each can be checked here:
 
 Not picked: physical controllers and 144/165 Hz displays (no hardware here); builds, license
 and releases (owner decisions); new content (too large); performance (probe 1).
+
+## Round 6 results (2026-10-07)
+
+All commits are on `improvements-6`; nothing has been pushed. The full suite passes after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow). The final run took 66 s at load average 23–35, and ui_flow then
+passed three more standalone runs at load 35–79. Probe windows ran inside a private, invisible KWin session
+(`kwin_wayland --virtual` with its own D-Bus and sandboxed config and user data), so nothing
+opened on the desktop and the desktop's keyboard layout was never touched. Screenshots are in
+`docs/media/improvements/round6/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Prompts name the keys printed on the keyboard | Done | `865644c` | A ui_flow unit check with stand-in French, German and Cyrillic layouts and none (fails without the fix). Under real layouts in the private KWin, Godot read back Grab = **W**, W/A = **Z/Q** (French), Grab = **Y** (German) and the US names unchanged. Screenshot of the prologue's grab sign under US, French and German: `sign_keyboard_layouts.png`. |
+| B. Route Ghost: Berries | Done | `5831813` | The suite now ships 132 routes (71 exit, 52 collect, 9 secret) and fails on a gap. `hints_check.gd` replays every one with the basic moveset and checks each collect route picks up what it lists; two deliberately corrupted entries were caught. ui_flow checks the goal rule in 1-02, 1-05, 1-05s and 3-01, that old settings read as Exit, and steps the row (Exit → Berries, clamp, back, wrap to Off) with the ghost running 1-01's collect route; a mutated goal rule fails it. Screenshots: `route_ghost_berries.png` (her touching berries in 1-02 and 2-02, heading for 1-05's secret room, and *To the exit* once all is found), `assist_route_ghost_berries.png`. |
+| C. Results say whether it's a new Best | Done | `730c016` | ui_flow runs the Best rule on a first, faster, slower and checkpoint run and checks both the row and the saved Best. Screenshots of a new Best (six rows: bell and golden too), a slower climb and a checkpoint run: `results_best.png`. |
+| D. Mouse in menus (stretch) | Done | `5e3693e` | ui_flow points at and clicks rows on the title, Options, pause and Assist screens (hover selects, a click off the rows does nothing, left-click confirms, right-click backs out) and clicks through the results screen; with the pause menu's mouse code disabled it fails. In a real window at 3× scale, events in window pixels sent through `Input` selected the right row, opened Options and backed out. |
+
+### Deviations and limits
+- **Checkpoint and Continue runs** both show "Best: full climbs only" on the results screen. The
+  scope said "practice run", but a continued climb isn't one, and Best is for full climbs in
+  both cases.
+- **Berries mode** draws only the player's berries, so the ghost runs through them, or through
+  the spot where a berry the player already has used to be. Her collect route takes every berry
+  in the room even when only one is missing (it's the one proven route). The golden berry alone
+  doesn't count as missing (it sits at the chapter start in plain sight).
+- **Mouse:** the scope listed "title, options, pause, assist and options"; that meant the title's
+  main menu and Options plus the pause, Assist and pause-Options panels, and the results screen
+  was added. Chapter select, Controls and the confirm boxes stay keyboard and pad only. No
+  physical mouse was used.
+- **Keyboard layouts:** checked under Wayland only. X11 (Xwayland) ignored a layout uploaded with
+  `xkbcomp`, so the X11 path wasn't checked; Windows and macOS builds don't exist yet.
+- **A sandboxing slip.** The first five keyboard probes (06:51–06:52) ran Godot without the
+  redirected user-data path. They wrote only engine log files to the real
+  `~/.local/share/godot/app_userdata/Jeste/logs/`, and Godot's five-file log rotation will have
+  removed older logs there. The real save's checksum is unchanged and no settings file was
+  created. Every later run was sandboxed.
+
+### Still open
+- A human playtest (Air Dashes, ghost outlines and now Berries mode), physical controllers, a
+  physical mouse, a real 144/165 Hz display, and a non-US keyboard in hand.
+- The round 4 menu-flow flake (not seen this round).
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, and now the
+  wrong key names on non-US keyboards.

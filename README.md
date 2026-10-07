@@ -361,10 +361,18 @@ and credits. It is a first release, so expect rough edges.
   - *Rebinding could leave Dash stuck.* Binding the key or pad button that was Dash (X on both
     by default) to Jump left Dash "held" after you let go, so the next level started with a dash
     and your next press of Dash did nothing.
+  - *Prompts named the wrong keys on non-US keyboards.* Keys are bound by position, but every
+    prompt used the US-QWERTY name, so a French AZERTY player was told "Hold Z to GRAB" when the
+    key is printed W. Prompts now follow the keyboard layout. French and German were checked
+    under Wayland (a private KWin session); X11, Windows and macOS weren't. Letters the pixel
+    font can't draw (Cyrillic, Greek…) fall back to the US name.
 - **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
   gate she has opened, a mask block that swapped for her) is still drawn as your solid block,
-  with an outline in her tint while she is near it. Whether that outline reads clearly to a new
-  player hasn't been playtested.
+  with an outline in her tint while she is near it. In *Berries* mode her own berries aren't
+  drawn, so she runs through yours (or through the spot where a berry you already have used to
+  be). Neither has been playtested with a new player.
+- **Mouse:** menu hover and clicks were checked with synthetic events (in a real window too),
+  not with a physical mouse.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
   default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
