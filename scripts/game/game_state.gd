@@ -273,6 +273,13 @@ func key_label(action: String) -> String:
 	return key_name(int(ks[0]))
 
 
+## Bindings are physical key positions (WASD stays WASD-shaped on AZERTY), so
+## a key is named by what the player's layout prints on it: physical W reads
+## "Z" on French keyboards, physical Z reads "Y" on German ones. Tests set
+## `layout_stub` ({physical: printed keycode}) to stand in for a layout.
+static var layout_stub = null
+
+
 static func key_name(k: int) -> String:
 	match k:
 		KEY_LEFT: return "Left"
@@ -285,7 +292,24 @@ static func key_name(k: int) -> String:
 		KEY_ALT: return "Alt"
 		KEY_TAB: return "Tab"
 		KEY_ENTER: return "Enter"
-	return OS.get_keycode_string(k)
+	var printed := k
+	if layout_stub is Dictionary:
+		printed = int(layout_stub.get(k, k))
+	elif DisplayServer.get_name() != "headless":
+		printed = DisplayServer.keyboard_get_keycode_from_physical(k)
+	var s := OS.get_keycode_string(printed)
+	# the pixel font is ASCII only; keyboards with other letters (Cyrillic,
+	# Greek...) usually print the US name beside them
+	if printed != k and (s == "" or not _ascii(s)):
+		s = OS.get_keycode_string(k)
+	return s
+
+
+static func _ascii(s: String) -> bool:
+	for i in s.length():
+		if s.unicode_at(i) < 32 or s.unicode_at(i) > 126:
+			return false
+	return true
 
 
 ## Bind `key` to `action`; if another action used it, that action takes over

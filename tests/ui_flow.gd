@@ -42,6 +42,7 @@ func _ready() -> void:
 		["scene", "res://scenes/main.tscn", 90],
 		["expect", "Title", 0],
 		["check", "helpers", 0],
+		["check", "layout_names", 0],
 		["check", "ghost_parts", 0],
 		["check", "air_dash_sim", 0],
 		["stick", "down", 6],                                     # one stick push = one row
@@ -467,6 +468,7 @@ func _process(_d: float) -> void:
 						and not g.smooth_wanted("auto", 60.0, 1.0) and not g.smooth_wanted("auto", 119.98, 1.0) and not g.smooth_wanted("auto", 59.94, 1.0) \
 						and not g.smooth_wanted("auto", 240.0, 1.0) and not g.smooth_wanted("auto", -1.0, 1.0) and g.smooth_wanted("auto", 60.0, 0.5) \
 						and g.smooth_wanted("on", 60.0, 1.0) and not g.smooth_wanted("off", 144.0, 0.5)
+				"layout_names": ok = _layout_names_ok()
 				"controls": ok = cur.screen == "controls"
 				"jump_is_n": ok = get_node("/root/Game").key_label("jump") == "N"
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"
@@ -564,6 +566,24 @@ func _backfill_ok() -> bool:
 				ok = false
 	g.data = keep
 	return ok
+
+
+## Key names follow the keyboard layout: the default bindings under stand-ins
+## for French (W/A/Z print Z/Q/W) and German (Z prints Y) layouts, a letter the
+## pixel font can't draw falls back to the US name, and no stub changes nothing.
+func _layout_names_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var got := []
+	for stub in [{KEY_W: KEY_Z, KEY_A: KEY_Q, KEY_Z: KEY_W, KEY_Q: KEY_A, KEY_SEMICOLON: KEY_M},
+			{KEY_Z: KEY_Y, KEY_Y: KEY_Z}, {KEY_Z: 0x044F, KEY_C: 0x0441}, {}]:
+		g.layout_stub = stub
+		got.append([g.key_label("grab"), g.key_label("jump"), g.key_name(KEY_W), g.key_name(KEY_A), g.key_name(KEY_SEMICOLON), g.key_name(KEY_LEFT)])
+	g.layout_stub = null
+	var want := [["W", "C", "Z", "Q", "M", "Left"], ["Y", "C", "W", "A", "Semicolon", "Left"],
+		["Z", "C", "W", "A", "Semicolon", "Left"], ["Z", "C", "W", "A", "Semicolon", "Left"]]
+	if got != want:
+		print("layout names: ", got)
+	return got == want
 
 
 ## Route Ghost parts: once the player has broken 1-03's boards, the ghost's
