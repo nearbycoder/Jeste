@@ -314,15 +314,17 @@ func _update_ghost_followers(delta: float) -> void:
 
 # ---------------------------------------------------------------- drawing
 
-func _obj(name: String, center: Vector2, mod: Color = Color.WHITE, flip := false) -> void:
+func _obj(name: String, center: Vector2, mod: Color = Color.WHITE, flip := false, sheet: Texture2D = null) -> void:
 	var r := Art.obj_rect(name)
 	var dst := Rect2(roundf(center.x) - 8, roundf(center.y) - 8, 16, 16)
+	if sheet == null:
+		sheet = Art.objects()
 	if flip:
 		draw_set_transform(Vector2(roundf(center.x) * 2.0, 0), 0, Vector2(-1, 1))
-		draw_texture_rect_region(Art.objects(), dst, r, mod)
+		draw_texture_rect_region(sheet, dst, r, mod)
 		draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 	else:
-		draw_texture_rect_region(Art.objects(), dst, r, mod)
+		draw_texture_rect_region(sheet, dst, r, mod)
 
 
 func _tile(col: int, row: int, pos: Vector2, mod: Color = Color.WHITE) -> void:
@@ -943,6 +945,11 @@ static func ghost_pickups(w: World, gw: World) -> Array:
 	return out
 
 
+## Her own berries, bells, keys, gems and balloons are pale shapes
+## (Art.objects_ghost) in her tint at this opacity.
+const GHOST_ITEM_ALPHA := 0.8
+
+
 ## How much of her respawn wait is left (1 = just used, 0 = back).
 static func ghost_pickup_left(gw: World, kind: String, i: int) -> float:
 	if kind == "gem":
@@ -952,6 +959,8 @@ static func ghost_pickup_left(gw: World, kind: String, i: int) -> float:
 
 func _draw_ghost_pickups(gw: World, tint: Color) -> void:
 	var bob := sin(time * 3.0) * 1.5
+	var sheet := Art.objects_ghost()
+	var shape := Color(tint, GHOST_ITEM_ALPHA)
 	for it in ghost_pickups(world, gw):
 		var kind: String = it[0]
 		var i: int = it[1]
@@ -967,15 +976,15 @@ func _draw_ghost_pickups(gw: World, tint: Color) -> void:
 				if kind == "gem":
 					var nm := "twin0" if gw.gem_twin[i] == 1 else "gem0"
 					draw_set_transform(c + Vector2(0, bob - 1), 0, Vector2(maxf(absf(cos(time * 2.2 + i)), 0.35), 1))
-					draw_texture_rect_region(Art.objects(), Rect2(-8, -8, 16, 16), Art.obj_rect(nm), tint)
+					draw_texture_rect_region(sheet, Rect2(-8, -8, 16, 16), Art.obj_rect(nm), shape)
 				else:
 					draw_set_transform(c + Vector2(0, bob - 1 + 6), sin(time * 1.7 + i) * 0.12, Vector2.ONE)
-					draw_texture_rect_region(Art.objects(), Rect2(-8, -14, 16, 16), Art.obj_rect("balloon0"), tint)
+					draw_texture_rect_region(sheet, Rect2(-8, -14, 16, 16), Art.obj_rect("balloon0"), shape)
 				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 			"riding":
 				var sq := 1.0 + 0.15 * sin(time * 30.0)
 				draw_set_transform(c, 0, Vector2(sq, 2.0 - sq))
-				draw_texture_rect_region(Art.objects(), Rect2(-8, -9, 16, 16), Art.obj_rect("balloon0"), tint)
+				draw_texture_rect_region(sheet, Rect2(-8, -9, 16, 16), Art.obj_rect("balloon0"), shape)
 				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 
 
@@ -997,6 +1006,8 @@ func _draw_ghost_items() -> void:
 	_draw_ghost_pickups(gw, tint)
 	var bob := sin(time * 3.0) * 1.5
 	var f2 := int(time * 4.0) % 2
+	var sheet := Art.objects_ghost()
+	var shape := Color(tint, GHOST_ITEM_ALPHA)
 	for it in ghost_items(world, gw):
 		var kind: String = it[0]
 		var c := item_pos(gw, kind, it[1]) + Vector2(0, bob)
@@ -1006,12 +1017,12 @@ func _draw_ghost_items() -> void:
 			"berry":
 				if it[2] == "spot" and gw.berry_winged[it[1]] == 1:
 					var wf := "wing%d" % (int(time * 10.0) % 2)
-					_obj(wf, c + Vector2(4, -2), tint)
-					_obj(wf, c + Vector2(-4, -2), tint, true)
-				_obj("berry%d" % f2, c, tint)
-			"bell": _obj("bell%d" % f2, c, tint)
-			"key": _obj("key", c, tint)
-			"golden": _obj("gold%d" % f2, c, tint)
+					_obj(wf, c + Vector2(4, -2), shape, false, sheet)
+					_obj(wf, c + Vector2(-4, -2), shape, true, sheet)
+				_obj("berry%d" % f2, c, shape, false, sheet)
+			"bell": _obj("bell%d" % f2, c, shape, false, sheet)
+			"key": _obj("key", c, shape, false, sheet)
+			"golden": _obj("gold%d" % f2, c, shape, false, sheet)
 
 
 ## Procedural waving pennant on a pole (base at `base`).

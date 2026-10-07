@@ -835,7 +835,32 @@ func _ghost_parts_ok() -> bool:
 ## an earlier climb (drawn as an outline) is drawn in place for her until
 ## she takes it.
 func _ghost_items_ok() -> bool:
-	return _ghost_items_room("1", "1-03") and _ghost_items_room("3", "3-05")
+	return _ghost_items_room("1", "1-03") and _ghost_items_room("3", "3-05") and _ghost_sheet_ok()
+
+
+## Her items come from a pale copy of the objects sheet: every pixel of a
+## berry is a light grey (so her tint decides its colour, unlike the player's
+## orange berry and slate found-berry outline), with a dark rim around it.
+func _ghost_sheet_ok() -> bool:
+	var src := Art.image("res://assets/sprites/objects.png")
+	var img := Art.objects_ghost().get_image()
+	if img.get_size() != src.get_size():
+		return false
+	var r := Art.obj_rect("berry0")
+	var body := 0
+	var rim := 0
+	for y in range(int(r.position.y), int(r.end.y)):
+		for x in range(int(r.position.x), int(r.end.x)):
+			var c := img.get_pixel(x, y)
+			if src.get_pixel(x, y).a > 0.0:
+				if absf(c.r - c.g) > 0.02 or absf(c.g - c.b) > 0.02 or c.r < 0.39:
+					return false
+				body += 1
+			elif c.a > 0.0:
+				if c.get_luminance() > 0.2:
+					return false
+				rim += 1
+	return body > 20 and rim > 10
 
 
 func _ghost_items_room(ch_key: String, rid: String) -> bool:
