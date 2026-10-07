@@ -44,6 +44,7 @@ func _ready() -> void:
 		["check", "helpers", 0],
 		["check", "layout_names", 0],
 		["check", "ghost_parts", 0],
+		["check", "ghost_goal", 0],
 		["check", "air_dash_sim", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
@@ -168,7 +169,11 @@ func _ready() -> void:
 		["speed", "0.5", 40], ["check", "half_speed", 0],        # Game Speed 50% = half the simulation steps
 		["speed", "1.0", 40], ["check", "full_speed", 0],
 		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost off
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
+		["press", "right", 4], ["check", "ghost_berries", 0],    # Route Ghost: Berries
+		["press", "right", 4], ["check", "ghost_berries", 0],    # Right stops at the end...
+		["press", "left", 4], ["check", "ghost_on", 0],          # ...Left goes back to Exit
+		["press", "right", 4], ["press", "confirm", 4],          # Confirm wraps Berries -> Off
 		["check", "ghost_off", 0],
 		["press", "back", 10], ["press", "back", 20],
 		["check", "unpaused", 0],
@@ -441,7 +446,11 @@ func _process(_d: float) -> void:
 				"grab_mode_kept": ok = cur.controls.ITEMS[cur.controls.sel] == "Reset Defaults" and str(get_node("/root/Game").settings.grab_mode) == "toggle"
 				"grab_hold": ok = str(get_node("/root/Game").settings.grab_mode) == "hold" and _grab_reads() == [true, false, false, true, false, true, false, false]
 				"pad_default": ok = _pad_buttons("jump") == [JOY_BUTTON_A, JOY_BUTTON_Y] and _pad_buttons("dash") == [JOY_BUTTON_X, JOY_BUTTON_B]
-				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null
+				"ghost_on": ok = bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world != null and cur.ghost_goal == "exit" \
+					and get_node("/root/Game").ghost_mode() == "exit"
+				"ghost_berries": ok = get_node("/root/Game").ghost_mode() == "berries" and cur.ghost_world != null and cur.room_id == "1-01" \
+					and cur.ghost_goal == "collect" and cur.ghost_inputs == Solver.decode(str(Level._hint("1-01", 0, "1", "collect").inputs))
+				"ghost_goal": ok = _ghost_goal_ok()
 				"ghost_running": ok = cur.ghost_world != null and cur.ghost_view.visible and cur.ghost_i >= 5 and cur.ghost_world != cur.world
 				"ghost_off": ok = not bool(get_node("/root/Game").settings.route_ghost) and cur.ghost_world == null and not cur.ghost_grin.visible \
 					and cur.ghost_input() == 0
@@ -566,6 +575,34 @@ func _backfill_ok() -> bool:
 				ok = false
 	g.data = keep
 	return ok
+
+
+## Route Ghost Berries mode picks her route from what's still missing: the
+## room's berries, then a secret room off it, then the exit. Old settings
+## files (just `route_ghost: true`) read as Exit.
+func _ghost_goal_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var ch := LevelDB.get_chapter(1)
+	var all := {}
+	for cid in ch.collectible_ids():
+		all[cid] = true
+	var some := {"1-05:berry0": true, "1-05:berry1": true}
+	var got := [Level.ghost_goal_for(ch, "1", "1-02", 0, {}), Level.ghost_goal_for(ch, "1", "1-02", 0, all),
+		Level.ghost_goal_for(ch, "1", "1-05", 0, {"1-05:berry0": true}), Level.ghost_goal_for(ch, "1", "1-05", 1, some),
+		Level.ghost_goal_for(ch, "1", "1-05", 0, all), Level.ghost_goal_for(ch, "1", "1-05s", 0, some),
+		Level.ghost_goal_for(LevelDB.get_chapter(3), "3", "3-01", 0, {})]
+	var want := ["collect", "exit", "collect", "secret", "exit", "collect", "exit"]
+	var saved: Dictionary = g.settings.duplicate()
+	var modes := []
+	for st in [{"route_ghost": true}, {"route_ghost": false, "ghost_goal": "berries"}, {"route_ghost": true, "ghost_goal": "berries"}]:
+		g.settings = g.default_settings()
+		g.settings.erase("ghost_goal")
+		g.settings.merge(st, true)
+		modes.append(g.ghost_mode())
+	g.settings = saved
+	if got != want or modes != ["exit", "off", "berries"]:
+		print("ghost goals: ", got, " modes: ", modes)
+	return got == want and modes == ["exit", "off", "berries"]
 
 
 ## Key names follow the keyboard layout: the default bindings under stand-ins

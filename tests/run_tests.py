@@ -314,7 +314,26 @@ def build_hints(rep, results):
         best = min(lst, key=lambda e: (dist.get(e[0], 1 << 20), results[e[1]["id"]].get("frames", 0)))
         t = best[1]
         hints[f"{node[0]}:{node[1]}"] = {"exit": t["exit"], "inputs": results[t["id"]]["solution"]}
-    missing = sorted(f"{n[0]}:{n[1]}" for n in rep["reach"] if n != "END" and f"{n[0]}:{n[1]}" not in hints)
+        # Berries mode: the way into a secret room off this one
+        for v, t in lst:
+            if v != "END" and v[0].endswith("s") and not node[0].endswith("s"):
+                hints[f"{node[0]}:{node[1]}:secret"] = {"exit": t["exit"], "inputs": results[t["id"]]["solution"]}
+    # Berries mode: a route that takes every berry and bell in the room
+    for node, (t, r) in rep["collect"].items():
+        got = sorted(c for c in r.get("collected", []) if ":golden" not in c)
+        if node in rep["reach"] and got:   # the golden berry alone is in plain sight at the start
+            hints[f"{node[0]}:{node[1]}:collect"] = {"exit": r["exit_target"], "inputs": r["solution"], "collect": got}
+    missing = []
+    for n in sorted(rep["reach"] - {"END"}):
+        key = f"{n[0]}:{n[1]}"
+        room = rep["rooms"][n[0]]
+        if key not in hints:
+            missing.append(key)
+        want = sorted(c for c in room["collectibles"] if ":golden" not in c)
+        if want and hints.get(key + ":collect", {}).get("collect") != want:
+            missing.append(key + ":collect")
+        if not n[0].endswith("s") and any(e["target"].endswith("s") for e in room["exits"]) and key + ":secret" not in hints:
+            missing.append(key + ":secret")
     return hints, missing
 
 
@@ -404,7 +423,8 @@ def main():
             lines.append(f"- Chapter {chs}: no Route Ghost hint for {', '.join(missing)} (FAIL)")
     n_hints = sum(len(h) for h in hints.values())
     print(f"  Route Ghost hints: {n_hints} room entries")
-    lines.append(f"- Route Ghost hints: {n_hints} room entries (`data/hints.json`), each a proven basic-moveset traversal.")
+    lines.append(f"- Route Ghost hints: {n_hints} room entries (`data/hints.json`), each a proven basic-moveset traversal "
+                 "(to the exit; for Berries mode also every room's collectibles and the way into each secret room).")
     lines.append("")
     if not args.chapters:
         with open(os.path.join(ROOT, "data", "hints.json"), "w") as f:

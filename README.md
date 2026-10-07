@@ -87,7 +87,9 @@ is always one menu away.
   wherever they differ from yours, and where she passes through one of your blocks (a wall she
   has broken, a gate she has opened) it's outlined in her tint. A strip at the bottom left lights up the buttons she's
   pressing, named by your own bindings. After 10 deaths in a room the game points you to
-  her, once.
+  her, once. Set her to **Berries** and she shows how to take every berry and bell in the
+  room while you're still missing one, then the way into a secret room that still holds
+  something, then the exit (a tab above her buttons says which).
 
 ## Features
 

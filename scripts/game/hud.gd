@@ -54,6 +54,7 @@ var results_t := 0.0
 
 var ghost_glow := {}            # Route Ghost button bit -> seconds of afterglow left
 const GHOST_GLOW := 0.25         # a one-frame dash press stays visible this long
+const GHOST_GOALS := {"collect": "Berries", "secret": "Secret room", "exit": "To the exit"}   # Berries mode tab
 var show_timer := false
 var timer_value := 0.0
 var flash := 0.0
@@ -177,7 +178,7 @@ func handle_menu_input(ev: InputEvent) -> bool:
 				"Invincibility":
 					Game.settings.invincible = not Game.settings.invincible
 				"Route Ghost":
-					Game.settings.route_ghost = not bool(Game.settings.get("route_ghost", false))
+					Game.step_ghost_mode(dir, ev.is_action_pressed("confirm"))
 				"Back":
 					if ev.is_action_pressed("confirm"):
 						assist_open = false
@@ -336,6 +337,12 @@ func _draw_ghost_input() -> void:
 	var o := Vector2(5, 160)
 	draw_rect(Rect2(o.x - 3, o.y - 3, 136, 19), Color(UIKit.INK, 0.6))
 	draw_rect(Rect2(o.x - 3, o.y - 3, 136, 1), Color(tint, 0.5))
+	if level.ghost_mode_shown == "berries":
+		# Berries mode: a tab naming where she's headed
+		var goal: String = GHOST_GOALS.get(level.ghost_goal, "")
+		var gw := PixelText.width(goal) + 8.0
+		draw_rect(Rect2(o.x - 3, o.y - 14, gw, 11), Color(UIKit.INK, 0.6))
+		PixelText.draw_outlined(self, Vector2(o.x + 1, o.y - 12), goal, tint, Color(UIKit.INK, 0.8))
 	for d in [[World.IN_UP, Vector2(5, 0)], [World.IN_LEFT, Vector2(0, 5)], [World.IN_RIGHT, Vector2(10, 5)], [World.IN_DOWN, Vector2(5, 10)]]:
 		var g := _glow(int(d[0]))
 		draw_rect(Rect2(o + (d[1] as Vector2), Vector2(4, 4)), Color(tint, lerpf(0.3, 1.0, g)))
@@ -459,13 +466,13 @@ func _draw_assist(e: float = 1.0) -> void:
 		UIKit.menu_row(self, r.position.x + 12, y, 140, assist_items[i], row_k[i], time, e)
 		var right := Vector2(r.end.x - 10, y)
 		match assist_items[i]:
-			"Game Speed", "Air Dashes":
+			"Game Speed", "Air Dashes", "Route Ghost":
 				var v := "%d%%" % int(float(Game.settings.game_speed) * 100.0) if assist_items[i] == "Game Speed" \
-					else str(Game.settings.get("air_dashes", "default")).capitalize()
+					else str(Game.settings.get("air_dashes", "default")).capitalize() if assist_items[i] == "Air Dashes" \
+					else Game.ghost_mode().capitalize()
 				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
 			"Infinite Stamina": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.infinite_stamina), e)
 			"Invincibility": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.invincible), e)
-			"Route Ghost": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("route_ghost", false)), e)
 	PixelText.draw_centered_outlined(self, 160, r.end.y + 8, "Play the way that feels right.", Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
 
 

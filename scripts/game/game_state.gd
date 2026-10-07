@@ -618,7 +618,7 @@ func default_settings() -> Dictionary:
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
 		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto", "grab_mode": "hold",
-		"air_dashes": "default",
+		"air_dashes": "default", "ghost_goal": "exit",
 	}
 
 
@@ -638,6 +638,26 @@ func air_dashes() -> int:
 func step_air_dashes(d: int, wrap := false) -> void:
 	var i := maxi(AIR_DASH_MODES.find(str(settings.get("air_dashes", "default"))), 0) + d
 	settings.air_dashes = AIR_DASH_MODES[posmod(i, AIR_DASH_MODES.size()) if wrap else clampi(i, 0, AIR_DASH_MODES.size() - 1)]
+
+
+## Assist "Route Ghost": off, or on with what she shows. "berries" runs the
+## room's collectibles (and secret rooms) while any are missing. Stored as the
+## old on/off flag plus a goal, so older settings files read as Exit.
+const GHOST_MODES := ["off", "exit", "berries"]
+
+
+func ghost_mode() -> String:
+	if not bool(settings.get("route_ghost", false)):
+		return "off"
+	return "berries" if str(settings.get("ghost_goal", "exit")) == "berries" else "exit"
+
+
+func step_ghost_mode(d: int, wrap := false) -> void:
+	var i := GHOST_MODES.find(ghost_mode()) + d
+	var m: String = GHOST_MODES[posmod(i, GHOST_MODES.size()) if wrap else clampi(i, 0, GHOST_MODES.size() - 1)]
+	settings.route_ghost = m != "off"
+	if m != "off":
+		settings.ghost_goal = m
 
 
 func load_settings() -> void:

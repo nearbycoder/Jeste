@@ -1,6 +1,6 @@
 # Jeste level verification report
 
-Generated 2026-10-06 23:19:13
+Generated 2026-10-07 07:03:58
 
 ## Chapter 0: The Foot of Jeste - PASS
 - End reachable from start: yes
@@ -190,7 +190,7 @@ The same proofs with supers, hypers and wall-bounces forbidden (the game never t
 - Chapter 7 The Summit: end reachable, collectibles 14/14 - PASS
 - Chapter 8 The Show: end reachable, collectibles 0/0 - PASS
 
-- Route Ghost hints: 71 room entries (`data/hints.json`), each a proven basic-moveset traversal.
+- Route Ghost hints: 132 room entries (`data/hints.json`), each a proven basic-moveset traversal (to the exit; for Berries mode also every room's collectibles and the way into each secret room).
 
 - `data/hints.json` replays to every exit: PASS
 - Save files survive damaged writes (`tests/save_check.gd`): PASS (SAVES PASS 41)
@@ -295,4 +295,4 @@ Each room's route from entry to exit (no collectibles) with the basic moveset, u
 ## Menu flow
 - PASS - UI FLOW PASS
 
-**Overall: PASS**  (58s)
+**Overall: PASS**  (43s)

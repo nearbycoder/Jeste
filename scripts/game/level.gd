@@ -58,6 +58,8 @@ var ghost_vis := PackedInt32Array()
 var ghost_inputs := PackedByteArray()
 var ghost_i := 0
 var ghost_hold := 0
+var ghost_mode_shown := "off"   # Game.ghost_mode() when she was last started
+var ghost_goal := ""            # what she's running now: "exit", "collect" or "secret"
 var room_deaths := 0
 var nudged := {}
 const GHOST_NUDGE_DEATHS := 10
@@ -771,7 +773,7 @@ func _on_pause_choice(choice: String) -> void:
 			Game.goto_chapter_select()
 		"assist_changed":
 			_apply_assists()
-			if bool(Game.settings.get("route_ghost", false)) != (ghost_world != null):
+			if Game.ghost_mode() != ghost_mode_shown:
 				_reset_ghost()
 			Engine.time_scale = float(Game.settings.game_speed)
 			Game.apply_smooth_motion()
@@ -910,18 +912,38 @@ func _update_cutscene_pose(delta: float) -> void:
 
 # ---------------------------------------------------------------- route ghost
 
-static func _hint(rid: String, spawn: int, chapter_key: String = "") -> Dictionary:
+## A shipped route for a room and spawn: `goal` "exit" (the default), or for
+## Berries mode "collect" (every berry and bell in the room) or "secret" (the
+## way into a secret room off this one).
+static func _hint(rid: String, spawn: int, chapter_key: String = "", goal: String = "exit") -> Dictionary:
 	if _hints.is_empty() and FileAccess.file_exists("res://data/hints.json"):
 		var parsed = JSON.parse_string(FileAccess.get_file_as_string("res://data/hints.json"))
 		if parsed is Dictionary:
 			_hints = parsed
+	var key := "%s:%d" % [rid, spawn] + ("" if goal == "exit" else ":" + goal)
 	for ch in _hints:
 		if chapter_key != "" and ch != chapter_key:
 			continue
 		var h: Dictionary = _hints[ch]
-		if h.has("%s:%d" % [rid, spawn]):
-			return h["%s:%d" % [rid, spawn]]
+		if h.has(key):
+			return h[key]
 	return {}
+
+
+## What the ghost runs in Berries mode: the room's collectibles while any is
+## missing, then the way into a secret room that still holds something, then
+## the exit. (Exit mode is always "exit".)
+static func ghost_goal_for(ch: LevelDB.ChapterDef, chapter_key: String, rid: String, spawn: int, collected: Dictionary) -> String:
+	var r: RoomDef = ch.room(rid)
+	for cid in r.collectible_ids():
+		if not collected.has(cid) and not _hint(rid, spawn, chapter_key, "collect").is_empty():
+			return "collect"
+	var sec := _hint(rid, spawn, chapter_key, "secret")
+	if not sec.is_empty() and ch.room(str(sec.exit)) != null:
+		for cid in ch.room(str(sec.exit)).collectible_ids():
+			if not collected.has(cid):
+				return "secret"
+	return "exit"
 
 
 ## Restarts the ghost at the room's spawn (or removes it when the assist is off).
@@ -929,11 +951,17 @@ func _reset_ghost() -> void:
 	ghost_world = null
 	ghost_inputs = PackedByteArray()
 	ghost_vis = PackedInt32Array()
-	if fast or ghost_view == null or room == null or not bool(Game.settings.get("route_ghost", false)):
+	ghost_mode_shown = Game.ghost_mode()
+	ghost_goal = ""
+	if fast or ghost_view == null or room == null or ghost_mode_shown == "off":
 		if ghost_view:
 			ghost_view.visible = false
 		return
-	var h := _hint(room_id, room_spawn, str(chapter_n))
+	ghost_goal = "exit"
+	if ghost_mode_shown == "berries":
+		# chosen again every loop, so she moves on once the player has them
+		ghost_goal = ghost_goal_for(chapter, str(chapter_n), room_id, room_spawn, Game.data.collected)
+	var h := _hint(room_id, room_spawn, str(chapter_n), ghost_goal)
 	if h.is_empty():
 		ghost_view.visible = false
 		return
