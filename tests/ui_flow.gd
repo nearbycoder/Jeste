@@ -43,6 +43,7 @@ func _ready() -> void:
 		["expect", "Title", 0],
 		["check", "helpers", 0],
 		["check", "ghost_parts", 0],
+		["check", "air_dash_sim", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -114,7 +115,7 @@ func _ready() -> void:
 		["press", "left", 10], ["press", "right", 10],
 		["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
 		["press", "left", 10], ["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
-		["press", "confirm", 120],                               # Prologue
+		["press", "confirm", 120],                               # Chapter 1
 		["expect", "Level", 0],
 		["wait_dialogue", "", 20],
 		["hold", "pause_key", 10], ["check", "skip_not_yet", 0],  # holding Esc skips the scene
@@ -135,9 +136,14 @@ func _ready() -> void:
 		["stick", "up", 4],
 		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
 		["check", "assist", 0],
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost on
+		["press", "down", 4], ["press", "down", 4], ["check", "on_air_dashes", 0],
+		["press", "right", 4], ["check", "air_two", 0],          # Air Dashes: Two
+		["press", "right", 4], ["check", "air_infinite", 0],
+		["press", "right", 4], ["check", "air_infinite", 0],     # Right stops at the end...
+		["press", "confirm", 4], ["check", "air_default", 0],    # ...Confirm wraps around
+		["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost on
 		["check", "ghost_on", 0],
-		["press", "up", 4], ["press", "up", 4],
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
 		["press", "confirm", 4], ["press", "confirm", 4], ["press", "back", 10],
 		["press", "down", 4], ["press", "confirm", 10],          # Options
 		["check", "options_open", 0],
@@ -149,7 +155,7 @@ func _ready() -> void:
 		["speed", "0.5", 40], ["check", "half_speed", 0],        # Game Speed 50% = half the simulation steps
 		["speed", "1.0", 40], ["check", "full_speed", 0],
 		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost off
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Route Ghost off
 		["check", "ghost_off", 0],
 		["press", "back", 10], ["press", "back", 20],
 		["check", "unpaused", 0],
@@ -447,6 +453,12 @@ func _process(_d: float) -> void:
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"
 				"main": ok = cur.screen == "main"
 				"paused": ok = cur.paused and cur.hud.paused
+				"air_dash_sim": ok = _air_dashes_ok()
+				"on_air_dashes": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Air Dashes"
+				"air_two": ok = str(get_node("/root/Game").settings.air_dashes) == "two" and cur.world.assist_air_dashes == World.AIR_DASHES_TWO \
+					and cur.room_id == "1-01" and cur.world.max_dashes == 2
+				"air_infinite": ok = str(get_node("/root/Game").settings.air_dashes) == "infinite" and cur.world.assist_air_dashes == World.AIR_DASHES_INFINITE
+				"air_default": ok = str(get_node("/root/Game").settings.air_dashes) == "default" and cur.world.assist_air_dashes == World.AIR_DASHES_DEFAULT
 				"cursor_hidden": ok = get_node("/root/Game").cursor_hidden
 				"cursor_shown": ok = not get_node("/root/Game").cursor_hidden
 				"pad_paused": ok = cur.paused and cur.hud.paused and cur.mode == "play" and not get_node("/root/Game").using_pad \
@@ -560,6 +572,45 @@ func _ghost_parts_ok() -> bool:
 		if g4.zip_view_pos(0) != p4.zip_view_pos(0):
 			apart += 1
 	return seen > 0 and apart > 0 and pw.exited and g4.exited
+
+
+## Air Dashes assist in the simulation: from a jump, Mira dashes up, then
+## tries again twice in the air. Default allows one, Two two, Infinite all
+## three; a room the story keeps dashless stays dashless; respawning keeps it.
+func _air_dashes_ok() -> bool:
+	var want := {World.AIR_DASHES_DEFAULT: [1, 0], World.AIR_DASHES_TWO: [2, 0], World.AIR_DASHES_INFINITE: [3, 1]}
+	var ok := true
+	for mode in want:
+		var r := _air_dash_run("1", "1-01", mode)
+		if r != want[mode]:
+			print("air dashes %d: %s dashes fired, %s left (want %s)" % [mode, r[0], r[1], want[mode]])
+			ok = false
+	var r0 := _air_dash_run("0", "0-01", World.AIR_DASHES_TWO)
+	var r7 := _air_dash_run("7", "7-01", World.AIR_DASHES_TWO)
+	if r0 != [0, 0] or r7 != [2, 0]:
+		print("air dashes: prologue %s, summit %s" % [r0, r7])
+		ok = false
+	return ok
+
+
+func _air_dash_run(ch_key: String, rid: String, mode: int) -> Array:
+	var ch := LevelDB.get_chapter(int(ch_key))
+	var w := World.new()
+	w.assist_air_dashes = mode
+	w.load_room(ch.room(rid), 0, ch.dashes)
+	w.reset_room()   # a respawn keeps the assist
+	var fired := 0
+	var seq := []
+	for i in 30: seq.append(0)
+	for i in 6: seq.append(World.IN_JUMP)
+	for k in 3:
+		seq.append(World.IN_DASH | World.IN_UP)
+		for i in 13: seq.append(0)   # past the dash cooldown
+	for inp in seq:
+		w.step(inp)
+		if w.events.has("dash"):
+			fired += 1
+	return [fired, w.dashes]
 
 
 ## Grab as the simulation sees it over press, release, idle, press, release,

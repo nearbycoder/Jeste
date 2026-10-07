@@ -254,6 +254,8 @@ func _tileset() -> String:
 func _apply_assists() -> void:
 	world.assist_invincible = bool(Game.settings.get("invincible", false))
 	world.assist_infinite_stamina = bool(Game.settings.get("infinite_stamina", false))
+	world.assist_air_dashes = Game.air_dashes()
+	world.apply_dash_assist()
 
 
 func _load_room(id: String, spawn: int, view: RoomView = null) -> void:

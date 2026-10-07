@@ -594,7 +594,26 @@ func default_settings() -> Dictionary:
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
 		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto", "grab_mode": "hold",
+		"air_dashes": "default",
 	}
+
+
+## Assist "Air Dashes" setting, in the order the menu steps through it.
+const AIR_DASH_MODES := ["default", "two", "infinite"]
+
+
+## World.AIR_DASHES_* for the current setting.
+func air_dashes() -> int:
+	match str(settings.get("air_dashes", "default")):
+		"two": return World.AIR_DASHES_TWO
+		"infinite": return World.AIR_DASHES_INFINITE
+	return World.AIR_DASHES_DEFAULT
+
+
+## Steps the setting by `d`, clamped, or wrapping when `wrap` (confirm cycles).
+func step_air_dashes(d: int, wrap := false) -> void:
+	var i := maxi(AIR_DASH_MODES.find(str(settings.get("air_dashes", "default"))), 0) + d
+	settings.air_dashes = AIR_DASH_MODES[posmod(i, AIR_DASH_MODES.size()) if wrap else clampi(i, 0, AIR_DASH_MODES.size() - 1)]
 
 
 func load_settings() -> void:

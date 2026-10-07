@@ -124,6 +124,13 @@ var wind_x: float = 0.0
 var wind_y: float = 0.0
 var assist_invincible := false
 var assist_infinite_stamina := false
+## Assist "Air Dashes": AIR_DASHES_DEFAULT keeps the room's own count, TWO gives
+## at least two, INFINITE never spends one. Rooms with no dash stay dashless.
+const AIR_DASHES_DEFAULT := 0
+const AIR_DASHES_TWO := 2
+const AIR_DASHES_INFINITE := -1
+var assist_air_dashes := AIR_DASHES_DEFAULT
+var base_max_dashes: int = 1         # the room's own dash count, before the assist
 
 # Static entity tables (pixel space)
 var gem_x := PackedInt32Array()
@@ -303,7 +310,8 @@ func load_room(def: RoomDef, spawn_index: int, chapter_dashes: int, collected: D
 		top_open[cx] = 1 if def.exit_open("top", cx) else 0
 	wind_x = def.wind.x
 	wind_y = def.wind.y
-	max_dashes = def.max_dashes if def.max_dashes >= 0 else chapter_dashes
+	base_max_dashes = def.max_dashes if def.max_dashes >= 0 else chapter_dashes
+	apply_dash_assist()
 	chase_delay = def.chase_delay
 
 	# Entities
@@ -380,6 +388,17 @@ func load_room(def: RoomDef, spawn_index: int, chapter_dashes: int, collected: D
 	spawn_x = sp.x * 8
 	spawn_y = sp.y * 8 + 8 - PH
 	reset_room()
+
+
+## Sets max_dashes from the room's count and the Air Dashes assist. Changing
+## it mid-room takes away any dash above the new count; a new one refills as usual.
+func apply_dash_assist() -> void:
+	var before := max_dashes
+	max_dashes = base_max_dashes
+	if assist_air_dashes == AIR_DASHES_TWO and base_max_dashes > 0:
+		max_dashes = maxi(base_max_dashes, 2)
+	if max_dashes < before:
+		dashes = mini(dashes, max_dashes)
 
 
 ## Resets every entity and puts the player at the room's respawn point.
@@ -1046,7 +1065,8 @@ func _super_jump() -> void:
 
 
 func _start_dash() -> void:
-	dashes -= 1
+	if assist_air_dashes != AIR_DASHES_INFINITE:
+		dashes -= 1
 	dash_buffer = 0
 	_dash_begin(true)
 
