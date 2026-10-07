@@ -67,6 +67,7 @@ static var _hints := {}
 var full_run := true            # started at the chapter start in this session (may set Best)
 var sim_acc := 0.0              # Game Speed: simulation steps owed (one per 1.0)
 var tap_hold := 0               # jump / dash presses seen between two steps
+var best_info := {}             # record_best() at the chapter end, for the results screen
 
 
 func _ready() -> void:
@@ -706,9 +707,7 @@ func _on_end() -> void:
 	events_log.append("end")
 	var cd := Game.chapter_data(chapter_n)
 	cd.complete = true
-	var best := float(cd.best_time)
-	if full_run and (best <= 0.0 or chapter_time < best):
-		cd.best_time = chapter_time
+	best_info = record_best(cd)
 	if world.golden_held:
 		cd.golden = true
 	Game.data.unlocked = maxi(int(Game.data.unlocked), chapter_n + 1)
@@ -731,6 +730,21 @@ func _on_end() -> void:
 		_show_results()
 
 
+## Only runs from the chapter start set Best. Returns what the results screen
+## says about it: whether this run counted, set a new Best, and the old Best.
+func record_best(cd: Dictionary) -> Dictionary:
+	var best := float(cd.best_time)
+	var info := {"full_run": full_run, "new": false, "prev": best}
+	if full_run and (best <= 0.0 or chapter_time < best):
+		cd.best_time = chapter_time
+		info.new = true
+	return info
+
+
+static func fmt_time(t: float) -> String:
+	return "%d:%02d.%02d" % [int(t / 60.0), int(t) % 60, int(fmod(t, 1.0) * 100)]
+
+
 func _show_results() -> void:
 	mode = "complete"
 	var t := chapter_time
@@ -740,7 +754,8 @@ func _show_results() -> void:
 		"berries": Game.berries_in_chapter(chapter_n),
 		"berry_total": chapter.berry_count(),
 		"deaths": deaths_this_chapter,
-		"time": "%d:%02d.%02d" % [int(t / 60.0), int(t) % 60, int(fmod(t, 1.0) * 100)],
+		"time": fmt_time(t),
+		"best": best_info,
 		"has_bell": chapter.has_bell(),
 		"bell": Game.bell_in_chapter(chapter_n),
 		"golden": world.golden_held,

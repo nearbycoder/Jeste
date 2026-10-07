@@ -483,6 +483,15 @@ func _result_rows() -> Array:
 		rows.append(["berry0", "Sunberries", "%d / %d" % [d.get("berries", 0), d.get("berry_total", 0)]])
 	rows.append(["", "Deaths", str(d.get("deaths", 0))])
 	rows.append(["", "Time", str(d.get("time", ""))])
+	var b: Dictionary = d.get("best", {})
+	if not b.is_empty():
+		var prev := float(b.get("prev", 0.0))
+		if not b.get("full_run", true):
+			rows.append(["", "Best", "full climbs only"])   # from a checkpoint or Continue
+		elif b.get("new", false):
+			rows.append(["", "New Best!", "was " + Level.fmt_time(prev) if prev > 0.0 else "", UIKit.GOLD])
+		else:
+			rows.append(["", "Best", Level.fmt_time(prev)])
 	if d.get("has_bell", false):
 		rows.append(["bell0" if d.get("bell", false) else "bell_ghost", "Jester Bell", "Found!" if d.get("bell", false) else "---"])
 	if d.get("golden", false):
@@ -511,7 +520,8 @@ func _draw_results() -> void:
 	UIKit.diamond(self, Vector2(160 + lw / 2.0, hy + 34), 2.0, Color(UIKit.GOLD, hk))
 	# stats panel
 	var rows := _result_rows()
-	var pr := Rect2(76, 70, 168, 12 + rows.size() * 15)
+	var gap := 15.0 if rows.size() <= 5 else 13.0   # six rows still clear the prompt below
+	var pr := Rect2(76, 70 if rows.size() <= 5 else 66, 168, 12 + rows.size() * gap)
 	var pk := clampf((results_t - 0.3) * 3.0, 0.0, 1.0)
 	if pk > 0.0:
 		UIKit.panel(self, pr, pk)
@@ -519,7 +529,7 @@ func _draw_results() -> void:
 		var reveal := clampf((results_t - 0.55 - i * 0.25) * 4.0, 0.0, 1.0)
 		if reveal <= 0.0:
 			continue
-		var y := pr.position.y + 9 + i * 15
+		var y := pr.position.y + 9 + i * gap
 		var x := pr.position.x + 10 + (1.0 - ease(reveal, 0.3)) * 16.0
 		var icon: String = rows[i][0]
 		if icon != "":
@@ -529,7 +539,8 @@ func _draw_results() -> void:
 			draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
 		else:
 			UIKit.diamond(self, Vector2(x + 6, y + 3), 2.0, Color(UIKit.GOLD, reveal))
-		PixelText.draw(self, Vector2(x + 18, y), rows[i][1], Color(UIKit.MUTED, reveal))
+		var lc: Color = rows[i][3] if rows[i].size() > 3 else UIKit.MUTED
+		PixelText.draw(self, Vector2(x + 18, y), rows[i][1], Color(lc, reveal))
 		var v: String = rows[i][2]
 		var vc := UIKit.GOLD if icon == "gold0" else Color.WHITE
 		PixelText.draw_outlined(self, Vector2(pr.end.x - 10 - PixelText.width(v), y), v, Color(vc, reveal), Color(UIKit.INK, reveal))

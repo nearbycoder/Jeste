@@ -150,7 +150,7 @@ parallax backdrops, a glow pass, bloom and per-chapter colour grading.
 
 A title screen with a campfire and a juggling Mira. Chapter select shows living
 postcards rendered from each chapter's real opening room. Results screens show berries,
-deaths, time, bells and golden runs. Options cover volume, fullscreen, window size, smooth motion, screen shake,
+deaths, time, bells, golden runs and whether the climb set a new Best (or the Best it didn't beat). Options cover volume, fullscreen, window size, smooth motion, screen shake,
 reduced flashing, rumble, an optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
 *Continue* returns you to the last room you entered, and any room you've reached can be a
 starting checkpoint.

@@ -189,6 +189,7 @@ func _ready() -> void:
 		["check", "resumed", 0],
 		["resume_end", "", 10],                                  # finishing a resumed run keeps Best
 		["scene", "res://scenes/level.tscn", 60],
+		["best_rows", "", 0],
 		["results", "", 120],
 		["press", "confirm", 90],
 		["expect", "ChapterSelect", 0],
@@ -530,6 +531,23 @@ func _process(_d: float) -> void:
 					cur.dialogue.handle_input(ev)
 		"results":
 			cur._show_results()
+		"best_rows":
+			# what the results screen says about Best: a first full climb, a
+			# faster and a slower one, and runs that can't set it
+			var cd: Dictionary = get_node("/root/Game").chapter_data(1)
+			var got := []
+			for c in [[0.0, 90.0, true], [100.0, 90.0, true], [80.0, 90.0, true], [80.0, 60.0, false]]:
+				cd.best_time = c[0]
+				cur.chapter_time = c[1]
+				cur.full_run = c[2]
+				cur.best_info = cur.record_best(cd)
+				cur._show_results()
+				var row: Array = cur.hud._result_rows()[2 if cur.hud._result_rows()[0][0] == "" else 3]
+				got.append([row[1], row[2], snappedf(float(cd.best_time), 0.01)])
+			cur.full_run = true
+			var want := [["New Best!", "", 90.0], ["New Best!", "was 1:40.00", 90.0], ["Best", "1:20.00", 80.0], ["Best", "full climbs only", 80.0]]
+			if got != want:
+				_fail("step %d: Best rows %s" % [idx, got])
 		"resume_end":
 			var cd: Dictionary = get_node("/root/Game").chapter_data(1)
 			cd.best_time = 300.0
