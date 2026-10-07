@@ -207,14 +207,26 @@ func _ready() -> void:
 		["check", "backfill", 0],                                # checkpoint select
 		["seed_checkpoints", "", 0],
 		["scene", "res://scenes/chapter_select.tscn", 60],
-		["press", "left", 10], ["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
-		["press", "left", 10], ["press", "left", 10], ["press", "left", 10],
+		["rclick", "160,10", 60], ["expect", "Title", 0],         # the mouse in chapter select: right click goes back
+		["scene", "res://scenes/chapter_select.tscn", 60],
+		["unlock", "5", 0], ["click_marker", "7", 6], ["check", "cs_sel_8", 0],   # a locked chapter can't be clicked
+		["unlock", "8", 0], ["click_marker", "3", 6], ["check", "cs_sel_3", 0],
+		["click", "6,80", 6], ["check", "cs_sel_2", 0],          # the side arrows
+		["click", "314,80", 6], ["check", "cs_sel_3", 0],
+		["click", "160,10", 6], ["check", "cs_sel_3", 0],        # a click on nothing does nothing
+		["click_marker", "1", 6], ["check", "cs_sel_1", 0],
+		["click", "240,60", 10], ["check", "picker_open", 0],    # a click on the card chooses it
+		["click_pip", "2", 6], ["check", "cp_sel_2", 0],         # a reached room's pip
+		["click_pip", "5", 6], ["check", "cp_sel_2", 0],         # an unreached one does nothing
+		["click", "177,81", 6], ["check", "cp_sel_3", 0],        # the postcard's arrows
+		["click", "19,81", 6], ["check", "cp_sel_2", 0],
+		["rclick", "160,10", 6], ["check", "picker_closed", 0],
 		["press", "confirm", 10], ["check", "picker_open", 0],
 		["press", "right", 6], ["press", "right", 6], ["press", "right", 6], ["press", "right", 6],
 		["check", "picker_last", 0],
 		["press", "back", 6], ["check", "picker_closed", 0],
 		["press", "confirm", 10], ["press", "right", 6], ["press", "right", 6],
-		["press", "confirm", 120],
+		["click", "240,60", 120],                                # a click on the card starts there
 		["expect", "Level", 0],
 		["check", "from_checkpoint", 0],
 		["press", "pause", 20], ["press", "up", 4], ["press", "up", 4],   # Restart Chapter
@@ -419,10 +431,14 @@ func _process(_d: float) -> void:
 			ev.position = Vector2(300, 5)   # off every menu
 			ev.relative = Vector2(3, 1)
 			Input.parse_input_event(ev)
-		"mouse_at", "click", "rclick":
+		"mouse_at", "click", "rclick", "click_marker", "click_pip":
 			# in the 320x180 canvas: a move there, then a press and release
 			var xy: PackedStringArray = str(s[1]).split(",")
-			var pos := Vector2(float(xy[0]), float(xy[1]))
+			var pos := Vector2(float(xy[0]), float(xy[1])) if xy.size() == 2 else Vector2.ZERO
+			if s[0] == "click_marker":     # a chapter's marker on chapter select's trail
+				pos = cur._marker_pos(int(s[1]))
+			elif s[0] == "click_pip":      # a room's pip in the checkpoint picker
+				pos = cur._pip_pos(int(s[1]), get_node("/root/Game").checkpoint_rooms(cur.sel).size())
 			var evs: Array = []
 			var m := InputEventMouseMotion.new()
 			m.position = pos
@@ -432,7 +448,7 @@ func _process(_d: float) -> void:
 				for down in [true, false]:
 					var b := InputEventMouseButton.new()
 					b.position = pos
-					b.button_index = MOUSE_BUTTON_LEFT if s[0] == "click" else MOUSE_BUTTON_RIGHT
+					b.button_index = MOUSE_BUTTON_RIGHT if s[0] == "rclick" else MOUSE_BUTTON_LEFT
 					b.pressed = down
 					evs.append(b)
 			for e in evs:
@@ -555,6 +571,10 @@ func _process(_d: float) -> void:
 				"from_checkpoint": ok = cur.chapter_n == 1 and cur.room_id == "1-03" and not cur.full_run and cur.chapter_time < 5.0 and cur.deaths_this_chapter == 0
 				"picker_continue": ok = cur.sel == 1 and cur.picking and Array(cur.cp_rooms) == ["1-01", "1-02", "1-03", "1-04", "1-05", "1-05s"] and cur.cp_sel == 5
 				"continued": ok = cur.room_id == "1-05s" and cur.chapter_time >= 50.0 and cur.deaths_this_chapter == 3 and not cur.full_run
+			if str(s[1]).begins_with("cs_sel_"):        # chapter select's chosen chapter
+				ok = cur.sel == int(str(s[1]).get_slice("_", 2)) and not cur.picking and cur.leaving < 0
+			elif str(s[1]).begins_with("cp_sel_"):      # the picker's chosen checkpoint
+				ok = cur.picking and cur.cp_sel == int(str(s[1]).get_slice("_", 2)) and cur.leaving < 0
 			if not ok:
 				_fail("step %d: check %s failed%s" % [idx, s[1], (" (opt_sel %d)" % cur.opt_sel) if "opt_sel" in cur else ""])
 		"skip_dialogue":
@@ -598,6 +618,8 @@ func _process(_d: float) -> void:
 			g.data.resume = {}
 			g.data.reached = {"1-01": true, "1-02": true, "1-03": true, "1-05s": true}
 			g.data.collected = {"1-04:berry0": true}
+		"unlock":
+			get_node("/root/Game").data.unlocked = int(s[1])
 		"seed_continue":
 			get_node("/root/Game").data.resume = {"chapter": 1, "room": "1-05s", "time": 50.0, "deaths": 3}
 		"done":

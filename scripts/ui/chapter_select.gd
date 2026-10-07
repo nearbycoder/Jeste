@@ -97,6 +97,10 @@ func _select(n: int, dir: float) -> void:
 func _unhandled_input(ev: InputEvent) -> void:
 	if leaving >= 0:
 		return
+	if ev is InputEventMouse:
+		ev = _mouse(ev)
+		if ev == null:
+			return
 	if picking:
 		if ev.is_action_pressed("left") and cp_sel > 0:
 			cp_sel -= 1
@@ -128,6 +132,77 @@ func _unhandled_input(ev: InputEvent) -> void:
 			leaving_room = ""
 	elif ev.is_action_pressed("back"):
 		Game.goto_title()
+
+
+## Mouse: click a chapter's marker or a side arrow to select it, the card to
+## choose it; in the picker, the postcard's arrows or a reached room's pip,
+## then the card to start. Right click goes back. Returns the action to
+## handle, or null when the event is used up here.
+func _mouse(ev: InputEventMouse) -> InputEvent:
+	var a := UIKit.click_action(ev)
+	if a == null or a.action == "back":
+		return a
+	var p := ev.position
+	if picking:
+		var cy := PC.get_center().y
+		if _near(p, Vector2(PC.position.x - 3, cy), 6, 9):
+			a.action = "left"
+		elif _near(p, Vector2(PC.end.x + 5, cy), 6, 9):
+			a.action = "right"
+		elif CARD.has_point(p):
+			return a
+		else:
+			var i := _pip_at(p)
+			var main := Game.checkpoint_rooms(sel)
+			if i >= 0 and cp_rooms.has(main[i]) and cp_rooms.find(main[i]) != cp_sel:
+				var j := cp_rooms.find(main[i])
+				cp_slide = 1.0 if j > cp_sel else -1.0
+				cp_sel = j
+				Sfx.play("menu_move")
+			return null
+		return a
+	if _near(p, Vector2(6, CARD.get_center().y), 7, 10):
+		a.action = "left"
+	elif _near(p, Vector2(314, CARD.get_center().y), 7, 10):
+		a.action = "right"
+	elif CARD.has_point(p):
+		return a
+	else:
+		var i := _marker_at(p)
+		if i >= 0 and i != sel and _unlocked(i):
+			_select(i, 1.0 if i > sel else -1.0)
+		return null
+	return a
+
+
+static func _near(p: Vector2, c: Vector2, rx: float, ry: float) -> bool:
+	return absf(p.x - c.x) <= rx and absf(p.y - c.y) <= ry
+
+
+## The chapter marker on the trail under `p` (Mira stands on the chosen one),
+## or -1.
+func _marker_at(p: Vector2) -> int:
+	for i in LevelDB.chapter_count():
+		var m := _marker_pos(i)
+		if absf(p.x - m.x) <= 12.0 and p.y >= m.y - (24.0 if i == sel else 9.0) and p.y <= m.y + 7.0:
+			return i
+	return -1
+
+
+## Where the picker draws the pip of main-path room `i` of `n`.
+static func _pip_pos(i: int, n: int) -> Vector2:
+	var gap := minf(16.0, 240.0 / maxf(n - 1, 1))
+	return Vector2(roundf(roundf(160.0 - gap * (n - 1) / 2.0) + i * gap), 155)
+
+
+## The picker pip under `p` (an index into Game.checkpoint_rooms), or -1.
+func _pip_at(p: Vector2) -> int:
+	var n := Game.checkpoint_rooms(sel).size()
+	var gap := minf(16.0, 240.0 / maxf(n - 1, 1))
+	for i in n:
+		if _near(p, _pip_pos(i, n), maxf(gap / 2.0, 4.0), 9):
+			return i
+	return -1
 
 
 # ---------------------------------------------------------------- checkpoints
@@ -495,10 +570,10 @@ func _draw_room_pips() -> void:
 	var picked := _picked_room()
 	for i in main.size():
 		var rid := main[i]
-		var p := Vector2(roundf(x0 + i * gap), 155)
+		var p := _pip_pos(i, main.size())
 		var lit := cp_rooms.has(rid)
 		if i > 0:
-			var q := Vector2(roundf(x0 + (i - 1) * gap), 155)
+			var q := _pip_pos(i - 1, main.size())
 			draw_rect(Rect2(q.x + 3, p.y, p.x - q.x - 6, 1), Color(UIKit.GOLD, 0.6) if lit else Color(UIKit.MUTED, 0.3))
 		var col := UIKit.CREAM if lit else UIKit.MUTED.darkened(0.45)
 		var r := 2.0
