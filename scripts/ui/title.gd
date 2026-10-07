@@ -417,7 +417,7 @@ func _draw() -> void:
 	if hk > 0.0:
 		var pairs := [[Game.move_label(), "Move"], [Game.key_label("jump"), "Jump"], [Game.key_label("dash"), "Dash"], [Game.key_label("grab"), "Grab"]] if screen == "main" else [[Game.move_label(), "Change"], [Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Back"]]
 		if waiting_key:
-			pairs = [["Esc", "Cancel"]]
+			pairs = [["Start" if Game.using_pad else "Esc", "Cancel"]]
 		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, hk * 0.9)
 	if notice != "" and time < 9.0:
 		var na := clampf(minf(time - 1.0, 9.0 - time), 0.0, 1.0)

@@ -16,6 +16,7 @@ var frames_btn := 0
 var btn_last := {}
 var btn_seen := 0
 var frame := 0
+var wait_frames := 0
 var input_log: Array = []      # the last inputs that reached the scene, printed on a failure
 
 
@@ -116,6 +117,12 @@ func _ready() -> void:
 		["release", "pause_key", 10],
 		["check", "skipped", 0],
 		["skip_dialogue", "", 60],
+		["pad_lost", "", 6], ["check", "pad_paused", 0],         # an unplugged pad pauses the game
+		["press", "pause", 10], ["check", "unpaused", 0],
+		["pad_found", "", 6], ["check", "unpaused", 0],          # plugging one in doesn't
+		["die", "", 2], ["pad_lost", "", 2], ["check", "pause_waits", 0],   # mid-death: pauses once play resumes
+		["wait_play", "", 4], ["check", "pad_paused", 0],
+		["press", "pause", 10], ["check", "unpaused", 0],
 		["press", "pause", 20],
 		["check", "paused", 0],
 		["stick", "down", 4],
@@ -343,6 +350,22 @@ func _process(_d: float) -> void:
 			get_node("/root/Game").settings.game_speed = float(s[1])
 			Engine.time_scale = float(s[1])
 			speed_from = cur.world.frame
+		"pad_lost":
+			# the pad in use, holding Right, goes away
+			var g: Node = get_node("/root/Game")
+			g.using_pad = true
+			g.pad_device = 0
+			Input.action_press("right")
+			Input.joy_connection_changed.emit(0, false)
+		"pad_found":
+			Input.joy_connection_changed.emit(0, true)
+		"die":
+			cur.world._die()
+			cur._on_death()
+		"wait_play":
+			if cur.mode != "play" and wait_frames < 600:
+				wait_frames += 1
+				idx -= 1
 		"set_opt0":
 			cur.opt_sel = 0
 		"mark_music":
@@ -412,6 +435,9 @@ func _process(_d: float) -> void:
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"
 				"main": ok = cur.screen == "main"
 				"paused": ok = cur.paused and cur.hud.paused
+				"pad_paused": ok = cur.paused and cur.hud.paused and cur.mode == "play" and not get_node("/root/Game").using_pad \
+					and not Input.is_action_pressed("right") and not cur.pause_pending
+				"pause_waits": ok = not cur.paused and cur.pause_pending and cur.mode == "dead"
 				"assist": ok = cur.hud.assist_open
 				"options_open": ok = cur.hud.options_open
 				"unpaused": ok = not cur.paused

@@ -71,6 +71,7 @@ func _ready() -> void:
 	chapter_n = Game.pending_chapter
 	chapter = LevelDB.get_chapter(chapter_n)
 	_build_nodes()
+	Game.pad_disconnected.connect(_on_pad_disconnected)
 	var start_room := Game.pending_room if Game.pending_room != "" else chapter.start
 	_restore_resume(start_room)
 	Game.release_grab()
@@ -122,9 +123,29 @@ func _exit_tree() -> void:
 func _notification(what: int) -> void:
 	# auto-pause when the window loses focus mid-climb
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT and not fast and not Game.headless_test:
-		if not paused and mode == "play" and hud and not hud.results:
-			paused = true
-			hud.open_pause()
+		auto_pause()
+
+
+## Pause without a button press (focus lost, controller unplugged). Outside
+## normal play (a death, a room transition, a cutscene) the pause waits until
+## play resumes, so it can't be missed or land in the middle of a scene.
+var pause_pending := false
+
+
+func auto_pause() -> void:
+	if fast or paused or (hud and hud.results) or mode == "complete":
+		pause_pending = false   # already paused (or done): nothing left to catch up on
+		return
+	if mode != "play":
+		pause_pending = true
+		return
+	pause_pending = false
+	paused = true
+	hud.open_pause()
+
+
+func _on_pad_disconnected() -> void:
+	auto_pause()
 
 
 func _build_nodes() -> void:
@@ -370,6 +391,8 @@ func cutscene_command(cmd: String, args: Array) -> float:
 func _physics_process(_delta: float) -> void:
 	if fast:
 		return
+	if pause_pending and (paused or mode == "play"):
+		auto_pause()
 	if paused:
 		_snap_views()
 		sim_acc = 0.0

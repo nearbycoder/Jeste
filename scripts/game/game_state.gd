@@ -44,6 +44,8 @@ const REPEAT_DELAY := 0.35
 const REPEAT_RATE := 0.09
 const REPEAT_ACTIONS := ["up", "down", "left", "right"]
 var _held := {}                # action -> seconds held
+## A gamepad was unplugged (or its battery died); a level pauses on it.
+signal pad_disconnected
 
 
 func _ready() -> void:
@@ -52,6 +54,24 @@ func _ready() -> void:
 	setup_input()
 	load_save()
 	apply_settings()
+	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+
+
+## Releases every action the pad was holding (so Mira doesn't keep running on
+## a stale press), switches prompts back to the keyboard if it was the pad in
+## use, and tells the level so it can pause.
+func _on_joy_connection_changed(device: int, connected: bool) -> void:
+	if connected:
+		return
+	if device == pad_device or Input.get_connected_joypads().is_empty():
+		using_pad = false
+	for a in InputMap.get_actions():
+		if not str(a).begins_with("ui_"):
+			Input.action_release(a)
+	for k in _axis_dir.keys():
+		if int(k) / 64 == device:
+			_axis_dir.erase(k)
+	pad_disconnected.emit()
 
 
 func _exit_tree() -> void:
