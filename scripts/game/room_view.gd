@@ -921,13 +921,14 @@ static func ghost_items(w: World, gw: World) -> Array:
 	return out
 
 
-## Where item `i` of a kind sits in world `w` (before anyone takes it).
+## Where item `i` of a kind sits in world `w` (before anyone takes it). A
+## golden berry carried in from another room starts at her.
 static func item_pos(w: World, kind: String, i: int) -> Vector2:
 	match kind:
 		"berry": return Vector2(w.berry_x[i], w.berry_y[i])
 		"bell": return Vector2(w.bell_x[i], w.bell_y[i])
 		"key": return Vector2(w.key_x[i], w.key_y[i])
-	return Vector2(w.golden_x[i], w.golden_y[i])
+	return Vector2(w.golden_x[i], w.golden_y[i]) if i < w.golden_x.size() else w.player_center()
 
 
 func _draw_ghost_items() -> void:
