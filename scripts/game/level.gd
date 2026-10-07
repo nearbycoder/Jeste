@@ -67,6 +67,7 @@ static var _hints := {}
 var full_run := true            # started at the chapter start in this session (may set Best)
 var sim_acc := 0.0              # Game Speed: simulation steps owed (one per 1.0)
 var tap_hold := 0               # jump / dash presses seen between two steps
+var held_off := 0               # Jump / Dash still held from closing a menu or a cutscene: ignored until let go
 var best_info := {}             # record_best() at the chapter end, for the results screen
 
 
@@ -344,6 +345,7 @@ func _on_dialogue_finished(_id: String) -> void:
 	player_view.override_frame = ""
 	if mode == "dialogue":
 		mode = "play"
+		_hold_off_buttons()
 	if after_dialogue == "results":
 		after_dialogue = ""
 		_show_results()
@@ -407,6 +409,8 @@ func _physics_process(_delta: float) -> void:
 	# steps on every other tick. Presses that start and end between two steps
 	# are carried to the next one so a quick tap isn't lost.
 	var inp := Game.read_input()
+	held_off &= inp
+	inp &= ~held_off
 	tap_hold |= inp & (World.IN_JUMP | World.IN_DASH)
 	sim_acc += clampf(Engine.time_scale, 0.05, 1.0)
 	if sim_acc < 1.0:
@@ -774,14 +778,28 @@ func _on_results_closed() -> void:
 		Game.goto_chapter_select()
 
 
+## Jump closes menus and reads cutscene lines, and Dash backs out of them
+## (the pause screen offers it as Resume). The press that hands control back
+## mustn't also make Mira jump or dash, so whatever is held now waits for a
+## release before it counts.
+func _hold_off_buttons() -> void:
+	held_off = 0
+	if Input.is_action_pressed("jump"):
+		held_off |= World.IN_JUMP
+	if Input.is_action_pressed("dash"):
+		held_off |= World.IN_DASH
+
+
 func _on_pause_choice(choice: String) -> void:
 	match choice:
 		"Resume":
 			paused = false
 			hud.close_pause()
+			_hold_off_buttons()
 		"Retry Room":
 			paused = false
 			hud.close_pause()
+			_hold_off_buttons()
 			if mode == "play":
 				world._die()
 				_on_death()

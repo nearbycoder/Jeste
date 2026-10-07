@@ -19,6 +19,7 @@ var btn_seen := 0
 var frame := 0
 var wait_frames := 0
 var input_log: Array = []      # the last inputs that reached the scene, printed on a failure
+var moves := {}                # jump / dash events the world fired since "watch_moves"
 
 
 func _ready() -> void:
@@ -236,6 +237,13 @@ func _ready() -> void:
 		["ghost_buttons", "", 0],                                 # the HUD strip follows the ghost's inputs
 		["speed", "0.5", 40], ["check", "half_speed", 0],        # Game Speed 50% = half the simulation steps
 		["speed", "1.0", 40], ["check", "full_speed", 0],
+		# the press that closes the pause menu doesn't also jump or dash
+		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],
+		["watch_moves", "", 0], ["key_down", "C", 20], ["check", "unpaused", 0], ["key_up", "C", 10], ["check", "no_moves", 0],
+		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],
+		["watch_moves", "", 0], ["key_down", "X", 20], ["check", "unpaused", 0], ["key_up", "X", 10], ["check", "no_moves", 0],
+		["watch_moves", "", 0], ["key_down", "C", 4], ["key_up", "C", 40], ["check", "jumped", 0],   # a fresh press still jumps
+		["dialogue_held", "", 20], ["check", "no_moves", 0], ["action_up", "jump", 10],   # nor does the last line of a cutscene
 		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
 		["press", "right", 4], ["check", "ghost_berries", 0],    # Route Ghost: Berries
@@ -383,6 +391,11 @@ func _scene() -> Node:
 
 func _process(_d: float) -> void:
 	frame += 1
+	var lv := _scene()
+	if lv and lv.name == "Level" and lv.world:
+		for e in lv.world.events:
+			if e in ["jump", "dash"]:
+				moves[e] = true
 	if failed != "":
 		return
 	if wait > 0:
@@ -493,6 +506,22 @@ func _process(_d: float) -> void:
 		"die":
 			cur.world._die()
 			cur._on_death()
+		"key_down", "key_up":
+			var ev := InputEventKey.new()
+			ev.physical_keycode = OS.find_keycode_from_string(s[1])
+			ev.keycode = ev.physical_keycode
+			ev.pressed = s[0] == "key_down"
+			Input.parse_input_event(ev)
+		"watch_moves":
+			moves = {}
+		"dialogue_held":
+			# Jump still down as a cutscene's last line closes
+			Input.action_press("jump")
+			cur.mode = "dialogue"
+			cur._on_dialogue_finished("")
+			moves = {}
+		"action_up":
+			Input.action_release(s[1])
 		"wait_play":
 			if cur.mode != "play" and wait_frames < 600:
 				wait_frames += 1
@@ -658,6 +687,8 @@ func _process(_d: float) -> void:
 				"assist": ok = cur.hud.assist_open
 				"options_open": ok = cur.hud.options_open
 				"unpaused": ok = not cur.paused
+				"no_moves": ok = moves.is_empty() and not cur.paused and cur.mode == "play"
+				"jumped": ok = moves.has("jump")
 				"resumed": ok = cur.chapter_n == 1 and cur.room_id == "1-02" and cur.chapter_time >= 100.0 and cur.deaths_this_chapter == 7 and not cur.full_run
 				"has_continue": ok = cur.items.size() > 0 and cur.items[0] == "Continue" and cur.sel == 0
 				"backfill": ok = _backfill_ok()
