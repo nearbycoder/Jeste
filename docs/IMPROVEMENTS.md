@@ -646,3 +646,71 @@ and after. Screenshots are in `docs/media/improvements/round5/`.
 - **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
   notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
   still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes.
+
+## Round 6 scope (2026-10-07)
+
+Baseline on `improvements-6` (from `main` = `origin/main` = `8fef39d`): the full suite passes in
+55 s at load average 21. All runs this round use a throwaway user-data directory (the suite's
+`build/test_user/`, or `build/r6/` for probes), and the real save's checksum is compared before
+and after.
+
+**Probes for this plan (throwaway, in the git-ignored `build/r6/`):**
+1. *Frame times.* Chapters 1, 3, 6 and 7 played through the real Level scene in a window with
+   the proven routes, vsync off, at load average 2–20: median 6.9 ms, 99th percentile 7.3–8.6 ms.
+   The only frames over 20 ms are the first one of a chapter (64–370 ms, behind the opening
+   wipe). No performance item is needed on this hardware.
+2. *Keyboard layouts.* Bindings use physical key positions (good: WASD and the C/X/Z cluster stay
+   where they are on any layout), but every prompt names the key by its US-QWERTY label. Run
+   inside a private, invisible KWin session with its own D-Bus and a French layout, Godot reports
+   physical W, A and Z as **Z, Q and W**; with German, Z is **Y**. So a French player is told
+   "Hold Z to GRAB" when the key to press is printed W, and the HUD, pause hints, Controls screen
+   and the Route Ghost's strip all disagree with the keyboard.
+
+Picked for a real player's experience, and because each can be checked here:
+
+### A. Prompts name the keys printed on the player's keyboard
+- **Do:** name keys through the active layout (`DisplayServer.keyboard_get_keycode_from_physical`)
+  everywhere a key is shown (signs, hints, Controls, the ghost's strip). Labels the pixel font
+  can't draw (non-ASCII, such as a Cyrillic letter) fall back to the US name, which is what most
+  such keyboards print beside it.
+- **Accept:** on US layouts nothing changes; on French the default Grab key reads W and Up/Left
+  read Z/Q; on German Grab reads Y. Bindings themselves stay positional.
+- **Verify:** a ui_flow unit check with a stubbed layout map (fr and de cases, the non-ASCII
+  fallback, and identity on US); the real labels read back from Godot under a private KWin
+  session with French and German layouts; a screenshot of the prologue's grab sign under French.
+
+### B. Route Ghost: Berries
+- **Why:** collecting is most of the replay value (61 berries, 7 bells), and the ghost only shows
+  the way to the exit. A player missing one berry in a room has no help at all.
+- **Do:** the Assist row becomes *Route Ghost: Off / Exit / Berries*. In *Berries* the ghost runs
+  the suite's proven basic-moveset route that takes every collectible in the room while any of
+  them is still missing; otherwise, if a secret room off this room still holds something
+  missing, the route into it; otherwise the exit route. The goal is chosen again each time she
+  loops, so it moves on once the player has the berries. The button strip names her goal.
+  Routes ship in `data/hints.json` beside the exit routes.
+- **Accept:** every room/spawn with collectibles has a berries route, and every room/spawn with a
+  door to a secret room has a route into it; each replays to its exit with no advanced tech and
+  picks up everything it claims. Exit mode behaves exactly as today. Old settings files
+  (`route_ghost: true`) read as *Exit*.
+- **Verify:** `hints_check.gd` replays the new entries and checks what they collect (and flags a
+  corrupted one); the suite fails if a route is missing; ui_flow steps the row (Off/Exit/Berries,
+  clamping and wrap) and checks the goal picked in 1-02 with nothing, some and everything
+  collected; screenshots.
+
+### C. Results show a new Best
+- **Why:** the results screen shows the run's time but never says whether it beat your Best, or
+  why a checkpoint run didn't count, which is the main thing a returning player looks for.
+- **Do:** on a full run, show *New Best!* when it sets Best, or the Best it didn't beat. On a run
+  started from a checkpoint, say it was a practice run (no Best), matching chapter select.
+- **Accept:** the three cases show the right line; nothing else on the screen moves.
+- **Verify:** ui_flow checks the results rows for a first full run, a slower one and a practice
+  run (the existing results steps already finish chapters both ways); screenshots.
+
+### D. Mouse in menus (stretch, only if A–C land cleanly)
+- **Why:** the game has no mouse controls, so a PC player who clicks a menu row gets nothing.
+- **Do:** hovering a row selects it and clicking confirms it, in the title, options, pause,
+  assist and options screens. Keyboard and pad behaviour unchanged; the cursor still hides in play.
+- **Verify:** ui_flow sends mouse motion and clicks to those menus.
+
+Not picked: physical controllers and 144/165 Hz displays (no hardware here); builds, license
+and releases (owner decisions); new content (too large); performance (probe 1).
