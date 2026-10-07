@@ -343,7 +343,7 @@ func _draw() -> void:
 		var t := timer_value
 		var s := "%d:%02d.%03d" % [int(t / 60.0), int(t) % 60, int(fmod(t, 1.0) * 1000)]
 		PixelText.draw(self, Vector2(320 - PixelText.width(s) - 4, 4), s, Color.WHITE, Color(0, 0, 0, 0.8))
-	if level and level.ghost_view.visible and level.mode == "play":
+	if level and level.ghost_view.visible and level.mode == "play" and not (paused and assist_open):   # the Assist help sits there
 		_draw_ghost_input()
 	if Game.grab_latched and level and level.mode == "play":
 		# Grab Mode: Toggle is holding grab for the player
@@ -529,7 +529,36 @@ func _draw_assist(e: float = 1.0) -> void:
 			"Infinite Stamina": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.infinite_stamina), e)
 			"Dash Aim": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("dash_aim", false)), e)
 			"Invincibility": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.invincible), e)
-	PixelText.draw_centered_outlined(self, 160, r.end.y + 8, "Play the way that feels right.", Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
+	var lines := PixelText.wrap(assist_help(assist_items[assist_sel]), ASSIST_HELP_W)
+	for i in lines.size():
+		PixelText.draw_centered_outlined(self, 160, r.end.y + 5 + i * PixelText.LINE_H, lines[i], Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
+
+
+const ASSIST_HELP_W := 300       # the Assist help text wraps to two lines this wide
+
+## What the highlighted Assist row does, for its current value where that
+## matters. Shown under the panel.
+static func assist_help(item: String) -> String:
+	match item:
+		"Game Speed":
+			return "Slows the whole game, controls included, so every jump and dash has more time."
+		"Infinite Stamina":
+			return "Climb and cling to walls for as long as you like without tiring."
+		"Air Dashes":
+			match str(Game.settings.get("air_dashes", "default")):
+				"two": return "Two dashes in the air wherever a room gives one. Rooms before Mira learns to dash stay dashless."
+				"infinite": return "Dash in the air as often as you like. Rooms before Mira learns to dash stay dashless."
+			return "The dashes each room gives: none at first, then one, and two on the Summit."
+		"Dash Aim":
+			return "Pressing Dash stops time and shows an arrow. Hold a direction, then let go of Dash to dash that way."
+		"Invincibility":
+			return "Nothing can hurt Mira. Pits bounce her back up, and curtains turn her back from a wall."
+		"Route Ghost":
+			match Game.ghost_mode():
+				"exit": return "A see-through Mira runs a proven way to this room's exit, using only moves the game teaches."
+				"berries": return "She shows how to take the berries and bells you still lack here, then a secret room's way in, then the exit."
+			return "Off. A see-through Mira can show a proven way through each room: to the exit, or to its berries."
+	return "Play the way that feels right. Your progress counts the same."
 
 
 func _result_rows() -> Array:

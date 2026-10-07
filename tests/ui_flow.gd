@@ -52,6 +52,7 @@ func _ready() -> void:
 		["check", "air_dash_sim", 0],
 		["check", "invincible_sim", 0],
 		["check", "aim_probe_pure", 0],
+		["check", "assist_help", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -696,6 +697,7 @@ func _process(_d: float) -> void:
 				"air_dash_sim": ok = _air_dashes_ok()
 				"invincible_sim": ok = _invincible_ok()
 				"aim_probe_pure": ok = _aim_probe_pure_ok()
+				"assist_help": ok = _assist_help_ok()
 				"on_air_dashes": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Air Dashes"
 				"air_two": ok = str(get_node("/root/Game").settings.air_dashes) == "two" and cur.world.assist_air_dashes == World.AIR_DASHES_TWO \
 					and cur.room_id == "1-01" and cur.world.max_dashes == 2
@@ -1195,6 +1197,40 @@ func _aim_probe_pure_ok() -> bool:
 			if a.dead or a.exited or a.end_reached:
 				break
 	return asked > 0
+
+
+## Every Assist row, at every value of Air Dashes and Route Ghost, has its
+## own help line under the panel, at most two lines that fit the screen.
+func _assist_help_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var keep: Dictionary = g.settings.duplicate()
+	var seen := {}
+	var ok := true
+	var hud := Hud.new()
+	var items: Array = hud.assist_items
+	hud.free()
+	for air in ["default", "two", "infinite"]:
+		for ghost in [[false, "exit"], [true, "exit"], [true, "berries"]]:
+			g.settings.air_dashes = air
+			g.settings.route_ghost = ghost[0]
+			g.settings.ghost_goal = ghost[1]
+			for item in items:
+				var t := Hud.assist_help(item)
+				seen[t] = true
+				var lines := PixelText.wrap(t, Hud.ASSIST_HELP_W)
+				if t == "" or lines.size() > 2:
+					print("assist help for %s: %d lines: %s" % [item, lines.size(), t])
+					ok = false
+				for l in lines:
+					if PixelText.width(l) > Hud.ASSIST_HELP_W:
+						print("assist help line too wide: ", l)
+						ok = false
+	g.settings = keep
+	# 7 rows, plus 2 more Air Dashes values and 2 more Route Ghost values
+	if seen.size() != 11:
+		print("assist help: %d different texts, want 11" % seen.size())
+		ok = false
+	return ok
 
 
 func _inv_world(ch_n: int, rid: String, inv: bool) -> World:

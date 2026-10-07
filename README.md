@@ -85,7 +85,7 @@ is always one menu away.
 - **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
 - **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.
 - **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
-- **Pause → Assist** offers slower game speed (50–100%, which slows the whole game, controls included), infinite stamina,
+- **Pause → Assist** (each row says what it does under the panel) offers slower game speed (50–100%, which slows the whole game, controls included), infinite stamina,
   **Air Dashes** (*Two* gives two dashes wherever a room gives one; *Infinite* never spends one;
   rooms before Mira learns to dash stay dashless) and invincibility. Invincible, a fall into a
   bottomless pit bounces Mira back up with her dash refilled, a dash through a curtain into a
