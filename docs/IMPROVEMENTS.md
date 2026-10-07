@@ -606,3 +606,43 @@ Picked for a real player's experience, and because each can be checked here:
 
 Not picked: physical controllers and 144/165 Hz displays (no hardware here); builds, license
 and releases (owner decisions); new content (too large).
+
+## Round 5 results (2026-10-06)
+
+All commits are on `improvements-5`; nothing has been pushed. The full suite passes after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow). The final run took 58 s at load average 23–29. Every run used a
+throwaway user-data directory under `build/`, and the real save's checksum was the same before
+and after. Screenshots are in `docs/media/improvements/round5/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| Round 4 flake: diagnostics | Done | `e43576b` | Not reproduced in 30 standalone runs (load up to 14). A forced failure now prints the frame, the relevant settings and the last 40 inputs that reached the scene. |
+| A. A disconnecting controller pauses | Done | `2199230` | ui_flow: a disconnect during play opens the pause menu, releases the held direction and puts prompts back on the keyboard; a connect does nothing; a disconnect during a death pauses as soon as play resumes. Fails without the fix (`pad_paused`). |
+| B. The cursor hides itself | Done | `58dc768` | ui_flow: hidden after a key, shown after mouse motion, still shown at 1.7 s, hidden at 2.2 s. A real window (Wayland) read back `DisplayServer.mouse_get_mode()`: hidden after a key, visible after motion, visible at 1 s, hidden at 2.5 s. |
+| C. Assist → Air Dashes | Done | `596a375`, `ec33ff4` | A sim check in ui_flow: from a jump, three up-dashes fire 1 / 2 / 3 times for Default / Two / Infinite, after a respawn; the prologue's first room stays at 0 and the Summit at 2. ui_flow steps the menu row (clamps on Left/Right, wraps on Confirm) and checks the live world gets 2 dashes in 1-01. Every cached route replays unchanged at Default (`ec33ff4` only re-stamps the sim hash). Screenshot: `assist_air_dashes.png`. |
+| D. Controls in the pause menu | Done | `9893593` | The title's existing controls steps pass on the shared `ControlsMenu`. New pause steps rebind Jump to M (checked in the input map), cancel a rebind with Esc while staying paused, toggle Grab Mode, use Reset Defaults (Grab Mode kept) and close. Screenshot: `pause_controls.png`. |
+| E. Route Ghost: blocks she passes through | Done | `08c755d` | A unit check in ui_flow: with the player idle and the ghost running her route, the cells marked are only boards in 1-03 and only mask blocks in 3-02, none at the start, and the near ones are within the radius. A survey of all rooms: she overlaps such a block on 75 frames (3-01, 3-03, 3-04, 3-05, 7-04). Screenshot in 3-04: `ghost_open_blocks.png`. |
+
+### Deviations and limits
+- **Window focus** now uses the same pause as a disconnect: if focus is lost during a death,
+  a room transition or a cutscene, the pause happens when play resumes instead of not at all.
+  The scope only asked for controllers.
+- **Air Dashes** applies to the chase rooms' Grin only indirectly: the Grin replays your moves,
+  so it dashes as often as you do. Mask blocks still swap on every dash, so Infinite can swap
+  them more often than a room expects. Neither was playtested.
+- **The ghost outline** is drawn only within 28 px of her and fades with distance. In 1-03 her
+  boards fall after she has left them, so they're never outlined. Whether it reads clearly to
+  someone who hasn't read this note is a playtest question.
+- **The cursor** check in a real window used synthetic mouse events, not a physical mouse.
+- **Godot's import pass** (needed to register the new `ControlsMenu` class) also generated the
+  missing `.uid` files for `tests/save_check.gd` and `tools/motion_probe.gd`; they're committed.
+- One ui_flow step comment said the level after chapter select was the prologue; it's 1-01.
+  The comment is fixed. The test was already checking 1-01.
+
+### Still open
+- The round 4 flake's cause (now with diagnostics if it recurs).
+- A human playtest, physical controllers (including a real unplug) and a real 144/165 Hz display.
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes.

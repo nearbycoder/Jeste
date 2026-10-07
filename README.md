@@ -71,16 +71,21 @@ is always one menu away.
   there is still missing. Only runs from the chapter's start can set a Best time.
 - **Pause → Restart Chapter** (after a confirm) starts a fresh run from the chapter's first
   room, for golden-berry attempts and speedruns. The pause screen also shows the chapter's berries.
-- **Options → Controls** rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
+- **Options → Controls** (on the title screen or in the pause menu) rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
 - **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.
 - **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
-- **Pause → Assist** offers slower game speed (50–100%, which slows the whole game, controls included), infinite stamina and invincibility. Your progress counts the same.
+- **Pause → Assist** offers slower game speed (50–100%, which slows the whole game, controls included), infinite stamina,
+  **Air Dashes** (*Two* gives two dashes wherever a room gives one; *Infinite* never spends one;
+  rooms before Mira learns to dash stay dashless) and invincibility. Your progress counts the same.
+- **Unplugging a controller** (or a pad's battery dying) pauses the game, as does switching to
+  another window. The mouse cursor hides while you play and comes back when you move the mouse.
 - **Pause → Assist → Route Ghost** shows a translucent Mira running the room the way the
   automated solver proved it can be done, using only the moves the game teaches. She loops,
   restarts with you when you respawn, and changes nothing. She runs in a simulation of her
   own, so her gondolas, crumbling boards, gates, mask blocks and Grin are drawn in her tint
-  wherever they differ from yours. A strip at the bottom left lights up the buttons she's
+  wherever they differ from yours, and where she passes through one of your blocks (a wall she
+  has broken, a gate she has opened) it's outlined in her tint. A strip at the bottom left lights up the buttons she's
   pressing, named by your own bindings. After 10 deaths in a room the game points you to
   her, once.
 
@@ -329,8 +334,9 @@ Jeste **v0.1.0** is a complete, playable game, from the prologue through the epi
 and credits. It is a first release, so expect rough edges.
 
 - **Linux only** for now. Other platforms should export cleanly but haven't been tested.
-- **Gamepad support** (bindings, rebinding, prompts, rumble, analog-stick menu navigation) was
-  exercised with simulated input, not on a range of physical controllers. Controller families are
+- **Gamepad support** (bindings, rebinding, prompts, rumble, analog-stick menu navigation,
+  pausing when a pad disconnects) was exercised with simulated input, not on a range of
+  physical controllers. Controller families are
   recognised by the name the pad reports, so an unusual pad may show Xbox button names.
 - **Difficulty was tuned against a bot.** Every room is proven possible, now also with the
   basic moveset alone (no supers, hypers or wall-bounces, which the game never teaches), and
@@ -345,12 +351,15 @@ and credits. It is a first release, so expect rough edges.
     replaced with an empty save. Saves are now written to a temporary file and renamed, with a
     backup. This was checked by damaging files in every way a torn write can, not by pulling the
     power, and the rename path hasn't been run on Windows or the web.
+  - *The mouse cursor stayed visible* over the game, in the middle of the screen in fullscreen.
+    It now hides while you play.
   - *Rebinding could leave Dash stuck.* Binding the key or pad button that was Dash (X on both
     by default) to Jump left Dash "held" after you let go, so the next level started with a dash
     and your next press of Dash did nothing.
-- **Route Ghost limits:** her own moving parts are drawn only where they are solid for her and
-  not for you. A board or mask block that is solid for you but not for her is still drawn
-  normally, so she can appear to pass through it.
+- **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
+  gate she has opened, a mask block that swapped for her) is still drawn as your solid block,
+  with an outline in her tint while she is near it. Whether that outline reads clearly to a new
+  player hasn't been playtested.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
   default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
