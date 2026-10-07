@@ -297,6 +297,11 @@ func setup_input() -> void:
 	_axis("up", JOY_AXIS_LEFT_Y, -1.0); _axis("down", JOY_AXIS_LEFT_Y, 1.0)
 	_axis("grab", JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	_axis("grab", JOY_AXIS_TRIGGER_LEFT, 1.0)
+	# A button held while it's rebound releases into its new action, so the
+	# old one would stay "held" (a stuck dash fires on the next level start and
+	# blocks every later dash). Start every action released.
+	for a in defs:
+		Input.action_release(a)
 
 
 ## Grab Mode "toggle": one press grabs until the next press (or a death or a

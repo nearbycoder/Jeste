@@ -319,7 +319,7 @@ func _process(_d: float) -> void:
 				"repeated": ok = cur.opt_sel >= 4 and cur.opt_sel <= 6
 				"one_step": ok = cur.opt_sel == 1
 				"still_waiting": ok = cur.waiting_key and cur.CONTROLS[cur.ctl_sel] == "jump"
-				"pad_jump_x": ok = not cur.waiting_key and _pad_buttons("jump") == [JOY_BUTTON_X] and _pad_buttons("dash").has(JOY_BUTTON_A) \
+				"pad_jump_x": ok = not Input.is_action_pressed("dash") and not cur.waiting_key and _pad_buttons("jump") == [JOY_BUTTON_X] and _pad_buttons("dash").has(JOY_BUTTON_A) \
 					and not _pad_buttons("dash").has(JOY_BUTTON_X) and get_node("/root/Game").pad_label("jump") == "X"
 				"on_grab_mode": ok = cur.CONTROLS[cur.ctl_sel] == "Grab Mode" and str(get_node("/root/Game").settings.grab_mode) == "hold"
 				"grab_toggle": ok = str(get_node("/root/Game").settings.grab_mode) == "toggle" and _grab_reads() == [true, true, true, false, false, true, true, false]
