@@ -369,8 +369,8 @@ and credits. It is a first release, so expect rough edges.
   - *Prompts named the wrong keys on non-US keyboards.* Keys are bound by position, but every
     prompt used the US-QWERTY name, so a French AZERTY player was told "Hold Z to GRAB" when the
     key is printed W. Prompts now follow the keyboard layout. French and German were checked
-    under Wayland (a private KWin session); X11, Windows and macOS weren't. Letters the pixel
-    font can't draw (Cyrillic, Greek…) fall back to the US name.
+    under Wayland and X11 (Xwayland), each in a private KWin session; Windows and macOS
+    weren't. Letters the pixel font can't draw (Cyrillic, Greek…) fall back to the US name.
 - **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
   gate she has opened, a mask block that swapped for her) is still drawn as your solid block,
   with an outline in her tint while she is near it. A berry she takes trails her in her tint
@@ -378,12 +378,15 @@ and credits. It is a first release, so expect rough edges.
   over its outline until she takes it. Her dash gems and balloons aren't drawn separately, so
   one she has used still looks ready. None of this has been playtested with a new player.
 - **Mouse:** menu hover and clicks were checked with synthetic events (in a real window too),
-  not with a physical mouse.
+  not with a physical mouse. There is no mouse wheel support, and gameplay itself is keyboard
+  or pad only.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
   of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
   default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
   monitor under Wayland. On this machine's X11 (XWayland) session, game windows launched from a
-  script started minimised regardless of these settings, so X11 was not checked by eye.
+  script started minimised regardless of these settings, so X11 was not checked by eye; in a
+  private KWin session's Xwayland, F11 and Alt+Enter switched a real X11 window to fullscreen
+  and back.
   *Smooth Motion* was checked by measuring where Mira is drawn on every frame at a forced
   144 fps and at 50% Game Speed, plus captured frames from a real window. Nobody has watched
   it on a real 144 or 165 Hz display yet, and Auto relies on the refresh rate the system reports.
