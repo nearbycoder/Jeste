@@ -995,3 +995,67 @@ removed), so nothing opened on the desktop. Screenshots are in
   notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
   still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, the wrong key names
   on non-US keyboards, and now the maximised window on 720p X11 screens.
+
+## Round 9 scope (2026-10-07)
+
+Baseline on `improvements-9` (from `main` = `origin/main` = `3d0f181`): the full suite passes in
+26 s at load average 7. All runs this round use a throwaway user-data directory (the suite's
+`build/test_user/`, or `build/r9/` for probes), with `TMPDIR` in `build/r9/tmp/` so scratch
+files stay off the shared `/tmp`. The real user-data folder's checksums (save and log files)
+were recorded before the first run and are compared at the end. Window probes run inside a
+private, invisible KWin session as in rounds 7 and 8.
+
+**Probes for this plan (throwaway, in the git-ignored `build/r9/`):**
+1. *Random play in every room.* 2.7 million simulation steps of random held inputs (run, jump,
+   8-way dash, grab and climb, 1–24 frames each), 20 walks of 2,000 steps from every spawn of all
+   69 rooms. After every step, Mira was never inside a solid block (outside a dash) and never
+   outside a room without having died or left by an exit. No bug found.
+2. *Invincibility doesn't stop every death.* The same walks with Assist → Invincibility on: the
+   only deaths left are falls into a bottomless pit (0-02, 0-05 and 0-06 in the prologue, and
+   7-05s) and dashing out of a velvet curtain into a wall (7-03). Spikes, the Grin and gondola
+   crushes are already covered. So a player who turns it on to get past the prologue still dies
+   in its pits, and a curtain crash in chapters 2, 5 and 7 still sends you back.
+3. *Colour vision.* Mira's cap shows the dash state by colour (red ready, blue spent, pink two).
+   Simulated protanopia, deuteranopia and tritanopia keep every pair at least 21 CIELAB units
+   apart, with a lightness gap too, so no change is needed there.
+4. *The assist list.* Game Speed, Infinite Stamina, Air Dashes and Invincibility match the
+   genre's usual set, but there's no help for players who can't aim a dash in time, the one
+   input the whole game is built on. The Assist rows also don't say what they do; *Air Dashes:
+   Two* and *Route Ghost: Berries* are only explained in the README.
+
+Picked for a real player's experience, and because each can be checked here:
+
+### A. Invincibility also catches falls and curtain crashes
+- **Do:** with Invincibility on, falling out of the bottom of a room where there is no exit
+  bounces Mira back up into the room with her dash and stamina refilled, and a dash through a
+  curtain that would crash into a wall turns her round, back the way she came. Off, nothing
+  changes.
+- **Accept:** with Invincibility on, the random walks of probe 2 never die; with it off they die
+  as before; every cached route replays unchanged.
+- **Verify:** probe 2 rerun on all rooms; a sim check in ui_flow (a fall in 0-02 and a crash in
+  7-03 survive with it on and die with it off) that fails without the change; the full suite.
+
+### B. Assist → Dash Aim
+- **Do:** a new Assist row, *Dash Aim: Off / On*. On, pressing Dash when a dash would start
+  stops time (the simulation, her Route Ghost and the chapter timer) and shows an 8-way arrow
+  around Mira pointing where the dash will go. Holding a direction turns it; letting go of Dash
+  dashes that way (the last direction held, or straight ahead if none). A press that wouldn't
+  dash (none left, or mid-dash) behaves as before. Pausing while aiming keeps the aim.
+- **Accept:** with it on, the world doesn't step while Dash is held, and the dash on release goes
+  in the direction aimed, also when the direction is let go a frame before Dash; with it off,
+  play is unchanged (the end-to-end playthroughs and the Route Ghost don't use it).
+- **Verify:** ui_flow steps the row and drives a held Dash in play (no steps while held, an
+  up-right dash on release, the arrow showing, the chapter timer stopped), and a press with no
+  dash left doesn't freeze; fails with the code disabled; a screenshot of the arrow.
+
+### C. Assist rows say what they do
+- **Do:** under the Assist panel, one or two lines describe the highlighted row, including
+  what each value of Air Dashes and Route Ghost means.
+- **Accept:** every Assist row has a line that fits the 320 px screen in the pixel font.
+- **Verify:** a ui_flow check that every row has a description and that each line fits;
+  screenshots of the panel.
+
+Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
+builds, license and releases (owner decisions); new content (too large). Descriptions for the
+Options rows would need the panel redrawn (it already reaches the hints line) and are left for
+later.
