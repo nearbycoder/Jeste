@@ -921,6 +921,64 @@ static func ghost_items(w: World, gw: World) -> Array:
 	return out
 
 
+## Route Ghost: her dash gems and balloons that differ from the player's, as
+## [kind, index, state]. "used": hers is spent (a gem, or a balloon she has
+## left) while the player's is ready. "ready": hers is ready while the
+## player's is spent. "riding": she is in that balloon and the player isn't.
+static func ghost_pickups(w: World, gw: World) -> Array:
+	var out := []
+	for i in gw.gem_t.size():
+		if gw.gem_t[i] != 0 and w.gem_t[i] == 0:
+			out.append(["gem", i, "used"])
+		elif gw.gem_t[i] == 0 and w.gem_t[i] != 0:
+			out.append(["gem", i, "ready"])
+	for i in gw.balloon_t.size():
+		if gw.boost_idx == i:
+			if w.boost_idx != i:
+				out.append(["balloon", i, "riding"])
+		elif gw.balloon_t[i] != 0 and w.balloon_t[i] == 0:
+			out.append(["balloon", i, "used"])
+		elif gw.balloon_t[i] == 0 and w.balloon_t[i] != 0:
+			out.append(["balloon", i, "ready"])
+	return out
+
+
+## How much of her respawn wait is left (1 = just used, 0 = back).
+static func ghost_pickup_left(gw: World, kind: String, i: int) -> float:
+	if kind == "gem":
+		return clampf(float(gw.gem_t[i]) / World.F_GEM_RESPAWN, 0.0, 1.0)
+	return clampf(float(gw.balloon_t[i]) / World.F_BALLOON_RESPAWN, 0.0, 1.0)
+
+
+func _draw_ghost_pickups(gw: World, tint: Color) -> void:
+	var bob := sin(time * 3.0) * 1.5
+	for it in ghost_pickups(world, gw):
+		var kind: String = it[0]
+		var i: int = it[1]
+		var c := Vector2(gw.gem_x[i], gw.gem_y[i]) if kind == "gem" else Vector2(gw.balloon_x[i], gw.balloon_y[i])
+		match it[2]:
+			"used":
+				# hers is gone: a ring in her tint drains until it's back for her
+				var rc := c + Vector2(0, bob - 1) if kind == "gem" else c + Vector2(0, bob - 3)
+				var left := ghost_pickup_left(gw, kind, i)
+				draw_arc(rc, 8.5, 0, TAU, 24, Color(tint, 0.25), 1.0)
+				draw_arc(rc, 8.5, -PI / 2.0, -PI / 2.0 + TAU * left, maxi(3, int(24 * left)), Color(tint, 0.9), 1.0)
+			"ready":
+				if kind == "gem":
+					var nm := "twin0" if gw.gem_twin[i] == 1 else "gem0"
+					draw_set_transform(c + Vector2(0, bob - 1), 0, Vector2(maxf(absf(cos(time * 2.2 + i)), 0.35), 1))
+					draw_texture_rect_region(Art.objects(), Rect2(-8, -8, 16, 16), Art.obj_rect(nm), tint)
+				else:
+					draw_set_transform(c + Vector2(0, bob - 1 + 6), sin(time * 1.7 + i) * 0.12, Vector2.ONE)
+					draw_texture_rect_region(Art.objects(), Rect2(-8, -14, 16, 16), Art.obj_rect("balloon0"), tint)
+				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+			"riding":
+				var sq := 1.0 + 0.15 * sin(time * 30.0)
+				draw_set_transform(c, 0, Vector2(sq, 2.0 - sq))
+				draw_texture_rect_region(Art.objects(), Rect2(-8, -9, 16, 16), Art.obj_rect("balloon0"), tint)
+				draw_set_transform(Vector2.ZERO, 0, Vector2.ONE)
+
+
 ## Where item `i` of a kind sits in world `w` (before anyone takes it). A
 ## golden berry carried in from another room starts at her.
 static func item_pos(w: World, kind: String, i: int) -> Vector2:
@@ -936,6 +994,7 @@ func _draw_ghost_items() -> void:
 	if gw == null or gw.room != def or not level.ghost_view.visible:
 		return
 	var tint: Color = level.ghost_view.modulate
+	_draw_ghost_pickups(gw, tint)
 	var bob := sin(time * 3.0) * 1.5
 	var f2 := int(time * 4.0) % 2
 	for it in ghost_items(world, gw):

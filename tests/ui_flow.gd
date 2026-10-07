@@ -45,6 +45,7 @@ func _ready() -> void:
 		["check", "layout_names", 0],
 		["check", "ghost_parts", 0],
 		["check", "ghost_items", 0],
+		["check", "ghost_pickups", 0],
 		["check", "ghost_goal", 0],
 		["check", "air_dash_sim", 0],
 		["stick", "down", 6],                                     # one stick push = one row
@@ -631,6 +632,7 @@ func _process(_d: float) -> void:
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"pause_ctl_sel_1": ok = cur.hud.controls_open and cur.hud.controls.sel == 1
 				"ghost_items": ok = _ghost_items_ok()
+				"ghost_pickups": ok = _ghost_pickups_ok()
 				"fs_on_title", "fs_off_title":
 					ok = bool(gm.settings.fullscreen) == (s[1] == "fs_on_title") and cur.screen == "main" and cur.sel == 0 and cur.leaving == ""
 				"fs_on_cs", "fs_off_cs":
@@ -868,6 +870,63 @@ func _ghost_items_room(ch_key: String, rid: String) -> bool:
 	if not gw.exited or followed.size() != gw.berry_s.size() + gw.key_s.size():
 		print("ghost items in %s: exited %s, carried %s" % [rid, gw.exited, followed.keys()])
 		return false
+	return true
+
+
+## Route Ghost's dash gems (1-04) and balloons (5-02): one of them runs the
+## room's route while the other stands still. Each frame, exactly the gems and
+## balloons whose state differs are reported: "used" (hers gone, the
+## player's there), "ready" (the other way round) and "riding" (she's in it),
+## and each state turns up at least once.
+func _ghost_pickups_ok() -> bool:
+	return _ghost_pickups_room("1", "1-04", "gem") and _ghost_pickups_room("5", "5-02", "balloon")
+
+
+func _ghost_pickups_room(ch_key: String, rid: String, kind: String) -> bool:
+	var seen := {}
+	for she_runs in [true, false]:
+		var ch := LevelDB.get_chapter(int(ch_key))
+		var def := ch.room(rid)
+		var pw := World.new()
+		pw.load_room(def, 0, ch.dashes)
+		var gw := World.new()
+		gw.load_room(def, 0, ch.dashes)
+		if not RoomView.ghost_pickups(pw, gw).is_empty():
+			return false
+		var runner := gw if she_runs else pw
+		for inp in Solver.decode(str(Level._hint(rid, 0, ch_key).inputs)):
+			runner.step(inp)
+			var want := []
+			var n := gw.gem_t.size() if kind == "gem" else gw.balloon_t.size()
+			for i in n:
+				var hers := gw.gem_t[i] == 0 if kind == "gem" else gw.balloon_t[i] == 0
+				var mine := pw.gem_t[i] == 0 if kind == "gem" else pw.balloon_t[i] == 0
+				if kind == "balloon" and gw.boost_idx == i:
+					if pw.boost_idx != i:
+						want.append([kind, i, "riding"])
+				elif mine and not hers:
+					want.append([kind, i, "used"])
+				elif hers and not mine:
+					want.append([kind, i, "ready"])
+			var got := RoomView.ghost_pickups(pw, gw)
+			if got != want:
+				print("ghost pickups in %s (she runs: %s): %s, expected %s" % [rid, she_runs, got, want])
+				return false
+			for it in got:
+				seen[it[2]] = true
+				if it[2] == "used":
+					var left := RoomView.ghost_pickup_left(gw, kind, it[1])
+					if left <= 0.0 or left > 1.0:
+						return false
+			if runner.exited or runner.dead:
+				break
+		if not runner.exited:
+			return false
+	var need := ["used", "ready", "riding"] if kind == "balloon" else ["used", "ready"]
+	for st in need:
+		if not seen.has(st):
+			print("ghost pickups in %s: never %s" % [rid, st])
+			return false
 	return true
 
 
