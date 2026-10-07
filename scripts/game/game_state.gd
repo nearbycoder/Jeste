@@ -357,25 +357,80 @@ func load_save() -> void:
 	data = default_save()
 	if headless_test:
 		return
-	if FileAccess.file_exists(SAVE_PATH):
-		var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
-		var parsed = JSON.parse_string(f.get_as_text())
-		if parsed is Dictionary:
-			for k in parsed:
-				data[k] = parsed[k]
+	var parsed := read_json(SAVE_PATH)
+	for k in parsed:
+		data[k] = parsed[k]
 
 
 func save() -> void:
 	if headless_test:
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(data, "\t"))
+	write_json(SAVE_PATH, data)
 
 
 func reset_save() -> void:
 	data = default_save()
+	if not headless_test:
+		for ext in ["", ".bak"]:   # erased means erased: no backup of the old progress
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH + ext))
 	save()
+
+
+# ---------------------------------------------------------------- safe files
+
+## Set when a damaged save or settings file was set aside on load; the title
+## screen shows it once.
+var load_notice := ""
+
+
+## Writes `d` so that a crash or a full disk mid-write can't destroy what was
+## there: the new text goes to a temp file and is read back, the current file
+## becomes `.bak`, then the temp file is renamed into place. Returns success.
+static func write_json(path: String, d: Dictionary) -> bool:
+	var text := JSON.stringify(d, "\t")
+	var tmp := path + ".tmp"
+	var f := FileAccess.open(tmp, FileAccess.WRITE)
+	if f == null:
+		return false
+	f.store_string(text)
+	f.close()
+	if FileAccess.get_file_as_string(tmp) != text:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(tmp))
+		return false
+	if FileAccess.file_exists(path):
+		# not every platform's rename replaces an existing file
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path + ".bak"))
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(path + ".bak"))
+	return DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), ProjectSettings.globalize_path(path)) == OK
+
+
+## Reads a JSON object written by write_json(). A missing main file (a crash
+## between the two renames) falls back to `.bak`. A damaged one (empty,
+## truncated, not an object) is renamed to `.corrupt`, never overwritten, and
+## the backup is used. Returns {} when there is nothing usable.
+func read_json(path: String) -> Dictionary:
+	var main = _parse_file(path)
+	if main is Dictionary:
+		return main
+	var damaged := FileAccess.file_exists(path)
+	if damaged:
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path + ".corrupt"))
+		DirAccess.rename_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(path + ".corrupt"))
+	var bak = _parse_file(path + ".bak")
+	if damaged:
+		var what := "save" if path == SAVE_PATH else "settings"
+		load_notice = ("Your %s file was damaged. Restored the previous copy." % what) if bak is Dictionary \
+			else ("Your %s file was damaged and set aside." % what)
+		push_warning("%s was unreadable, moved to %s.corrupt" % [path, path])
+	return bak if bak is Dictionary else {}
+
+
+static func _parse_file(path: String) -> Variant:
+	if not FileAccess.file_exists(path):
+		return null
+	var text := FileAccess.get_file_as_string(path)
+	var j := JSON.new()
+	return j.data if j.parse(text) == OK else null
 
 
 func chapter_data(n: int) -> Dictionary:
@@ -452,20 +507,15 @@ func default_settings() -> Dictionary:
 
 func load_settings() -> void:
 	settings = default_settings()
-	if FileAccess.file_exists(SETTINGS_PATH):
-		var f := FileAccess.open(SETTINGS_PATH, FileAccess.READ)
-		var parsed = JSON.parse_string(f.get_as_text())
-		if parsed is Dictionary:
-			for k in parsed:
-				settings[k] = parsed[k]
+	var parsed := read_json(SETTINGS_PATH)
+	for k in parsed:
+		settings[k] = parsed[k]
 
 
 func save_settings() -> void:
 	if headless_test:
 		return
-	var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(settings, "\t"))
+	write_json(SETTINGS_PATH, settings)
 
 
 func apply_settings() -> void:

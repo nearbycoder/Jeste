@@ -20,6 +20,7 @@ var logo_node: Node2D
 var logo_mat: ShaderMaterial
 var jingled := false
 var bell_swing := 0.0
+var notice := ""          # a damaged save was set aside (see Game.read_json)
 
 const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
 const CONTROLS := ["jump", "dash", "grab", "Grab Mode", "up", "down", "left", "right", "Reset Defaults", "Back"]
@@ -80,6 +81,8 @@ void fragment() {
 	add_child(logo_node)
 	Sfx.play_music("title")
 	Sfx.play_ambience("amb_meadow")
+	notice = Game.load_notice
+	Game.load_notice = ""
 
 
 func _make_ledge() -> Texture2D:
@@ -416,6 +419,13 @@ func _draw() -> void:
 		if waiting_key:
 			pairs = [["Esc", "Cancel"]]
 		UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, hk * 0.9)
+	if notice != "" and time < 9.0:
+		var na := clampf(minf(time - 1.0, 9.0 - time), 0.0, 1.0)
+		var nw := PixelText.width(notice) + 12.0
+		var nr := Rect2(roundf(160 - nw / 2.0), 81, nw, 13)   # between the tagline and the menu
+		draw_rect(nr, Color(UIKit.INK, 0.85 * na))
+		draw_rect(Rect2(nr.position.x, nr.end.y - 1, nr.size.x, 1), Color(UIKit.CRIMSON, na))
+		PixelText.draw_centered(self, 160, nr.position.y + 3, notice, Color(UIKit.CREAM, na))
 	UIKit.wipe(self, wipe, -1.0 if leaving == "" else 1.0)
 
 

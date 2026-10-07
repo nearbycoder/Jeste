@@ -32,11 +32,16 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOL_DIR = os.path.join(ROOT, "tests", "solutions")
 BASIC_DIR = os.path.join(ROOT, "tests", "solutions_basic")
 GODOT = os.environ.get("GODOT", "godot")
+# Godot's user:// (saves, settings, logs) goes to a throwaway folder in the
+# git-ignored build/, so no test can touch a player's real save or settings.
+TEST_USER = os.path.join(ROOT, "build", "test_user")
+ENV = dict(os.environ, XDG_DATA_HOME=os.path.join(TEST_USER, "data"),
+           XDG_CONFIG_HOME=os.path.join(TEST_USER, "config"), XDG_CACHE_HOME=os.path.join(TEST_USER, "cache"))
 
 
 def godot(args, timeout=None):
     cmd = [GODOT, "--headless", "--path", ROOT, "--script"] + args
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=ENV)
     return p
 
 
@@ -414,6 +419,18 @@ def main():
             lines.append(f"  - {l}")
     print(f"  data/hints.json replays: {'PASS' if hok else 'FAIL'}")
     lines.append(f"- `data/hints.json` replays to every exit: {'PASS' if hok else 'FAIL'}")
+    print("== Save files (atomic writes, backup and recovery)")
+    sp = godot(["res://tests/save_check.gd"], timeout=300)
+    sout = sp.stdout + sp.stderr
+    sok = "SAVES PASS" in sout and sp.returncode == 0
+    all_ok &= sok
+    for l in sout.splitlines():
+        if l.startswith("SAVES FAIL:") or l.startswith("SAVES NOTE:"):
+            print("  " + l)
+    sdetail = next((l for l in sout.splitlines() if l.startswith("SAVES PASS") or l.startswith("SAVES FAIL ")), "no result")
+    print(f"  {'PASS' if sok else 'FAIL'} - {sdetail}")
+    lines.append(f"- Save files survive damaged writes (`tests/save_check.gd`): {'PASS' if sok else 'FAIL'} ({sdetail})")
+    lines.append("")
     brob = sorted(((-r.get("lethal", 0.0), r.get("robustness", 1.0), r["id"], r.get("frames", 0)) for r in basic_results.values()
                    if r.get("ok") and "_to_" in r["id"]))
     if brob:
@@ -454,7 +471,7 @@ def main():
         if os.path.exists(opath):
             os.remove(opath)
         p = subprocess.run([GODOT, "--headless", "--path", ROOT, "res://tests/e2e.tscn", "--", rpath, opath],
-                           capture_output=True, text=True, timeout=1200)
+                           capture_output=True, text=True, timeout=1200, env=ENV)
         e2e = {}
         if os.path.exists(opath):
             with open(opath) as f:
@@ -495,7 +512,7 @@ def main():
     if not args.no_e2e:
         print("== Menu flow (title, options, chapter select, pause, assist, results, credits)")
         p = subprocess.run([GODOT, "--headless", "--path", ROOT, "--fixed-fps", "60", "res://tests/ui_flow.tscn"],
-                           capture_output=True, text=True, timeout=600)
+                           capture_output=True, text=True, timeout=600, env=ENV)
         out = p.stdout + p.stderr
         errs = [l for l in out.splitlines() if "SCRIPT ERROR" in l]
         ok = "UI FLOW PASS" in out and not errs
