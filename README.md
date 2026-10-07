@@ -64,6 +64,13 @@ is always one menu away.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
 - Menus repeat when you hold a direction (keys, D-pad or stick).
 - **Hold Pause** (Esc or Start) during a cutscene to skip the rest of it. Tapping jump or dash still advances line by line.
+- **Start from any checkpoint.** Once you've reached more than one room of a chapter, choosing
+  it on the map lets you pick where to start with Left/Right: *Continue*, the start, or any
+  room you've reached (secret rooms aren't listed). The postcard shows that room, the text beside it shows
+  which of its berries and bell you still lack, and a red dot over a room's pip means something
+  there is still missing. Only runs from the chapter's start can set a Best time.
+- **Pause → Restart Chapter** (after a confirm) starts a fresh run from the chapter's first
+  room, for golden-berry attempts and speedruns. The pause screen also shows the chapter's berries.
 - **Options → Controls** rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. On-screen prompts follow whichever device you used last, and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
 - **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.
@@ -138,7 +145,8 @@ A title screen with a campfire and a juggling Mira. Chapter select shows living
 postcards rendered from each chapter's real opening room. Results screens show berries,
 deaths, time, bells and golden runs. Options cover volume, fullscreen, window size, smooth motion, screen shake,
 reduced flashing, rumble, an optional speedrun timer and key rebinding. The game auto-pauses when the window loses focus,
-and *Continue* returns you to the last room you entered.
+*Continue* returns you to the last room you entered, and any room you've reached can be a
+starting checkpoint.
 
 ## Content overview
 
@@ -169,7 +177,9 @@ and *Continue* returns you to the last room you entered.
 Download **`Jeste-v0.1.0-linux-x86_64.zip`** from the
 [latest release](https://github.com/nearbycoder/Jeste/releases/latest), unzip it and run
 `./Jeste.x86_64`. It's a single 64-bit binary and needs a Vulkan-capable GPU. Saves and
-settings are stored in `~/.local/share/godot/app_userdata/Jeste/`.
+settings are stored in `~/.local/share/godot/app_userdata/Jeste/`. Each write keeps the
+previous copy as `.bak`. If a file is ever damaged (a crash or a full disk mid-write), the
+game loads the backup, keeps the damaged file as `.corrupt` and tells you on the title screen.
 
 Windows, macOS and web builds aren't published yet. `export_presets.cfg` has presets for all
 three (Windows x86_64, a single-threaded web build, and an ad-hoc-signed, un-notarized
@@ -195,7 +205,8 @@ python3 tests/run_tests.py                      # all chapters: lint, solve, pro
 python3 tests/run_tests.py --chapters 1 3 --resolve   # re-solve chosen chapters from scratch
 ```
 
-Results are written to `tests/REPORT.md`.
+Results are written to `tests/REPORT.md`. Every Godot run in the suite gets its own throwaway
+`user://` in `build/test_user/`, so tests never read or write your real save or settings.
 
 **Regenerate the assets.** All 56 PNGs and all audio are produced by code. Re-running the art
 generator reproduces the committed images byte for byte.
@@ -326,9 +337,17 @@ and credits. It is a first release, so expect rough edges.
   the three rooms where small timing slips were most often fatal were eased (2-03, 6-06,
   7-05; the trailer predates these edits). Human-feel playtesting is still light, so some rooms may feel tighter than intended.
   Assist mode is there for that, including the Route Ghost.
-- **Game Speed in v0.1.0 didn't slow gameplay.** In the released build the 50–90% settings
-  only slowed animations and timers; Mira moved at full speed. This is fixed on `main` (the
-  game now steps its simulation at the chosen speed) but not yet in a release.
+- **Fixed on `main`, not yet in a release:**
+  - *Game Speed didn't slow gameplay* in v0.1.0. The 50–90% settings only slowed animations and
+    timers; Mira moved at full speed. The game now steps its simulation at the chosen speed.
+  - *A save could be lost to a crash.* v0.1.0 rewrote the save in place on every room and berry.
+    A crash or full disk at that moment left a damaged file, which the next launch silently
+    replaced with an empty save. Saves are now written to a temporary file and renamed, with a
+    backup. This was checked by damaging files in every way a torn write can, not by pulling the
+    power, and the rename path hasn't been run on Windows or the web.
+  - *Rebinding could leave Dash stuck.* Binding the key or pad button that was Dash (X on both
+    by default) to Jump left Dash "held" after you let go, so the next level started with a dash
+    and your next press of Dash did nothing.
 - **Route Ghost limits:** her own moving parts are drawn only where they are solid for her and
   not for you. A board or mask block that is solid for you but not for her is still drawn
   normally, so she can appear to pass through it.

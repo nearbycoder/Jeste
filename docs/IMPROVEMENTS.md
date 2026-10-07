@@ -478,3 +478,57 @@ display-only judgement call:
 Not picked: the Route Ghost block-drawing limit (small visual gap, and a fix means hiding the
 player's own blocks); physical controllers and 144/165 Hz displays (no hardware here); builds,
 license and releases (owner decisions); new content (too large).
+
+## Round 4 results (2026-10-06)
+
+All commits are on `improvements-4`; nothing has been pushed. The full suite passes after
+every item: fastest-route and basic-moveset proofs for all 9 chapters, golden runs, end-to-end
+playthroughs, hint replays, the new save check and the menu flow. Every run used a throwaway
+user-data directory under `build/`. The real save's checksum was the same before and after. Screenshots are in
+`docs/media/improvements/round4/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Saves survive a crash or a bad write | Done | `4794b5a` | `tests/save_check.gd` (41 checks, now in the suite): truncated, empty, garbage and non-object saves load the backup and are kept as `.corrupt`; a later write leaves `.corrupt` alone; a crash between the two renames loads the backup quietly; both files damaged gives a fresh start without deleting anything; the real `load_save()` recovers from a torn write; Erase Save leaves no backup. Screenshot: `title_save_restored.png`. |
+| Found on the way: rebinding left Dash stuck | Fixed | `9d4f512` | See below. |
+| B. Checkpoint select | Done | `b95aa48` | ui_flow seeds a save, opens the picker on chapter 1, checks the list (1-01…1-04, no secret room), clamping and Back, starts from 1-03 (room, practice run, zero time and deaths), then Continue from the secret 1-05s (time and deaths carried). A unit check covers the backfill rules, and every main-path room's spawn 0 has a shipped, proven Route Ghost route. Screenshots: `checkpoint_select.png`, `checkpoint_continue.png`. |
+| C. Pause → Restart Chapter | Done | `1c1a4d5` | ui_flow from the 1-03 checkpoint run: opens the confirm (default Keep climbing), keeps climbing, then restarts and checks 1-01, a full run, zero time and deaths, unpaused. Screenshot: `pause_restart_chapter.png`. |
+
+### The stuck Dash
+The checkpoint steps in ui_flow started 1-03 and Mira immediately dashed into the spikes. Dash had
+been "held" since an earlier step bound Jump to the pad's X, which was Dash: X was pressed while
+it meant Dash and released after it meant Jump, so Dash never saw its release. In the game that
+means the next level starts with a dash and the next press of Dash does nothing. The keyboard
+does the same (hold X, bind Jump to X, let go), which a throwaway scene confirmed with and without
+the fix. Keyboard rebinding shipped in v0.1.0, so the release has this bug. `setup_input()` now
+starts every action released. ui_flow checks Dash right after the pad rebind and fails without
+the fix.
+
+### Deviations and limits
+- **Save safety** protects against a crash or a failed write. It was checked by damaging files the
+  way a torn write would, not by cutting power. Files are closed but not synced to disk, so after a
+  power cut the newest save may be lost; the previous copy is still kept. The rename steps
+  haven't been run on Windows or the web, where builds don't exist yet.
+- **Checkpoints start at the room's first spawn**, as *Continue* always has, not at the side you
+  entered from. Each one is proven to have a route to its exit. In a room whose spawn is at the
+  screen edge (for example the secret dressing room) the postcard can't show Mira.
+- **Restart Chapter** sits above Return to Map rather than near the top, so the existing menu
+  order (and every pause step in ui_flow) stays the same.
+- **Test sandbox:** `run_tests.py` now gives every Godot run its own `user://` in
+  `build/test_user/`. The scope didn't ask for this, but nothing in the suite can reach a
+  player's save now.
+- **One flaky run.** One of four full-suite runs failed at an early menu step (Window Size)
+  at load average 22, a part of the flow this round doesn't touch. ui_flow then passed 3 of 3
+  standalone runs at load 20–30, and every other full-suite run passed. The cause wasn't found.
+- Screenshots of the picker and the pause confirm were driven by throwaway scripts that call the
+  menu's methods directly (kept in the git-ignored `build/r4/`). Scripted presses after the first
+  didn't register in a windowed `tools/scene_shot.tscn` run. ui_flow drives the same screens
+  with real input events, headless.
+
+### Still open
+- A human playtest, physical controllers and a real 144/165 Hz display (unchanged).
+- Route Ghost: blocks solid for the player but not for her are still drawn (round 3 limit).
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has three bugs that `main` fixes: Game Speed, saves lost to a crash, and the stuck Dash
+  after rebinding.
