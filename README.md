@@ -227,12 +227,20 @@ godot --path .                      # play (or open the folder in the Godot edit
 **Run the verification suite.** It needs no display and takes under two minutes with cached solutions (both route sets):
 
 ```sh
-python3 tests/run_tests.py                      # all chapters: lint, solve, prove, play end-to-end, menu flow
+python3 tests/run_tests.py                      # all chapters: lint, solve, prove, play end-to-end, menu flow, menu fuzz
 python3 tests/run_tests.py --chapters 1 3 --resolve   # re-solve chosen chapters from scratch
 ```
 
 Results are written to `tests/REPORT.md`. Every Godot run in the suite gets its own throwaway
 `user://` in `build/test_user/`, so tests never read or write your real save or settings.
+
+A longer run of random input through the menus and the level (seed and frame count; it
+refuses to run unless Godot's user data is under `build/`):
+
+```sh
+XDG_DATA_HOME=$PWD/build/fuzz/data XDG_CONFIG_HOME=$PWD/build/fuzz/config \
+  godot --headless --path . --fixed-fps 60 res://tests/menu_fuzz.tscn -- 7 60000
+```
 
 **Regenerate the assets.** All 56 PNGs and all audio are produced by code. Re-running the art
 generator reproduces the committed images byte for byte.

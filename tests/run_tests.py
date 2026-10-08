@@ -15,12 +15,15 @@ Jeste automated level verification.
 5. Plays every chapter end-to-end through the real Level scene, chaining the
    proven room solutions, and checks every collectible lands in the save file
    with zero deaths (which also proves each Golden Sunberry run).
+6. Runs the menu flow (tests/ui_flow.gd) and a short seed of random input
+   through the menus and the level (tests/menu_fuzz.gd).
 
 Usage:  python3 tests/run_tests.py [--chapters 0 1 2] [--jobs N] [--budget N] [--no-e2e] [--resolve]
 """
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -542,6 +545,28 @@ def main():
             detail += f" ({len(errs)} script errors: {errs[0]})"
         print(f"  {'PASS' if ok else 'FAIL'} - {detail}")
         lines.append("## Menu flow")
+        lines.append(f"- {'PASS' if ok else 'FAIL'} - {detail}")
+        lines.append("")
+    if not args.no_e2e:
+        # random keys, pad, stick, mouse, focus loss and pad unplugs through
+        # every menu and the level (tests/menu_fuzz.gd); it saves, so it gets a
+        # throwaway user:// of its own, wiped first
+        print("== Menu fuzz (random input through the menus and the level)")
+        fz = os.path.join(TEST_USER, "fuzz")
+        shutil.rmtree(fz, ignore_errors=True)
+        fenv = dict(ENV, XDG_DATA_HOME=os.path.join(fz, "data"), XDG_CONFIG_HOME=os.path.join(fz, "config"),
+                    XDG_CACHE_HOME=os.path.join(fz, "cache"))
+        p = subprocess.run([GODOT, "--headless", "--path", ROOT, "--fixed-fps", "60", "res://tests/menu_fuzz.tscn", "--", "1", "8000"],
+                           capture_output=True, text=True, timeout=600, env=fenv)
+        out = p.stdout + p.stderr
+        errs = [l for l in out.splitlines() if "SCRIPT ERROR" in l]
+        ok = "MENU FUZZ PASS" in out and not errs
+        all_ok &= ok
+        detail = next((l for l in out.splitlines() if l.startswith("MENU FUZZ")), "no result")
+        if errs:
+            detail += f" ({len(errs)} script errors: {errs[0]})"
+        print(f"  {'PASS' if ok else 'FAIL'} - {detail[:160]}")
+        lines.append("## Menu fuzz")
         lines.append(f"- {'PASS' if ok else 'FAIL'} - {detail}")
         lines.append("")
     lines.append(f"**Overall: {'PASS' if all_ok else 'FAIL'}**  ({time.time() - t0:.0f}s)")
