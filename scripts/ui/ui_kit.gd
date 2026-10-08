@@ -170,7 +170,7 @@ static func wheel_action(ev: InputEvent, up: String, down: String) -> InputEvent
 
 ## Rows whose value the wheel steps when the pointer is on them (elsewhere in
 ## a list it moves the selection).
-const WHEEL_VALUE_ROWS := ["Music Volume", "Sound Volume", "Window Size", "Smooth Motion", "Game Speed", "Air Dashes", "Route Ghost"]
+const WHEEL_VALUE_ROWS := ["Music Volume", "Sound Volume", "Window Size", "Smooth Motion", "Game Speed", "Air Dashes", "Route Ghost", "Stick Deadzone"]
 
 
 ## Wheel on a menu list: over a row in WHEEL_VALUE_ROWS it steps that value

@@ -41,7 +41,11 @@ var _axis_dir := {}            # (device, axis) -> -1, 0 or 1
 ## In play the left stick is one vector: past a round deadzone it points one
 ## of eight equal 45-degree ways, however far it's pushed (see stick_input).
 ## Each axis on its own would need the stick near the rim for a diagonal.
+## The deadzone is a setting (Controls > Stick Deadzone), for sticks that
+## drift; STICK_DEADZONE is its default.
 const STICK_DEADZONE := 0.4
+const STICK_DEADZONE_MIN := 0.1
+const STICK_DEADZONE_MAX := 0.7
 var _stick_pads := {}          # devices whose left stick has moved
 ## Menu hold-to-repeat: a held direction re-sends its press after
 ## REPEAT_DELAY, then every REPEAT_RATE seconds (real time).
@@ -171,13 +175,16 @@ func fullscreen_key(ev: InputEventKey) -> bool:
 
 
 ## True when this motion event pushes its axis into a new direction.
+## Past a raised deadzone a push must clear it, and coming back to a drifting
+## stick's resting point (just under it) counts as letting go.
 func stick_edge(ev: InputEventJoypadMotion) -> bool:
 	var key := ev.device * 64 + ev.axis
 	var prev: int = _axis_dir.get(key, 0)
 	var d := prev
-	if absf(ev.axis_value) >= STICK_PRESS:
+	var dz := stick_deadzone()
+	if absf(ev.axis_value) >= maxf(STICK_PRESS, dz):
 		d = 1 if ev.axis_value > 0.0 else -1
-	elif absf(ev.axis_value) < STICK_RELEASE:
+	elif absf(ev.axis_value) < (STICK_RELEASE if dz <= STICK_DEADZONE else dz - 0.05):
 		d = 0
 	_axis_dir[key] = d
 	return d != 0 and d != prev
@@ -399,6 +406,7 @@ func setup_input() -> void:
 	_axis("up", JOY_AXIS_LEFT_Y, -1.0); _axis("down", JOY_AXIS_LEFT_Y, 1.0)
 	_axis("grab", JOY_AXIS_TRIGGER_RIGHT, 1.0)
 	_axis("grab", JOY_AXIS_TRIGGER_LEFT, 1.0)
+	apply_stick_deadzone()
 	# A button held while it's rebound releases into its new action, so the
 	# old one would stay "held" (a stuck dash fires on the next level start and
 	# blocks every later dash). Start every action released.
@@ -453,15 +461,70 @@ func read_input() -> int:
 func stick_input() -> int:
 	var b := 0
 	for d in _stick_pads:
-		var v := Vector2(Input.get_joy_axis(d, JOY_AXIS_LEFT_X), Input.get_joy_axis(d, JOY_AXIS_LEFT_Y))
-		if v.length() < STICK_DEADZONE:
-			continue
-		var s := posmod(roundi(v.angle() / (PI / 4.0)), 8)   # 0 = right, 2 = down (y points down)
-		if s in [7, 0, 1]: b |= World.IN_RIGHT
-		if s in [1, 2, 3]: b |= World.IN_DOWN
-		if s in [3, 4, 5]: b |= World.IN_LEFT
-		if s in [5, 6, 7]: b |= World.IN_UP
+		b |= stick_dirs(stick_vector(d))
 	return b
+
+
+func stick_vector(device: int) -> Vector2:
+	return Vector2(Input.get_joy_axis(device, JOY_AXIS_LEFT_X), Input.get_joy_axis(device, JOY_AXIS_LEFT_Y))
+
+
+## The direction bits for one stick position (0 inside the deadzone).
+func stick_dirs(v: Vector2) -> int:
+	if v.length() < stick_deadzone():
+		return 0
+	var b := 0
+	var s := posmod(roundi(v.angle() / (PI / 4.0)), 8)   # 0 = right, 2 = down (y points down)
+	if s in [7, 0, 1]: b |= World.IN_RIGHT
+	if s in [1, 2, 3]: b |= World.IN_DOWN
+	if s in [3, 4, 5]: b |= World.IN_LEFT
+	if s in [5, 6, 7]: b |= World.IN_UP
+	return b
+
+
+## The pad whose stick the Controls panel shows: the one used last if its
+## stick has moved, else any whose stick has (a pad that's unplugged leaves
+## that list), else any connected one (-1: none).
+func stick_pad() -> int:
+	if _stick_pads.has(pad_device):
+		return pad_device
+	for d in _stick_pads:
+		return d
+	var pads := Input.get_connected_joypads()
+	return -1 if pads.is_empty() else pads[0]
+
+
+func stick_deadzone() -> float:
+	var v = settings.get("stick_deadzone", STICK_DEADZONE) if settings else STICK_DEADZONE
+	return clampf(float(v), STICK_DEADZONE_MIN, STICK_DEADZONE_MAX)
+
+
+## Left / Right step it by 5%; Confirm steps up and wraps from the top.
+func step_stick_deadzone(d: int, wrap := false) -> void:
+	var v := snappedf(stick_deadzone() + 0.05 * d, 0.05)
+	if wrap and v > STICK_DEADZONE_MAX + 0.001:
+		v = STICK_DEADZONE_MIN
+	settings.stick_deadzone = clampf(v, STICK_DEADZONE_MIN, STICK_DEADZONE_MAX)
+	apply_stick_deadzone()
+
+
+## The per-axis direction actions (menus, and gameplay alongside the
+## sectors) count a stick past the deadzone too, but never below 0.4: a
+## stick inside its circle then only ever adds a direction its sector gives.
+## A held action isn't looked at again when its deadzone changes, so each
+## stick's position is sent again: a push now inside the deadzone lets go
+## (else holding a half-pushed stick on this row would repeat it to the top).
+func apply_stick_deadzone() -> void:
+	for a in ["up", "down", "left", "right"]:
+		if InputMap.has_action(a):
+			InputMap.action_set_deadzone(a, maxf(STICK_DEADZONE, stick_deadzone()))
+	for d in _stick_pads:
+		for axis in [JOY_AXIS_LEFT_X, JOY_AXIS_LEFT_Y]:
+			var ev := InputEventJoypadMotion.new()
+			ev.device = d
+			ev.axis = axis
+			ev.axis_value = Input.get_joy_axis(d, axis)
+			Input.parse_input_event(ev)
 
 
 # ---------------------------------------------------------------- save data
@@ -672,7 +735,7 @@ func default_settings() -> Dictionary:
 		"show_timer": false, "game_speed": 1.0, "infinite_stamina": false,
 		"invincible": false, "rumble": true, "window_scale": 0,
 		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto", "grab_mode": "hold",
-		"air_dashes": "default", "ghost_goal": "exit", "dash_aim": false,
+		"air_dashes": "default", "ghost_goal": "exit", "dash_aim": false, "stick_deadzone": STICK_DEADZONE,
 	}
 
 

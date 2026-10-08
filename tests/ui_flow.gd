@@ -55,6 +55,7 @@ func _ready() -> void:
 		["check", "aim_probe_pure", 0],
 		["check", "assist_help", 0],
 		["check", "stick_sectors", 0],
+		["check", "deadzone_sweep", 0],
 		["check", "option_help", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
@@ -136,31 +137,46 @@ func _ready() -> void:
 		["key", "F11", 6], ["check", "f11_is_jump", 0],          # bound to Jump, it's Jump (Select), not fullscreen
 		["key", "Escape", 6], ["check", "jump_is_f11", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
-		["check", "jump_default", 0],
-		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["check", "on_deadzone", 0],
+		["check", "deadzone_40", 0], ["press", "right", 4], ["check", "deadzone_45", 0],   # Stick Deadzone: Right / Left step 5%...
+		["press", "left", 4], ["press", "left", 4], ["check", "deadzone_35", 0],
+		["wheel", "160,117,up", 4], ["check", "deadzone_40", 0],   # ...so does the wheel over the row...
+		["set_deadzone", "0.7", 0], ["press", "confirm", 4], ["check", "deadzone_10", 0],   # ...and Confirm wraps from 70%
+		["set_deadzone", "0.55", 0], ["press", "right", 4], ["check", "deadzone_60", 0],
+		# a stick drifting to 0.5 below a 60% deadzone: no direction, the menu stays put
+		["stick_rest", "0.5", 40], ["check", "on_deadzone", 0], ["check", "drift_still", 0],
+		["stick_flick", "0.5", 4], ["check", "ctl_sel_9", 0],   # a full push still moves one row...
+		["stick_flick", "0.5", 4], ["check", "ctl_sel_10", 0],  # ...and back at the drift, another push moves again
+		["stick_rest", "0", 4], ["press", "up", 4], ["press", "up", 4], ["check", "on_deadzone", 0],
+		["key", "F1", 2],                                        # (an unbound key puts prompts back on the keyboard)
+		["press", "down", 4], ["press", "confirm", 6],  # Reset
+		["check", "jump_default", 0], ["check", "deadzone_60", 0], ["set_deadzone", "0.4", 0],   # Reset keeps the deadzone
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 6],   # rebind Jump on the pad
 		["padbtn", "DPAD_UP", 6], ["check", "still_waiting", 0],  # D-pad can't be bound
 		["padbtn", "X", 6],
 		["check", "pad_jump_x", 0],
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],  # Reset
 		["check", "pad_default", 0],
-		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["check", "on_grab_mode", 0],    # Grab Mode
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["check", "on_grab_mode", 0],    # Grab Mode
 		["press", "confirm", 4], ["check", "grab_toggle", 0],
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],          # Reset Defaults keeps it
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 6],          # Reset Defaults keeps it
 		["check", "grab_mode_kept", 0],
-		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "right", 4], ["check", "grab_hold", 0],
-		["mouse_at", "160,39", 2], ["check", "ctl_sel_1", 0],    # the mouse in Controls
-		["wheel", "160,39,down", 4], ["check", "ctl_sel_2", 0], ["wheel", "160,39,up", 4], ["check", "ctl_sel_1", 0],
-		["click", "160,39", 4], ["check", "ctl_waiting", 0],     # a click starts a rebind...
-		["wheel", "160,39,down", 4], ["check", "ctl_waiting", 0],   # ...the wheel can't be bound or move it...
-		["click", "160,39", 4], ["check", "ctl_waiting", 0],     # ...a mouse button can't be bound...
-		["rclick", "160,39", 4], ["check", "ctl_cancelled", 0],  # ...a right click cancels it
-		["click", "160,63", 4], ["check", "grab_toggle", 0],     # Grab Mode
-		["click", "160,63", 4], ["check", "grab_hold", 0],
-		["click", "160,5", 4], ["check", "ctl_cancelled", 0],   # a click off the rows does nothing
-		["rclick", "160,63", 10], ["check", "options", 0],       # a right click closes the panel
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "right", 4], ["check", "grab_hold", 0],
+		["mouse_at", "160,33", 2], ["check", "ctl_sel_1", 0],    # the mouse in Controls
+		["wheel", "160,33,down", 4], ["check", "ctl_sel_2", 0], ["wheel", "160,33,up", 4], ["check", "ctl_sel_1", 0],
+		["click", "160,33", 4], ["check", "ctl_waiting", 0],     # a click starts a rebind...
+		["wheel", "160,33,down", 4], ["check", "ctl_waiting", 0],   # ...the wheel can't be bound or move it...
+		["click", "160,33", 4], ["check", "ctl_waiting", 0],     # ...a mouse button can't be bound...
+		["rclick", "160,33", 4], ["check", "ctl_cancelled", 0],  # ...a right click cancels it
+		["click", "160,57", 4], ["check", "grab_toggle", 0],     # Grab Mode
+		["click", "160,57", 4], ["check", "grab_hold", 0],
+		["click", "160,4", 4], ["check", "ctl_cancelled", 0],   # a click off the rows does nothing
+		["mouse_at", "160,117", 2], ["check", "on_deadzone", 0],   # the wheel over Stick Deadzone steps it
+		["wheel", "160,117,down", 4], ["check", "deadzone_35", 0], ["wheel", "160,117,up", 4], ["check", "deadzone_40", 0],
+		["check", "deadzone_dial", 0],
+		["rclick", "160,57", 10], ["check", "options", 0],       # a right click closes the panel
 		["click", "76,127", 10], ["check", "controls", 0],      # and a click on Controls opens it again
 		["press", "back", 10],
 		["press", "back", 20],
@@ -225,12 +241,12 @@ func _ready() -> void:
 		["press", "confirm", 6], ["key", "Escape", 6], ["check", "pause_jump_m", 0], # Esc cancels, still paused
 		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 4],   # Grab Mode
 		["check", "grab_toggle_paused", 0],
-		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
+		["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4], ["press", "down", 4],
 		["press", "confirm", 6], ["check", "pause_reset", 0],                       # Reset Defaults
-		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
+		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
 		["press", "confirm", 4], ["check", "grab_hold_paused", 0],
-		["mouse_at", "160,39", 2], ["check", "pause_ctl_sel_1", 0],
-		["rclick", "160,39", 6], ["check", "pause_controls_closed", 0],   # a right click closes Controls
+		["mouse_at", "160,33", 2], ["check", "pause_ctl_sel_1", 0],
+		["rclick", "160,33", 6], ["check", "pause_controls_closed", 0],   # a right click closes Controls
 		["click", "104,37", 4], ["check", "volume_sfx_0", 0],    # the pause menu's sliders take a click too
 		["click", "135,37", 4], ["check", "volume_sfx_8", 0],
 		["wheel", "135,37,down", 4], ["check", "volume_sfx_7", 0], ["wheel", "135,37,up", 4], ["check", "volume_sfx_8", 0],
@@ -553,6 +569,25 @@ func _process(_d: float) -> void:
 			ev.keycode = ev.physical_keycode
 			ev.pressed = s[0] == "key_down"
 			Input.parse_input_event(ev)
+		"set_deadzone":
+			var g: Node = get_node("/root/Game")
+			g.settings.stick_deadzone = float(s[1])
+			g.apply_stick_deadzone()
+		"stick_rest":
+			# the left stick resting pushed down this far (a drifting stick)
+			var ev := InputEventJoypadMotion.new()
+			ev.device = 0
+			ev.axis = JOY_AXIS_LEFT_Y
+			ev.axis_value = float(s[1])
+			Input.parse_input_event(ev)
+		"stick_flick":
+			# a quick full push down from the drift and back to it
+			for v in [0.8, 1.0, 0.8, float(s[1])]:
+				var ev := InputEventJoypadMotion.new()
+				ev.device = 0
+				ev.axis = JOY_AXIS_LEFT_Y
+				ev.axis_value = v
+				Input.parse_input_event(ev)
 		"stick_at":
 			var pa: PackedStringArray = str(s[1]).split(",")
 			_stick(deg_to_rad(float(pa[0])), float(pa[1]))
@@ -780,6 +815,15 @@ func _process(_d: float) -> void:
 				"save_kept": ok = cur.screen == "options" and int(gm.data.total_deaths) == 7
 				"save_erased": ok = cur.screen == "options" and int(gm.data.total_deaths) == 0 and int(gm.data.unlocked) == 0
 				"ctl_sel_1": ok = cur.screen == "controls" and cur.controls.sel == 1 and not cur.controls.waiting_key
+				"ctl_sel_9", "ctl_sel_10": ok = cur.screen == "controls" and cur.controls.sel == int(str(s[1]).get_slice("_", 2))
+				"on_deadzone": ok = cur.screen == "controls" and cur.controls.ITEMS[cur.controls.sel] == "Stick Deadzone"
+				"deadzone_10", "deadzone_35", "deadzone_40", "deadzone_45", "deadzone_60":
+					var pct := int(str(s[1]).get_slice("_", 1))
+					ok = is_equal_approx(gm.stick_deadzone(), pct / 100.0) and cur.controls.value_label("Stick Deadzone") == "%d%%" % pct
+				"drift_still": ok = gm.read_input() & (World.IN_LEFT | World.IN_RIGHT | World.IN_UP | World.IN_DOWN) == 0 \
+					and not Input.is_action_pressed("down") and is_equal_approx(gm.stick_vector(0).y, 0.5)
+				"deadzone_dial": ok = _deadzone_dial_ok(cur.controls)
+				"deadzone_sweep": ok = _deadzone_sweep_ok()
 				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"pause_ctl_sel_1": ok = cur.hud.controls_open and cur.hud.controls.sel == 1
@@ -1358,6 +1402,78 @@ func _stick_sectors_ok() -> bool:
 	_stick(0.0, 0.0)
 	if g.read_input() & dirs:
 		print("stick at rest still gives a direction")
+		ok = false
+	return ok
+
+
+## Stick Deadzone: at 20%, 60% and 70% the stick gives the eight 45-degree
+## directions just past the deadzone and nothing just inside it, in play
+## (read_input) and for the menus' direction actions alike.
+func _deadzone_sweep_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var dirs := World.IN_LEFT | World.IN_RIGHT | World.IN_UP | World.IN_DOWN
+	var ok := true
+	for t in [[0.2, [0.15], [0.25, 0.45, 1.0]], [0.6, [0.4, 0.55], [0.65, 1.0]], [0.7, [0.65], [0.75, 1.0]]]:
+		g.settings.stick_deadzone = t[0]
+		g.apply_stick_deadzone()
+		for tilt in t[1] + t[2]:
+			var counts := {}
+			var acted := false
+			for deg in 360:
+				_stick(deg_to_rad(deg + 0.25), tilt)
+				counts[g.read_input() & dirs] = int(counts.get(g.read_input() & dirs, 0)) + 1
+				for a in ["up", "down", "left", "right"]:
+					acted = acted or Input.is_action_pressed(a)
+			if tilt in t[1]:
+				if counts.keys() != [0] or acted:
+					print("deadzone %.2f: stick at %.2f gives a direction: %s, actions %s" % [t[0], tilt, counts, acted])
+					ok = false
+				continue
+			for d in [World.IN_RIGHT, World.IN_RIGHT | World.IN_UP, World.IN_UP, World.IN_UP | World.IN_LEFT,
+					World.IN_LEFT, World.IN_LEFT | World.IN_DOWN, World.IN_DOWN, World.IN_DOWN | World.IN_RIGHT]:
+				if int(counts.get(d, 0)) != 45:
+					print("deadzone %.2f: stick at %.2f: direction %d covers %d degrees (%s)" % [t[0], tilt, d, int(counts.get(d, 0)), counts])
+					ok = false
+	# a push held while the deadzone rises past it lets go of its direction
+	g.settings.stick_deadzone = g.STICK_DEADZONE
+	g.apply_stick_deadzone()
+	_stick(0.0, 0.48)
+	var held_before := Input.is_action_pressed("right")
+	g.step_stick_deadzone(1)
+	g.step_stick_deadzone(1)
+	Input.flush_buffered_events()
+	if not held_before or Input.is_action_pressed("right"):
+		print("a 0.48 push held as the deadzone goes 40 -> 50%%: right held %s, then %s" % [held_before, Input.is_action_pressed("right")])
+		ok = false
+	g.settings.stick_deadzone = g.STICK_DEADZONE
+	g.apply_stick_deadzone()
+	_stick(0.0, 0.0)
+	return ok
+
+
+## The Stick Deadzone row's dial and footer fit: the dial and its readout left
+## of the panel, the footer inside it, the panel above the hint line; and the
+## dial reads the stick that moved (lit past the deadzone, not inside it).
+func _deadzone_dial_ok(c: ControlsMenu) -> bool:
+	var ok := true
+	var ctr := c.dial_center()
+	var box := Rect2(ctr - Vector2.ONE * (c.DIAL_R + 2.0), Vector2.ONE * (2.0 * c.DIAL_R + 4.0)).merge(
+		Rect2(ctr.x - PixelText.width("100%") / 2.0, ctr.y + c.DIAL_R + 5.0, PixelText.width("100%"), PixelText.CELL_H))
+	if box.position.x < 2.0 or box.end.x > c.PANEL.position.x - 2.0 or box.position.y < 0.0 or box.end.y > 164.0:
+		print("dial box ", box)
+		ok = false
+	if PixelText.width(c.DEADZONE_FOOT) > c.PANEL.size.x - 20.0 or c.PANEL.end.y > 164.0:
+		print("footer %d px, panel ends at %d" % [PixelText.width(c.DEADZONE_FOOT), c.PANEL.end.y])
+		ok = false
+	var g: Node = get_node("/root/Game")
+	_stick(-PI / 2.0, 0.5)   # down, half way
+	var lit_40: int = g.stick_dirs(g.stick_vector(g.stick_pad()))
+	g.settings.stick_deadzone = 0.6
+	var lit_60: int = g.stick_dirs(g.stick_vector(g.stick_pad()))
+	g.settings.stick_deadzone = 0.4
+	_stick(0.0, 0.0)
+	if g.stick_pad() != 0 or lit_40 != World.IN_DOWN or lit_60 != 0:
+		print("dial reads pad %d: %d at 40%%, %d at 60%%" % [g.stick_pad(), lit_40, lit_60])
 		ok = false
 	return ok
 

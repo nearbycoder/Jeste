@@ -64,6 +64,10 @@ is always one menu away.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
 - On a gamepad, the left stick points in eight equal directions (45° each) however far you push
   it past a small deadzone, so a half-pushed diagonal still dashes diagonally.
+- **Options → Controls → Stick Deadzone** (10–70%, default 40%) sets how far the stick must be
+  pushed before it counts. With the row highlighted, a dial beside the panel shows where your
+  stick is right now and the direction it gives, so if Mira moves on her own you can see how far
+  your stick drifts and raise the deadzone past it.
 - In menus, Jump's keys or buttons select and Dash's go back (the hints at the bottom name them),
   on a pad as on the keyboard; a pad's A and B also select and go back unless you've bound them
   to the other action.
@@ -86,7 +90,7 @@ is always one menu away.
   there is still missing. Only runs from the chapter's start can set a Best time.
 - **Pause → Restart Chapter** (after a confirm) starts a fresh run from the chapter's first
   room, for golden-berry attempts and speedruns. The pause screen also shows the chapter's deaths, time and berries.
-- **Options → Controls** (on the title screen or in the pause menu) rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. On-screen prompts follow whichever device you used last, name keys the way your keyboard layout prints them (keys are bound by position, so on a French AZERTY keyboard the default Grab key reads W and WASD reads ZQSD), and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
+- **Options → Controls** (on the title screen or in the pause menu) rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. *Reset Defaults* resets the bindings and keeps Grab Mode and Stick Deadzone. On-screen prompts follow whichever device you used last, name keys the way your keyboard layout prints them (keys are bound by position, so on a French AZERTY keyboard the default Grab key reads W and WASD reads ZQSD), and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
 - **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.
 - **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
@@ -370,8 +374,8 @@ and credits. It is a first release, so expect rough edges.
   the stick's eight equal directions in play, pausing when a pad disconnects) was exercised
   with simulated input, not on a range of physical controllers. Controller families are
   recognised by the name the pad reports, so an unusual pad may show Xbox button names. The
-  stick's deadzone (0.4 of full tilt) isn't adjustable, so a badly drifting stick may still
-  move Mira.
+  stick's deadzone can be raised for a drifting stick (*Controls → Stick Deadzone*); that and its
+  dial were checked with simulated stick positions only.
 - **Difficulty was tuned against a bot.** Every room is proven possible, now also with the
   basic moveset alone (no supers, hypers or wall-bounces, which the game never teaches), and
   the three rooms where small timing slips were most often fatal were eased (2-03, 6-06,
