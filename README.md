@@ -93,6 +93,13 @@ is always one menu away.
 - **Options → Controls** (on the title screen or in the pause menu) rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. *Reset Defaults* resets the bindings and keeps Grab Mode and Stick Deadzone. On-screen prompts follow whichever device you used last, name keys the way your keyboard layout prints them (keys are bound by position, so on a French AZERTY keyboard the default Grab key reads W and WASD reads ZQSD), and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
 - **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.
+- **Options → Graphics** (Graphics Fidelity) has four steps. *High*, the default, is the game's
+  usual look. *Medium* uses a lighter glow and drops the light shafts and some particles; *Low*
+  turns off the full-screen glow and colour grading, fog and light shafts and halves the
+  particles, for weak GPUs. *Ultra* adds a wide soft glow, depth of field on distant ridges, soft
+  shadows cast by the terrain, light shafts in every chapter, finer light pools, more particles
+  and a few soft motes drifting in front. Left/Right, the wheel or a click on its meter change
+  it, and the change shows at once.
 - **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
 - **Pause → Assist** (each row says what it does under the panel) offers slower game speed (50–100%, which slows the whole game, controls included), infinite stamina,
   **Air Dashes** (*Two* gives two dashes wherever a room gives one; *Infinite* never spends one;
@@ -169,16 +176,18 @@ Oddo (a ghost who never ends his show), and the Grin.
 Squash and stretch, dash afterimages and ribbon trails, freeze frames, directional screen
 shake, a look-ahead camera, gamepad rumble, and a jester cap with two physics-simulated
 tails and jingle bells. The world is painted pixel by pixel from the collision map, with
-parallax backdrops, a glow pass, bloom and per-chapter colour grading.
+parallax backdrops, a glow pass, bloom and per-chapter colour grading, and at *Ultra* a wide soft
+glow, terrain shadows and depth of field.
 
 ### Front end
 
 A title screen with a campfire and a juggling Mira. Chapter select shows living
 postcards rendered from each chapter's real opening room. Results screens show berries,
-deaths, time, bells, golden runs and whether the climb set a new Best (or the Best it didn't beat). Options cover volume, fullscreen, window size, smooth motion, screen shake,
+deaths, time, bells, golden runs and whether the climb set a new Best (or the Best it didn't beat). Options cover volume, fullscreen, window size, graphics fidelity, smooth motion, screen shake,
 reduced flashing, rumble, an optional speedrun timer and key rebinding, and a box beside the
 panel says what the highlighted one does (in the pause menu both open on the side of the screen
-away from Mira, so she stays in view). The game auto-pauses when the window loses focus,
+away from Mira, so she stays in view). Pausing softly blurs the climb behind the menu, toggles
+slide, changed values flash and backing out of any menu has its own sound. The game auto-pauses when the window loses focus,
 *Continue* returns you to the last room you entered, and any room you've reached can be a
 starting checkpoint.
 
@@ -282,6 +291,9 @@ python3 tools/trailer/make_trailer.py trailer qc    # re-cut without re-recordin
 godot --path . --rendering-method mobile res://tools/overview.tscn -- 3 /tmp/ch3.png   # every room of a chapter
 godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/solutions/3_3-03_s0_collect.json /tmp/s.png
 godot --path . --rendering-method mobile res://tools/demo.tscn                         # self-playing demo reel
+# the same frame at a Graphics step (0 Low .. 3 Ultra), or its frame times with "bench"
+godot --path . --fixed-fps 60 res://tools/fidelity_shot.tscn -- 1 1-03 tests/solutions/1_1-03_s0_to_1-04.json 100 3 build/ultra.png
+godot --path . --disable-vsync res://tools/fidelity_shot.tscn -- 1 1-03 tests/solutions/1_1-03_s0_to_1-04.json 1800 3 bench
 ```
 
 **Smooth Motion probe.** Replays a room's Route Ghost route at a forced frame rate and logs
@@ -426,6 +438,11 @@ and credits. It is a first release, so expect rough edges.
   the outline of one you found on an earlier climb until she takes it. A dash gem or balloon
   she has used keeps looking ready for you, with a draining ring in her colour around it. None
   of this has been playtested with a new player.
+- **Graphics:** the four steps were measured on one machine only (an AMD Radeon 8060S iGPU on
+  Linux, Vulkan), where every step takes well under a millisecond of GPU time per frame. *Low*
+  hasn't been tried on a weak GPU, and none of the steps on the untested Windows, macOS or web
+  builds. *Ultra*'s wide glow reads the screen's blurred mip levels, which the web build's
+  renderer may draw differently.
 - **Mouse:** menu hover, clicks and the wheel were checked with synthetic events (in a real
   window too), not with a physical mouse or touchpad. Gameplay itself is keyboard or pad only.
 - **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple

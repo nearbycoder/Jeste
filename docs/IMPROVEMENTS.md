@@ -1441,3 +1441,98 @@ the round's focus):
 Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
 builds, license and releases (owner decisions); new content (too large); real-time 2D shadows
 from terrain (a much larger change to how rooms are drawn, kept for a later round).
+
+## Round 12 results (2026-10-08)
+
+All commits are on `improvements-12`; nothing has been pushed. The full suite passed after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow and the menu fuzz seed); the final runs are listed below. Every
+run used a throwaway user-data directory (`build/test_user/` or `build/r12/`), with `TMPDIR` in
+`build/r12/tmp/`, except one probe (see Deviations: it cost the real folder one old log file).
+Captures and frame-time runs ran in a private, invisible KWin session (Vulkan,
+the Mobile renderer the game ships with), each ending with none of its processes left and no new
+`ksecretd`. Images are in `docs/media/improvements/round12/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. Options → Graphics: Low / Medium / High / Ultra | Done | `74269dc` | ui_flow steps the title's row with keys (Right stops at Ultra, Confirm wraps to Low, Left stops at Low), the pad's D-pad, the wheel, a click on a meter bar (in an order Confirm's wrap can't give) and a click on the name, and checks the title's post pass follows each step; in the pause menu it clicks meter bars on the right-hand panel, wheels and presses, and checks the level's post pass, backdrop particles, motes and particle density follow. All 13 title rows' and 12 pause rows' help texts fit at every step (19 different texts). Two mutations fail it (the setting not announcing its change; meter clicks ignored). A save/reload probe (`build/r12/save_fid.log`) restores every step, and a bad value or an older settings file reads as High. With the RNG seeded, *High* at the committed tip renders the title and four rooms pixel-identical to `main` (checked against a clean `main` worktree: 0 of 518,400 pixels differ in each). |
+| B. Ultra: a richer look | Done | `74269dc`, `79b9660` | The first Ultra set (wide bloom from the screen's blurred mips, filmic curve, depth of field, finer lights, more particles, motes, denser afterimages) landed with A; `79b9660` adds the terrain's soft shadow and light shafts in every chapter. Same-frame screenshots of the title and three rooms at every step (`fidelity_*.png`, Low top left, Medium top right, High bottom left, Ultra bottom right) and a zoomed High/Ultra pair (`ultra_detail.png`). ui_flow checks the shadow is baked only at Ultra. The suite's route replays and playthroughs pass, so nothing in the simulation moved. |
+| C. The game softens behind the pause menu | Done | `c9774f9` | ui_flow checks the post pass's blur amount is full on the pause menu, 0.4 under Options (so a Graphics change still shows), 0 at Low and 0 back in play; removing the HUD's call fails it. High in play is still pixel-identical to `main`. Screenshot: `pause_soften.png` (High in play, Low paused, High paused). |
+| D. Every press in a menu answers | Done | `18f7aab` | ui_flow counts back cues: one for a right click closing Controls, two for Controls → Options → title, two for Assist → pause → play, one for the pad's X leaving chapter select; it also checks a toggle's knob eases rather than jumping and a changed value flashes. Removing the pause menu's cue and making toggles snap each fail it. Screenshot: `toggle_slide.png` (Screen Shake switching off over consecutive frames). |
+
+Final checks ran on `60844cf`, the last code commit (the commit after it changes only docs,
+images and `tests/REPORT.md`): the full suite passed in 150 s at load average 43 falling to 26
+(`build/r12/suite_final.log`), ui_flow passed two more standalone runs (`uiflow_final1.log`,
+`uiflow_final2.log`), and a longer menu fuzz seed, 24 at 40,000 frames
+(`build/r12/fuzz_24.log`), passed with no script errors, reaching the title's and the pause
+menu's Options, Controls, the checkpoint picker and results.
+
+Also: `01bfc39` makes `tools/fidelity_shot` report the process's CPU time per frame, and
+`60844cf` adds the terrain shadows to Ultra's help text.
+
+### Graphics steps and frame times
+
+Measured with `tools/fidelity_shot.tscn` in bench mode on commit `01bfc39` (rendering is the same
+at the tip): 1,800 frames per scene after a 120-frame warm-up, vsync off, a 1280×720 window (4×,
+what *Auto* picks on a 1080p screen) in a private 1920×1080 KWin session, on this machine's AMD
+Radeon 8060S iGPU. Scenes: the title, and rooms 1-03, 5-02 and 6-02 replaying their solver
+routes. The load average was 22–27 during the run (`build/r12/kw_bench4.log`), after a spike
+to 50 just before it. The GPU time is the engine's own measurement and was steady across four
+runs; the CPU time is what the process used per frame (all threads); the wall-clock frame
+time is mostly how often this busy, shared machine scheduled the game and should be read as
+noise, not as the game's cost.
+
+| Step | What it draws | GPU per frame (4 scenes) | CPU per frame | Wall-clock frame |
+|---|---|---|---|---|
+| Low | No full-screen post pass (no screen copy, no bloom or grade), no fog bands or light shafts, a third of the ambient particles, half the effect particles, no dash ribbon | 0.035–0.081 ms | 1.3–3.8 ms | 2.4–21.5 ms |
+| Medium | Grade and shimmer with one ring of 8 bloom taps, fog, no light shafts, two thirds of the ambient particles, three quarters of the effect particles | 0.078–0.108 ms | 3.9–4.4 ms | 11.1–22.9 ms |
+| High (default) | The shipped look, pixel for pixel: two rings of bloom taps, grade, fog, light shafts in five chapters, 60 ambient particles, all effect particles | 0.065–0.120 ms | 3.3–4.4 ms | 9.8–14.9 ms |
+| Ultra | High plus a wide soft bloom from four blurred mip levels, a filmic curve, soft terrain shadows, light shafts with soft edges in every chapter, depth of field on distant ridges (chapters 1, 3, 4, 7, 8), light pools with 12 falloff steps instead of 6, 60 more (farther) ambient particles, 7 soft motes in front, 1.5× effect particles, denser afterimages and a longer ribbon | 0.111–0.190 ms | 3.9–6.2 ms | 13.9–16.1 ms |
+
+Every step stays far inside a 60 Hz frame (16.7 ms) on this machine: in each scene Ultra costs
+0.04–0.07 ms more GPU time per frame than High, and Low 0.03–0.04 ms less.
+
+### Deviations and limits
+- **A:** the row reads *Graphics* (its help box is headed *Graphics Fidelity*): with the full name
+  the meter crowded the highlighted label in the pause panel. Options rows are now 11 px apart
+  (they were 12) so a 13th title row fits above the hint line. Low hasn't been run on a weak
+  GPU; on this iGPU the whole game costs well under a millisecond of GPU time at any step, so
+  the steps can't be told apart by smoothness here. Effect particles at Low and Medium are
+  thinned evenly (every other one at Low), and every step draws the game's random numbers the
+  same way, so a capture differs only by the setting.
+- **B:** depth of field is limited to far layers that are distant ridgelines: on the title's
+  mountain, the Carnival balloons, the cathedral's stained glass and Undertow's stalactites it
+  blurred set pieces, so those stay sharp. The wide glow reads the screen texture's blurred mip
+  levels, which Vulkan (Mobile) draws here; the Compatibility renderer the web build would use
+  wasn't run. On the title, where the menu is drawn under the post pass as before, the glow also
+  softens the brightest text slightly. Terrain shadows are one blurred silhouette per room,
+  baked with it, falling down and to the right whatever the room's lights are.
+- **C:** the blur is 12 taps (Medium, High) or a blurred mip (Ultra) over the whole world; the
+  HUD's existing dim stays on top. The results screen is unchanged.
+- **D:** the back cue is the select sound played lower and softer (no new audio file). Changing
+  a value with Left/Right on a *Back* row is now silent (it did nothing before either, but played
+  the select cue). Animations run on real time, and a panel not drawn for 0.2 s snaps to its
+  state. Nobody has listened to the cues or watched the toggles in play by hand.
+- **Benchmarks:** the machine was shared and busy (load 22–27 during the final run, and spikes
+  to 50 around it), so wall-clock frame times swing by several times between runs; the GPU times
+  agreed within about 0.04 ms across the runs. An earlier run (`bench1`) overlapped my own
+  captures and was discarded; `bench3` read CPU time wrongly (0) and was redone.
+
+- **The real user-data folder was touched once.** A one-line probe of mine (reading
+  `/proc/self/stat` from GDScript) was started without the throwaway `XDG_*` variables. It didn't
+  read or write the save or settings (both have the same checksums as before the round), but Godot
+  wrote its log to the real `logs/` folder, and its log rotation deleted the oldest log there,
+  `godot2026-10-07T06.51.32.log` (a startup log of about 400 bytes from Oct 7). I removed my log
+  and put the previous `godot.log` back under its name; the deleted log can't be recovered.
+  Every other run used `build/`.
+
+### Still open
+- Graphics on a weak GPU, on Windows, macOS and the web build (Compatibility renderer); a
+  human look at Ultra's and Medium's look across all 69 rooms (the captures cover the title and
+  four rooms); real-time 2D shadows from lights, which would need a different way of drawing rooms.
+- Unchanged from round 11: a human playtest (now also the Graphics steps, the pause blur and the
+  menu cues), physical controllers, a physical mouse and touchpad, a real 144/165 Hz display and
+  a non-US keyboard in hand.
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer (it predates this
+  round's look too). v0.1.0 has none of rounds 1–12's fixes and features past the release.

@@ -1,6 +1,6 @@
 # Jeste level verification report
 
-Generated 2026-10-08 07:16:24
+Generated 2026-10-08 15:04:51
 
 ## Chapter 0: The Foot of Jeste - PASS
 - End reachable from start: yes
@@ -298,4 +298,4 @@ Each room's route from entry to exit (no collectibles) with the basic moveset, u
 ## Menu fuzz
 - PASS - MENU FUZZ PASS seed 1, 8000 frames, scenes { "": 8, "Title": 644, "Credits": 3, "ChapterSelect": 71, "Level": 7274 }, { "releases": 21, "levels": 3 }, reached title_main, focus_lost, level_dialogue, paused, level_play, pad_lost, level_dead, level_respawn, assist_open, options_open, confirm_restart, title_options
 
-**Overall: PASS**  (139s)
+**Overall: PASS**  (150s)
