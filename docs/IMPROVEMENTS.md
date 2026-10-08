@@ -1304,3 +1304,65 @@ Picked for a real player's experience, and because each can be checked here:
 Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
 builds, license and releases (owner decisions); new content (too large); a low-effects option for
 weaker GPUs (no slow hardware here to show it helps).
+
+## Round 11 results (2026-10-08)
+
+All commits are on `improvements-11`; nothing has been pushed. The full suite passed after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow and the menu fuzz seed). The final checks ran on `87db94d`, the
+last code commit; the commit after it changes only docs and `tests/REPORT.md`. The suite took
+139 s at load average 25–34 (`build/r11/suite_final.log`), and ui_flow then passed two more
+standalone runs (`uiflow_final1.log`, `uiflow_final2.log`) while the load rose from 25 to 93.
+ui_flow runs at a fixed 60 fps, so load slows it without changing its result. Every run used a
+throwaway user-data directory (`build/test_user/` or `build/r11/`), with `TMPDIR` in
+`build/r11/tmp/`. The real user-data folder (105 save, log and cache files) had the same
+checksums before and after. Screenshots were taken in a private, invisible KWin session started
+in its own session id, and each one ended with none of its processes left. Screenshots are in
+`docs/media/improvements/round11/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. On a pad, the buttons the hints name do what they say | Fixed | `d89bb7c` | A ui_flow check presses the button each hint names (Select: Jump's first button; Back/Resume: Dash's) on the keyboard and on a pad, with default pad bindings and four rebinds (Jump to X or B, Dash to A or Y). Without the fix it fails 9 ways, including the default pad's X doing neither, and A (labelled Back after Dash moved to it) selecting instead. New flow steps: pad X held on the pause menu resumes and Mira doesn't dash, pad Y selects Resume, and pad X leaves chapter select for the title. With the fix removed and the check skipped, the flow fails at the X-resumes step. |
+| B. Controls → Stick Deadzone, with a live view of the stick | Done | `f16f795` | ui_flow checks the 8 directions at 20%, 60% and 70%: each direction gets exactly 45 one-degree samples just past the deadzone, and just inside it there is no direction in play or in the menu actions. It also steps the row (Right, Left, the wheel, Confirm wrapping from 70% to 10%). At 60%, a stick resting at 0.5 neither moves the menu nor holds a direction for 40 frames, a full push from there moves one row, and a second push after returning to the drift moves another. Reset Defaults keeps 60%. The dial and footer fit their space and the dial reads the stick. The round 10 sweep at 40% still passes. Six mutations each fail it: sectors ignoring the setting, actions ignoring it, menus' press or release threshold fixed, the wheel moving the selection, and the stick positions not being re-sent. Screenshot: `stick_deadzone.png` (a drift inside the deadzone on the title; a lit up-right push in the pause menu). |
+| C. The pause Options panel moves away from Mira | Done | `87db94d` | ui_flow checks that when the menu opens, Mira's screen position matches where the camera puts her (in the flow she was at (28, 142), which round 10's panel covered) and that the panel is on the other side. A sweep puts Mira at every 4 px across the screen, for every row and every Smooth Motion and Window Size value: neither the panel nor the help box ever covers her. Slider clicks and the wheel land correctly in both layouts, and a click where the slider used to be does nothing. Four mutations fail it (the layout not applied on open, the panel never moving right, the help box always at the top, mouse rows not following), and so does a fifth-line help text. Screenshot: `pause_options_side.png` (round 10's capture, then 1-02 with Mira on the left and 1-05 with her on the right). |
+
+Also run: three longer menu fuzz seeds, 21–23 at 40,000 frames each (`build/r11/fuzz_2*.log`),
+passed with no script errors. Seed 23 reached both the title's and the pause menu's Controls.
+
+### Deviations and limits
+- **A** reaches past the pause menu: on a pad, Y (Jump's second button) now also selects and
+  B or X go back in every menu. In cutscenes, Dash already read the next line. A pad player who
+  binds Jump to B gets B as Select and loses it as Back (A then goes back only if Dash has it),
+  as on the keyboard. Before this, nobody had tried a pad's X in a menu since v0.1.0; it was
+  found by reading the code.
+- **B:** the per-axis direction actions never go below 0.4, so with the deadzone under 40% a
+  stick between the deadzone and 0.4 counts in play (the sectors) but doesn't hold a menu
+  direction or repeat. Menus need at least 50% push, or the deadzone if it's higher.
+  The screenshot showed a real bug that was fixed in the same commit: holding a half-pushed stick
+  Right on the row repeated the value up to 70%, because the engine doesn't look at a held action
+  again when its deadzone changes. The panel now has 11 rows and sits 6 px higher. The dial is
+  left of the panel, where on the title it clears Mira and the campfire; in the pause menu it
+  can sit over Mira. No physical pad or drifting stick was used: stick positions were simulated.
+- **C:** to guarantee the help box can clear Mira, its column now runs from the panel's top to
+  just above the hint line, and two help texts were cut to four lines (Reduce Flashing no longer
+  lists cutscenes; Window Size's Auto text is shorter). As you move between rows the box can jump
+  from top to bottom, but only when Mira is in the middle of its column and the texts differ in
+  length. The check treats Mira as a 12×18 px box around her centre. Assist and Controls panels
+  in the pause menu are still centred.
+- **Shared machine:** about 86 `ksecretd` processes from before this round are still running, and
+  two more appeared during a capture. They belonged to another project's sessions (different
+  session id and config path), so they were left alone. A zsh quoting slip created a few stray
+  files with spaces in their names inside `build/r11/`; they were removed. Nothing outside the
+  repo was touched.
+
+### Still open
+- A human playtest (the Stick Deadzone dial, Dash Aim, the stick's eight directions, the
+  invincible bounce, Air Dashes, ghost outlines, Berries mode, the Options help texts), physical
+  controllers (pad menu buttons, a drifting stick), a physical mouse and touchpad, a real
+  144/165 Hz display, and a non-US keyboard in hand.
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, the wrong key names
+  on non-US keyboards, the maximised window on 720p X11 screens, the jump or dash on closing the
+  pause menu, the deaths Invincibility missed and now the pad's X doing nothing in menus. It also
+  lacks round 10's and this round's stick, Options and pause changes.
