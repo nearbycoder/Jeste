@@ -76,7 +76,7 @@ static func option_help(item: String) -> String:
 			match Game.fidelity():
 				Game.FIDELITY_LOW: return "Low: no glow or colour grading, fog or light shafts, and half the particles. For weak GPUs."
 				Game.FIDELITY_MEDIUM: return "Medium: a lighter glow, no light shafts and fewer particles than High."
-				Game.FIDELITY_ULTRA: return "Ultra: High plus a wide soft glow, depth of field, finer lights and more particles."
+				Game.FIDELITY_ULTRA: return "Ultra: High plus a wide soft glow, terrain shadows, depth of field, finer lights and more particles."
 			return "High: the full look, with glow, colour grading, fog, light shafts and particles."
 		"Smooth Motion":
 			match str(Game.settings.get("smooth_motion", "auto")):
