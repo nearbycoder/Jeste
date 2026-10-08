@@ -865,7 +865,8 @@ func _process(_d: float) -> void:
 					ok = cur.paused and cur.hud.options_open and cur.hud.option_items[cur.hud.option_sel] == "Graphics" \
 						and get_node("/root/Game").fidelity() == want and cur.post.fidelity == want and cur.post.rect.visible == (want > 0) \
 						and cur.backdrop.fidelity == want and cur.backdrop.ambient.size() == (120 if want == 3 else Backdrop.AMBIENT_N[want]) \
-						and cur.backdrop.motes.is_empty() == (want < 3) and is_equal_approx(dens, [0.5, 0.75, 1.0, 1.5][want])
+						and cur.backdrop.motes.is_empty() == (want < 3) and is_equal_approx(dens, [0.5, 0.75, 1.0, 1.5][want]) \
+						and (cur.room_view.shadow_tex != null) == (want == 3)
 				"pause_opt_sel_0": ok = cur.paused and cur.hud.options_open and cur.hud.option_sel == 0
 				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"

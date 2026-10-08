@@ -15,6 +15,9 @@ var bg_tex: ImageTexture
 var fg_tex: ImageTexture
 var fake_tex: ImageTexture
 var deco_tex: ImageTexture
+var shadow_tex: ImageTexture     # Ultra: the terrain's blurred silhouette, cast onto the backdrop
+const SHADOW_OFFSET := Vector2(2, 3)
+const SHADOW_COL := Color(0.02, 0.0, 0.06, 0.42)
 static var _art_cache := {}
 var fake_alpha := {}
 var time := 0.0
@@ -188,6 +191,31 @@ func _bake() -> void:
 	fake_tex = ImageTexture.create_from_image(art.fake)
 	deco_tex = ImageTexture.create_from_image(art.deco)
 	fake_alpha.clear()
+	_bake_shadow(fg)
+
+
+## Ultra (Options > Graphics): the room's terrain casts a soft shadow down and
+## to the right onto the backdrop and background walls behind it.
+func _bake_shadow(fg: Image) -> void:
+	shadow_tex = null
+	if Game.fidelity() < Game.FIDELITY_ULTRA:
+		return
+	var img: Image = fg.duplicate()
+	var w := img.get_width()
+	var h := img.get_height()
+	img.resize(maxi(w / 2, 1), maxi(h / 2, 1), Image.INTERPOLATE_BILINEAR)
+	img.resize(w, h, Image.INTERPOLATE_BILINEAR)
+	shadow_tex = ImageTexture.create_from_image(img)
+
+
+func _ready() -> void:
+	Game.fidelity_changed.connect(_on_fidelity_changed)
+
+
+func _on_fidelity_changed() -> void:
+	if def:
+		_bake_shadow(fg_tex.get_image() if fg_tex else Image.create(1, 1, false, Image.FORMAT_RGBA8))
+		queue_redraw()
 
 
 func _process(delta: float) -> void:
@@ -348,6 +376,8 @@ func _draw() -> void:
 		draw_texture(bg_tex, Vector2.ZERO)
 	if deco_tex:
 		draw_texture(deco_tex, Vector2.ZERO)
+	if shadow_tex:
+		draw_texture(shadow_tex, SHADOW_OFFSET, SHADOW_COL)
 	if world.room != def:
 		# The world has moved on (room transition): static layers only.
 		if fg_tex:

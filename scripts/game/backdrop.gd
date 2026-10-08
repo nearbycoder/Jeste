@@ -198,20 +198,32 @@ func _fog(band: int) -> void:
 
 
 ## Slow, faint light shafts for bright / magical chapters.
+## At Ultra every chapter gets them (moonlight, spotlights, the cave's glow),
+## with a soft edge either side.
+const ULTRA_SHAFTS := {1: Color(0.75, 0.85, 1, 0.04), 3: Color(1, 0.8, 0.6, 0.04), 6: Color(0.5, 1, 0.9, 0.035), 8: Color(1, 0.95, 0.8, 0.04)}
+
+
 func _shafts() -> void:
-	if not chapter in [0, 2, 4, 5, 7]:
+	var ultra := fidelity >= Game.FIDELITY_ULTRA
+	if not chapter in [0, 2, 4, 5, 7] and not (ultra and ULTRA_SHAFTS.has(chapter)):
 		return
 	var col := Color(1, 0.92, 0.75, 0.05)
 	if chapter == 2:
 		col = Color(1, 0.6, 0.9, 0.05)
 	elif chapter == 5:
 		col = Color(0.7, 0.95, 1, 0.05)
+	elif ULTRA_SHAFTS.has(chapter):
+		col = ULTRA_SHAFTS[chapter]
 	for i in 4:
 		var x := fposmod(i * 97.0 + time * 3.0 - cam_pos.x * 0.04, 420.0) - 50.0
 		var wv := 14.0 + 6.0 * sin(time * 0.4 + i)
 		var a := col.a * (0.6 + 0.4 * sin(time * 0.7 + i * 1.7))
 		var pts := PackedVector2Array([Vector2(x, 0), Vector2(x + wv, 0), Vector2(x + wv + 60, 180), Vector2(x + 60, 180)])
 		draw_colored_polygon(pts, Color(col.r, col.g, col.b, a))
+		if ultra:   # a soft edge: two wider, fainter copies
+			for k in [3.0, 6.0]:
+				var e := PackedVector2Array([Vector2(x - k, 0), Vector2(x + wv + k, 0), Vector2(x + wv + 60 + k, 180), Vector2(x + 60 - k, 180)])
+				draw_colored_polygon(e, Color(col.r, col.g, col.b, a * 0.35))
 
 
 func _layer(tex: Texture2D, fx: float, fy: float) -> void:
