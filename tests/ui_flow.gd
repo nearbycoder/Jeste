@@ -54,6 +54,7 @@ func _ready() -> void:
 		["check", "aim_probe_pure", 0],
 		["check", "assist_help", 0],
 		["check", "stick_sectors", 0],
+		["check", "option_help", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -73,26 +74,26 @@ func _ready() -> void:
 		["mouse_at", "60,116", 2], ["check", "title_sel_1", 0],  # pointing at a row selects it
 		["click", "200,40", 6], ["check", "title_sel_1", 0], ["check", "main", 0],   # a click off the rows does nothing
 		["click", "60,116", 20], ["check", "options", 0],        # a click confirms (Options)
-		["click", "183,19", 4], ["check", "volume_music_0", 0],  # a click on a volume slider sets it there
-		["click", "203,19", 4], ["check", "volume_music_5", 0],
-		["click", "183,31", 4], ["check", "volume_sfx_0", 0],
-		["click", "215,31", 4], ["check", "volume_sfx_8", 0],
-		["click", "211,19", 4], ["check", "volume_music_7", 0],
-		["click", "120,19", 4], ["check", "volume_music_8", 0],  # a click on the label still steps it
-		["click", "211,19", 4], ["check", "volume_music_7", 0],
-		["wheel", "211,19,up", 4], ["check", "volume_music_8", 0],     # the wheel over a slider steps it
-		["wheel", "211,19,down", 4], ["check", "volume_music_7", 0],
-		["mouse_at", "150,40", 2], ["wheel", "150,40,down", 4], ["check", "opt_sel_3", 0],   # elsewhere it moves the selection
+		["click", "109,19", 4], ["check", "volume_music_0", 0],  # a click on a volume slider sets it there
+		["click", "129,19", 4], ["check", "volume_music_5", 0],
+		["click", "109,31", 4], ["check", "volume_sfx_0", 0],
+		["click", "141,31", 4], ["check", "volume_sfx_8", 0],
+		["click", "137,19", 4], ["check", "volume_music_7", 0],
+		["click", "46,19", 4], ["check", "volume_music_8", 0],  # a click on the label still steps it
+		["click", "137,19", 4], ["check", "volume_music_7", 0],
+		["wheel", "137,19,up", 4], ["check", "volume_music_8", 0],     # the wheel over a slider steps it
+		["wheel", "137,19,down", 4], ["check", "volume_music_7", 0],
+		["mouse_at", "76,40", 2], ["wheel", "76,40,down", 4], ["check", "opt_sel_3", 0],   # elsewhere it moves the selection
 		["mark_save", "", 0],
-		["click", "150,139", 10], ["check", "erase_asks", 0],    # Erase Save asks...
+		["click", "76,139", 10], ["check", "erase_asks", 0],    # Erase Save asks...
 		["click", "160,84", 6], ["check", "erase_asks", 0],      # ...a click off its prompts does nothing...
 		["click_hint", "1", 6], ["check", "save_kept", 0],       # ...Keep keeps it
-		["click", "150,139", 10], ["check", "erase_asks", 0],
+		["click", "76,139", 10], ["check", "erase_asks", 0],
 		["rclick", "160,84", 6], ["check", "save_kept", 0],      # a right click keeps it too
-		["click", "150,139", 10], ["click_hint", "0", 6], ["check", "save_erased", 0],   # Erase erases
+		["click", "76,139", 10], ["click_hint", "0", 6], ["check", "save_erased", 0],   # Erase erases
 		["unlock", "8", 0],
-		["mouse_at", "150,40", 2], ["check", "opt_sel_2", 0],
-		["rclick", "150,40", 10], ["check", "main", 0],          # a right click goes back
+		["mouse_at", "76,40", 2], ["check", "opt_sel_2", 0],
+		["rclick", "76,40", 10], ["check", "main", 0],          # a right click goes back
 		["mouse_at", "60,102", 2], ["check", "title_sel_0", 0],
 		["wheel", "60,102,down", 4], ["check", "title_sel_1", 0],          # the wheel moves the selection
 		["wheel", "60,102,down,0.4", 2], ["wheel", "60,102,down,0.4", 2], ["check", "title_sel_1", 0],   # a touchpad's small
@@ -159,7 +160,7 @@ func _ready() -> void:
 		["click", "160,63", 4], ["check", "grab_hold", 0],
 		["click", "160,5", 4], ["check", "ctl_cancelled", 0],   # a click off the rows does nothing
 		["rclick", "160,63", 10], ["check", "options", 0],       # a right click closes the panel
-		["click", "150,127", 10], ["check", "controls", 0],      # and a click on Controls opens it again
+		["click", "76,127", 10], ["check", "controls", 0],      # and a click on Controls opens it again
 		["press", "back", 10],
 		["press", "back", 20],
 		["check", "main", 0],
@@ -229,9 +230,9 @@ func _ready() -> void:
 		["press", "confirm", 4], ["check", "grab_hold_paused", 0],
 		["mouse_at", "160,39", 2], ["check", "pause_ctl_sel_1", 0],
 		["rclick", "160,39", 6], ["check", "pause_controls_closed", 0],   # a right click closes Controls
-		["click", "180,37", 4], ["check", "volume_sfx_0", 0],    # the pause menu's sliders take a click too
-		["click", "211,37", 4], ["check", "volume_sfx_8", 0],
-		["wheel", "211,37,down", 4], ["check", "volume_sfx_7", 0], ["wheel", "211,37,up", 4], ["check", "volume_sfx_8", 0],
+		["click", "104,37", 4], ["check", "volume_sfx_0", 0],    # the pause menu's sliders take a click too
+		["click", "135,37", 4], ["check", "volume_sfx_8", 0],
+		["wheel", "135,37,down", 4], ["check", "volume_sfx_7", 0], ["wheel", "135,37,up", 4], ["check", "volume_sfx_8", 0],
 		["press", "back", 10],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
 		["check", "unpaused", 0],
@@ -706,6 +707,7 @@ func _process(_d: float) -> void:
 				"aim_probe_pure": ok = _aim_probe_pure_ok()
 				"assist_help": ok = _assist_help_ok()
 				"stick_sectors": ok = _stick_sectors_ok()
+				"option_help": ok = _option_help_ok()
 				"on_air_dashes": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Air Dashes"
 				"air_two": ok = str(get_node("/root/Game").settings.air_dashes) == "two" and cur.world.assist_air_dashes == World.AIR_DASHES_TWO \
 					and cur.room_id == "1-01" and cur.world.max_dashes == 2
@@ -1206,6 +1208,43 @@ func _aim_probe_pure_ok() -> bool:
 			if a.dead or a.exited or a.end_reached:
 				break
 	return asked > 0
+
+
+## Every Options row (title and pause) has its own help text, which fits its
+## box; on the title the box stays above Mira's juggling (y 110). Smooth
+## Motion's three values and Window Size's Auto read differently.
+func _option_help_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var keep: Dictionary = g.settings.duplicate()
+	var ok := true
+	var hud := Hud.new()
+	var rows: Array = hud.option_items.duplicate()
+	hud.free()
+	for r in load("res://scripts/ui/title.gd").OPTIONS:
+		if not rows.has(r):
+			rows.append(r)
+	var seen := {}
+	for sm in ["auto", "on", "off"]:
+		for ws in [0, 2]:
+			g.settings.smooth_motion = sm
+			g.settings.window_scale = ws
+			for r in rows:
+				var t := UIKit.option_help(r)
+				seen[t] = true
+				var lines := PixelText.wrap(t, UIKit.HELP_TEXT_W)
+				if t == "" or 14 + 26 + lines.size() * PixelText.LINE_H > 110:
+					print("option help for %s: %d lines: %s" % [r, lines.size(), t])
+					ok = false
+				for l in lines:
+					if PixelText.width(l) > UIKit.HELP_TEXT_W:
+						print("option help line too wide: ", l)
+						ok = false
+	g.settings = keep
+	# 12 rows, plus Smooth Motion's other two values and Window Size's fixed scale
+	if seen.size() != 15:
+		print("option help: %d different texts, want 15" % seen.size())
+		ok = false
+	return ok
 
 
 ## The left stick at <angle> (radians, counter-clockwise from right) and <tilt>.

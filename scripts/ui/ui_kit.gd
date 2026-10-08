@@ -56,6 +56,56 @@ static func panel_title(ci: CanvasItem, r: Rect2, text: String, a: float = 1.0) 
 	PixelText.draw_centered(ci, tr.get_center().x, tr.position.y + 2, text, Color(CREAM, a), Color(INK, 0.8 * a))
 
 
+## Options (title and pause): what the highlighted row does, for its current
+## value where that matters. Drawn in a box beside the panel (help_box).
+static func option_help(item: String) -> String:
+	match item:
+		"Music Volume":
+			return "How loud the music is."
+		"Sound Volume":
+			return "How loud the sound effects, voices and ambience are."
+		"Fullscreen":
+			return "Fill the screen, or play in a window. F11 or Alt+Enter also switch, anywhere in the game."
+		"Window Size":
+			if OS.has_feature("web"):
+				return "The browser page sets the size of the game."
+			if int(Game.settings.get("window_scale", 0)) <= 0:
+				return "Auto: the window takes about three quarters of your screen. Or pick 2x and up: each game pixel that many screen pixels wide."
+			return "Each game pixel %d screen pixels wide. Auto sizes the window to about three quarters of your screen." % Game.window_scale()
+		"Smooth Motion":
+			match str(Game.settings.get("smooth_motion", "auto")):
+				"on": return "Draws movement between the game's 60 steps a second: smoother on 144 Hz screens, up to 17 ms later."
+				"off": return "Draws only the game's 60 steps a second: no added delay, but movement can judder on 144 Hz screens."
+			return "On when your screen isn't a multiple of 60 Hz (144, 165...) or Game Speed is below 100%%. It is %s now." % ("on" if Game.smooth_motion() else "off")
+		"Screen Shake":
+			return "The camera shakes on dashes, deaths, broken walls, bumpers and gates."
+		"Reduce Flashing":
+			return "Dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength."
+		"Rumble":
+			return "The gamepad vibrates on jumps off walls, landings, dashes, springs and deaths."
+		"Speedrun Timer":
+			return "Shows the chapter's time in the corner while you climb."
+		"Controls":
+			return "Rebind keys and pad buttons, and choose whether Grab is held or toggled."
+		"Erase Save":
+			return "Erases every berry, bell, best time and checkpoint. It asks first."
+	return "Settings are saved as you change them."
+
+
+const HELP_BOX_W := 142          # the Options help box, beside the panel
+const HELP_TEXT_W := HELP_BOX_W - 14
+
+## The help box beside the Options panel: the row's name and its help text.
+static func help_box(ci: CanvasItem, pos: Vector2, item: String, a: float) -> void:
+	var lines := PixelText.wrap(option_help(item), HELP_TEXT_W)
+	var r := Rect2(pos, Vector2(HELP_BOX_W, 26 + lines.size() * PixelText.LINE_H))
+	panel(ci, r, a)
+	PixelText.draw_outlined(ci, r.position + Vector2(7, 7), item, Color(GOLD, a), Color(INK, a))
+	ci.draw_rect(Rect2(r.position.x + 7, r.position.y + 18, PixelText.width(item), 1), Color(GOLD_DK, 0.8 * a))
+	for i in lines.size():
+		PixelText.draw_outlined(ci, r.position + Vector2(7, 22 + i * PixelText.LINE_H), lines[i], Color(CREAM, 0.9 * a), Color(INK, a))
+
+
 ## Mouse in menus: the row under `p` for rows drawn by menu_row() at
 ## (x, y0 + i * step), w wide, or -1. Rows are hit from just above their text
 ## to the next row, plus the selection marker's margin on the left.

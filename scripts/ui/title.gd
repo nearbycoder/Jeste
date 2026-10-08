@@ -27,6 +27,7 @@ var controls := ControlsMenu.new()
 const LOGO_Y := 25.0
 const MENU_X := 40.0
 const MENU_Y := 102.0
+const OPT_X := 10.0      # the Options panel, left of its help box
 const FIRE := Vector2(268, 150)
 const MIRA := Vector2(246, 150)
 
@@ -252,7 +253,7 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 			sel = i
 			Sfx.play("menu_move")
 	else:
-		i = UIKit.row_at(ev.position, 96, 16, 140, 12, OPTIONS.size())
+		i = UIKit.row_at(ev.position, OPT_X + 12, 16, 140, 12, OPTIONS.size())
 		# the wheel selects only a value row it steps; elsewhere it moves the selection
 		if i >= 0 and i != opt_sel and (not UIKit.is_wheel(ev) or UIKit.WHEEL_VALUE_ROWS.has(OPTIONS[i])):
 			opt_sel = i
@@ -260,7 +261,7 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 		if UIKit.is_wheel(ev):
 			return UIKit.wheel_menu(ev, OPTIONS, i)
 	var a := UIKit.click_action(ev)
-	if a and a.action == "confirm" and i >= 0 and screen == "options" and Game.set_volume_at(OPTIONS[i], ev.position.x, 186.0):
+	if a and a.action == "confirm" and i >= 0 and screen == "options" and Game.set_volume_at(OPTIONS[i], ev.position.x, OPT_X + 102.0):
 		Sfx.refresh_volume()
 		Sfx.play("menu_select")
 		return null   # a click on a volume slider sets it there
@@ -392,7 +393,7 @@ func _draw() -> void:
 	# options / confirm panel
 	if panel_k > 0.0:
 		var e := ease(panel_k, 0.3)
-		var r := Rect2(84, 6 + (1.0 - e) * 12.0, 152, 14 + OPTIONS.size() * 12)
+		var r := Rect2(OPT_X, 6 + (1.0 - e) * 12.0, 152, 14 + OPTIONS.size() * 12)
 		if screen == "controls":
 			e = 0.0   # the controls panel replaces the options panel
 		UIKit.panel(self, r, e)
@@ -401,6 +402,8 @@ func _draw() -> void:
 			var y := r.position.y + 10 + i * 12
 			UIKit.menu_row(self, r.position.x + 12, y, 128, OPTIONS[i], opt_k[i], time, e)
 			_draw_opt_value(OPTIONS[i], Vector2(r.end.x - 10, y), e)
+		if e > 0.0:   # what the highlighted row does, above Mira and the fire
+			UIKit.help_box(self, Vector2(170, 14 + (1.0 - e) * 12.0), OPTIONS[opt_sel], e)
 		if screen == "controls":
 			controls.draw(self, time)
 		if screen == "confirm_reset":

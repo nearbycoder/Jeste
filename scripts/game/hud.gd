@@ -43,6 +43,7 @@ var assist_sel := 0
 var options_open := false
 var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Back"]
 var option_sel := 0
+const OPT_X := 12.0              # the Options panel, left of its help box
 var controls_open := false      # Options > Controls: rebinding and Grab Mode mid-climb
 var controls := ControlsMenu.new()
 var results_ticks := 0
@@ -292,13 +293,13 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 		if wheel:
 			return UIKit.wheel_menu(ev, assist_items, i)
 	elif options_open:
-		i = UIKit.row_at(ev.position, 100, 22, 132, 12, option_items.size())
+		i = UIKit.row_at(ev.position, OPT_X + 12, 22, 132, 12, option_items.size())
 		if i >= 0 and i != option_sel and (not wheel or UIKit.WHEEL_VALUE_ROWS.has(option_items[i])):
 			option_sel = i
 			Sfx.play("menu_move")
 		if wheel:
 			return UIKit.wheel_menu(ev, option_items, i)
-		if i >= 0 and a and a.action == "confirm" and Game.set_volume_at(option_items[i], ev.position.x, 182.0):
+		if i >= 0 and a and a.action == "confirm" and Game.set_volume_at(option_items[i], ev.position.x, OPT_X + 94.0):
 			Sfx.refresh_volume()
 			Sfx.play("menu_select")
 			return null   # a click on a volume slider sets it there
@@ -476,7 +477,7 @@ func _draw_confirm_restart(e: float) -> void:
 
 
 func _draw_options(e: float) -> void:
-	var r := Rect2(88, 12, 144, 14 + option_items.size() * 12)
+	var r := Rect2(OPT_X, 12, 144, 14 + option_items.size() * 12)
 	UIKit.panel(self, r, e)
 	UIKit.panel_title(self, r, "OPTIONS", e)
 	for i in option_items.size():
@@ -494,6 +495,7 @@ func _draw_options(e: float) -> void:
 			"Reduce Flashing": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), e)
 			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
 			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)
+	UIKit.help_box(self, Vector2(166, 20), option_items[option_sel], e)
 	var pairs := [[Game.move_label(), "Change"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
 
