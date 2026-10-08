@@ -7,8 +7,9 @@ extends Node
 ## are replayed (looping) so Mira moves; the shot is taken at <frame>,
 ## scaled 3x. Bench mode renders <frames> frames as fast as it can in a
 ## window <scale> times the game's size (default 4) and prints the wall-clock
-## frame time, the engine's CPU time per frame (drawing plus scripts) and the
-## GPU's measured render time (mean and percentiles).
+## frame time, the CPU time the process used per frame (all threads; unlike
+## the wall clock, other programs' load barely moves it) and the GPU's
+## measured render time (mean and percentiles).
 ## "pause" opens the pause menu 20 frames before the shot (at frame 90 in
 ## bench mode).
 var f := 0
@@ -21,7 +22,7 @@ var pause_at := -1
 var inputs := PackedByteArray()
 var deltas := PackedFloat64Array()
 var gpu := PackedFloat64Array()
-var cpu := PackedFloat64Array()   # the engine's measured CPU time for drawing the frame, plus the frame's scripts
+var cpu0 := -1.0                  # the process's CPU time (all threads, ms) when measuring starts
 var last_us := 0
 
 
@@ -70,10 +71,11 @@ func _process(_d: float) -> void:
 		level.hud.open_pause()
 	if bench:
 		var now := Time.get_ticks_usec()
+		if f == 120:
+			cpu0 = _cpu_ms()
 		if f > 120:   # warm-up: shaders, room bakes, the title's intro
 			deltas.append((now - last_us) / 1000.0)
 			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(get_viewport().get_viewport_rid()))
-			cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(get_viewport().get_viewport_rid()) + Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)
 		last_us = now
 		if f == 120 + target:
 			print("BENCH fidelity %s %s/%s: %s" % [a[4], a[0], a[1], _stats()])
@@ -87,17 +89,25 @@ func _process(_d: float) -> void:
 		get_tree().quit()
 
 
+## CPU time this process has used, all threads, in ms (Linux /proc; -1 elsewhere).
+func _cpu_ms() -> float:
+	var fa := FileAccess.open("/proc/self/stat", FileAccess.READ)   # (its size reads 0, so line by line)
+	var st := fa.get_line() if fa else ""
+	if st == "":
+		return -1.0
+	var p := st.substr(st.rfind(")") + 2).split(" ")
+	return (float(p[11]) + float(p[12])) * 10.0   # utime + stime, in 1/100 s ticks
+
+
 func _stats() -> String:
 	var ft := Array(deltas)
 	var gt := Array(gpu)
-	var ct := Array(cpu)
 	ft.sort()
 	gt.sort()
-	ct.sort()
 	var mean := func(arr: Array) -> float: return arr.reduce(func(s, x): return s + x, 0.0) / arr.size()
 	var pct := func(arr: Array, p: float) -> float: return arr[mini(int(arr.size() * p), arr.size() - 1)]
 	var win := DisplayServer.window_get_size()
-	return "frame mean %.3f ms p95 %.3f p99 %.3f (%.0f fps); cpu mean %.3f ms p95 %.3f; gpu mean %.3f ms p95 %.3f p99 %.3f; %d frames at %dx%d" % [
+	return "frame mean %.3f ms p95 %.3f p99 %.3f (%.0f fps); cpu %.3f ms/frame; gpu mean %.3f ms p95 %.3f p99 %.3f; %d frames at %dx%d" % [
 		mean.call(ft), pct.call(ft, 0.95), pct.call(ft, 0.99), 1000.0 / mean.call(ft),
-		mean.call(ct), pct.call(ct, 0.95),
+		(_cpu_ms() - cpu0) / ft.size(),
 		mean.call(gt), pct.call(gt, 0.95), pct.call(gt, 0.99), ft.size(), win.x, win.y]
