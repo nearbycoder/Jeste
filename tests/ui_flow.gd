@@ -282,7 +282,9 @@ func _ready() -> void:
 		["speed", "1.0", 40], ["check", "full_speed", 0],
 		# the press that closes the pause menu doesn't also jump or dash
 		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0], ["check", "pause_time", 0],
+		["check", "soften_full", 0],                              # the world blurs behind the pause menu...
 		["watch_moves", "", 0], ["key_down", "C", 20], ["check", "unpaused", 0], ["key_up", "C", 10], ["check", "no_moves", 0],
+		["check", "soften_off", 0],                               # ...and is sharp again in play
 		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],
 		["watch_moves", "", 0], ["key_down", "X", 20], ["check", "unpaused", 0], ["key_up", "X", 10], ["check", "no_moves", 0],
 		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],   # on a pad, X (Dash) is the hint's Resume
@@ -866,7 +868,10 @@ func _process(_d: float) -> void:
 						and get_node("/root/Game").fidelity() == want and cur.post.fidelity == want and cur.post.rect.visible == (want > 0) \
 						and cur.backdrop.fidelity == want and cur.backdrop.ambient.size() == (120 if want == 3 else Backdrop.AMBIENT_N[want]) \
 						and cur.backdrop.motes.is_empty() == (want < 3) and is_equal_approx(dens, [0.5, 0.75, 1.0, 1.5][want]) \
-						and (cur.room_view.shadow_tex != null) == (want == 3)
+						and (cur.room_view.shadow_tex != null) == (want == 3) \
+						and is_equal_approx(cur.post.soften, 0.4 if want > 0 else 0.0)   # less blur under Options, none at Low
+				"soften_full": ok = cur.post.fidelity >= 1 and is_equal_approx(cur.post.soften, 1.0) and is_equal_approx(float(cur.post.mat.get_shader_parameter("soften")), 1.0)
+				"soften_off": ok = cur.post.soften == 0.0 and float(cur.post.mat.get_shader_parameter("soften")) == 0.0
 				"pause_opt_sel_0": ok = cur.paused and cur.hud.options_open and cur.hud.option_sel == 0
 				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"

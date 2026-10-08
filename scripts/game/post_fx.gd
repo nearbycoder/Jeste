@@ -5,7 +5,8 @@ extends CanvasLayer
 ## saturation) and a brief chromatic shimmer on impacts. Options > Graphics
 ## picks the shader: none at Low (no screen copy at all), a lighter bloom at
 ## Medium, the original at High, and a wide soft bloom with a filmic curve at
-## Ultra.
+## Ultra. Behind the pause menu the world blurs and loses some colour
+## (set_soften), except at Low.
 
 const GRADES := {
 	# shadows tint, highlights tint, saturation, contrast, bloom
@@ -25,6 +26,7 @@ var mat: ShaderMaterial
 var shimmer := 0.0
 var grade: Array = GRADES[1]
 var fidelity := -1
+var soften := 0.0                # 0..1: the world blurs and greys behind the pause menu (Medium and up)
 static var _shaders := {}
 
 
@@ -80,6 +82,14 @@ func _apply_grade() -> void:
 	mat.set_shader_parameter("contrast", g[3])
 	mat.set_shader_parameter("bloom", g[4])
 	mat.set_shader_parameter("shimmer", shimmer)
+	mat.set_shader_parameter("soften", soften)
+
+
+func set_soften(k: float) -> void:
+	var v := k if fidelity >= Game.FIDELITY_MEDIUM else 0.0
+	if not is_equal_approx(v, soften):
+		soften = v
+		mat.set_shader_parameter("soften", soften)
 
 
 func pulse(amount: float = 1.0) -> void:
@@ -104,6 +114,7 @@ uniform float contrast = 1.0;
 uniform float bloom = 0.3;
 uniform float threshold = 0.62;
 uniform float shimmer = 0.0;
+uniform float soften = 0.0;
 
 vec3 bright(vec2 uv) {
 	vec3 c = texture(screen_tex, uv).rgb;
@@ -120,6 +131,14 @@ void fragment() {
 		c = vec3(texture(screen_tex, uv + vec2(px.x * o, 0.0)).r, texture(screen_tex, uv).g, texture(screen_tex, uv - vec2(px.x * o, 0.0)).b);
 	} else {
 		c = texture(screen_tex, uv).rgb;
+	}
+	if (soften > 0.001) {   // the pause menu: the world behind it blurs
+		vec3 s = vec3(0.0);
+		for (int i = 0; i < 12; i++) {
+			float a = float(i) * 0.523599;
+			s += texture(screen_tex, uv + vec2(cos(a), sin(a)) * px * (1.5 + float(i % 3) * 1.25)).rgb;
+		}
+		c = mix(c, s / 12.0, soften * 0.85);
 	}
 	// bloom: two rings of taps (cheap at 320x180)
 	vec3 b = vec3(0.0);
@@ -135,6 +154,7 @@ void fragment() {
 	c = mix(vec3(l), c, saturation);
 	c = (c - 0.5) * contrast + 0.5;
 	c += shadow_tint * (1.0 - l) * 0.35 + high_tint * l * 0.35;
+	c = mix(c, vec3(dot(c, vec3(0.299, 0.587, 0.114))), soften * 0.35);   // and loses some colour
 	COLOR = vec4(clamp(c, 0.0, 1.0), 1.0);
 }
 """
@@ -150,6 +170,7 @@ uniform float contrast = 1.0;
 uniform float bloom = 0.3;
 uniform float threshold = 0.62;
 uniform float shimmer = 0.0;
+uniform float soften = 0.0;
 
 vec3 bright(vec2 uv) {
 	vec3 c = texture(screen_tex, uv).rgb;
@@ -167,6 +188,14 @@ void fragment() {
 	} else {
 		c = texture(screen_tex, uv).rgb;
 	}
+	if (soften > 0.001) {   // the pause menu: the world behind it blurs
+		vec3 s = vec3(0.0);
+		for (int i = 0; i < 12; i++) {
+			float a = float(i) * 0.523599;
+			s += texture(screen_tex, uv + vec2(cos(a), sin(a)) * px * (1.5 + float(i % 3) * 1.25)).rgb;
+		}
+		c = mix(c, s / 12.0, soften * 0.85);
+	}
 	vec3 b = vec3(0.0);
 	for (int i = 0; i < 8; i++) {
 		float a = float(i) * 0.785398;
@@ -177,6 +206,7 @@ void fragment() {
 	c = mix(vec3(l), c, saturation);
 	c = (c - 0.5) * contrast + 0.5;
 	c += shadow_tint * (1.0 - l) * 0.35 + high_tint * l * 0.35;
+	c = mix(c, vec3(dot(c, vec3(0.299, 0.587, 0.114))), soften * 0.35);   // and loses some colour
 	COLOR = vec4(clamp(c, 0.0, 1.0), 1.0);
 }
 """
@@ -195,6 +225,7 @@ uniform float contrast = 1.0;
 uniform float bloom = 0.3;
 uniform float threshold = 0.62;
 uniform float shimmer = 0.0;
+uniform float soften = 0.0;
 uniform float wide = 1.6;
 
 vec3 bright(vec2 uv) {
@@ -218,6 +249,9 @@ void fragment() {
 	} else {
 		c = texture(screen_tex, uv).rgb;
 	}
+	if (soften > 0.001) {   // the pause menu: the world behind it blurs
+		c = mix(c, textureLod(blur_tex, uv, 1.6).rgb, soften * 0.9);
+	}
 	vec3 b = vec3(0.0);
 	for (int i = 0; i < 8; i++) {
 		float a = float(i) * 0.785398;
@@ -235,6 +269,7 @@ void fragment() {
 	c += shadow_tint * (1.0 - l) * 0.35 + high_tint * l * 0.35;
 	c = clamp(c, 0.0, 1.0);
 	c = mix(c, c * c * (3.0 - 2.0 * c), 0.22);
+	c = mix(c, vec3(dot(c, vec3(0.299, 0.587, 0.114))), soften * 0.35);   // and loses some colour
 	COLOR = vec4(c, 1.0);
 }
 """

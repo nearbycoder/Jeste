@@ -80,6 +80,8 @@ func _process(delta: float) -> void:
 	flash = maxf(flash - delta * 3.0, 0.0)
 	wipe = move_toward(wipe, wipe_target, wipe_speed * delta)
 	pause_k = move_toward(pause_k, 1.0 if paused else 0.0, delta * 7.0)
+	if level and level.post:   # the world softens behind the menu; less under Options, to show Graphics changes
+		level.post.set_soften(ease(pause_k, 0.4) * (0.4 if options_open else 1.0))
 	var cur := pause_sel
 	if confirm_restart:
 		cur = 10 + restart_sel   # rows 10 and 11 animate the two choices

@@ -6,9 +6,11 @@ extends Node
 ## amount, so two runs differ only by the setting. A solution file's inputs
 ## are replayed (looping) so Mira moves; the shot is taken at <frame>,
 ## scaled 3x. Bench mode renders <frames> frames as fast as it can in a
-## window <scale> times the game's size (default 4) and prints the CPU frame
-## time and the GPU's measured render time (mean, 95th and 99th percentile).
-## "pause" opens the pause menu first (shot or bench).
+## window <scale> times the game's size (default 4) and prints the wall-clock
+## frame time, the engine's CPU time per frame (drawing plus scripts) and the
+## GPU's measured render time (mean and percentiles).
+## "pause" opens the pause menu 20 frames before the shot (at frame 90 in
+## bench mode).
 var f := 0
 var a: PackedStringArray
 var node: Node
@@ -19,6 +21,7 @@ var pause_at := -1
 var inputs := PackedByteArray()
 var deltas := PackedFloat64Array()
 var gpu := PackedFloat64Array()
+var cpu := PackedFloat64Array()   # the engine's measured CPU time for drawing the frame, plus the frame's scripts
 var last_us := 0
 
 
@@ -34,7 +37,7 @@ func _ready() -> void:
 	target = int(a[3])
 	bench = a.size() > 5 and a[5] == "bench"
 	if a.has("pause"):
-		pause_at = 90
+		pause_at = 90 if bench else maxi(target - 20, 1)
 	if a[2] != "-":
 		var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(a[2]))
 		inputs = Solver.decode(str(d.solution))
@@ -70,6 +73,7 @@ func _process(_d: float) -> void:
 		if f > 120:   # warm-up: shaders, room bakes, the title's intro
 			deltas.append((now - last_us) / 1000.0)
 			gpu.append(RenderingServer.viewport_get_measured_render_time_gpu(get_viewport().get_viewport_rid()))
+			cpu.append(RenderingServer.viewport_get_measured_render_time_cpu(get_viewport().get_viewport_rid()) + Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0)
 		last_us = now
 		if f == 120 + target:
 			print("BENCH fidelity %s %s/%s: %s" % [a[4], a[0], a[1], _stats()])
@@ -86,11 +90,14 @@ func _process(_d: float) -> void:
 func _stats() -> String:
 	var ft := Array(deltas)
 	var gt := Array(gpu)
+	var ct := Array(cpu)
 	ft.sort()
 	gt.sort()
+	ct.sort()
 	var mean := func(arr: Array) -> float: return arr.reduce(func(s, x): return s + x, 0.0) / arr.size()
 	var pct := func(arr: Array, p: float) -> float: return arr[mini(int(arr.size() * p), arr.size() - 1)]
 	var win := DisplayServer.window_get_size()
-	return "frame mean %.3f ms p95 %.3f p99 %.3f (%.0f fps); gpu mean %.3f ms p95 %.3f p99 %.3f; %d frames at %dx%d" % [
+	return "frame mean %.3f ms p95 %.3f p99 %.3f (%.0f fps); cpu mean %.3f ms p95 %.3f; gpu mean %.3f ms p95 %.3f p99 %.3f; %d frames at %dx%d" % [
 		mean.call(ft), pct.call(ft, 0.95), pct.call(ft, 0.99), 1000.0 / mean.call(ft),
+		mean.call(ct), pct.call(ct, 0.95),
 		mean.call(gt), pct.call(gt, 0.95), pct.call(gt, 0.99), ft.size(), win.x, win.y]
