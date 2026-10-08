@@ -43,7 +43,14 @@ var assist_sel := 0
 var options_open := false
 var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Back"]
 var option_sel := 0
-const OPT_X := 12.0              # the Options panel, left of its help box
+const OPT_X := 12.0              # the Options panel on the left, its help box right of it
+const OPT_W := 144.0
+const HELP_X := 166.0
+const HELP_TOP := 12.0           # the help box's column, beside the panel: from the panel's top...
+const HELP_BOTTOM := 163.0       # ...to just above the hint line
+var opt_x := OPT_X               # the panel opens on the side away from Mira (layout_options)
+var help_x := HELP_X
+var mira_at := Vector2(-100, 0)  # Mira on screen when the pause Options opened
 var controls_open := false      # Options > Controls: rebinding and Grab Mode mid-climb
 var controls := ControlsMenu.new()
 var results_ticks := 0
@@ -258,6 +265,8 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		elif item == "Options":
 			options_open = true
 			option_sel = 0
+			if level:
+				layout_options(level.mira_screen_pos())
 		elif item == "Restart Chapter":
 			confirm_restart = true
 			restart_sel = 0
@@ -293,13 +302,13 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 		if wheel:
 			return UIKit.wheel_menu(ev, assist_items, i)
 	elif options_open:
-		i = UIKit.row_at(ev.position, OPT_X + 12, 22, 132, 12, option_items.size())
+		i = UIKit.row_at(ev.position, opt_x + 12, 22, 132, 12, option_items.size())
 		if i >= 0 and i != option_sel and (not wheel or UIKit.WHEEL_VALUE_ROWS.has(option_items[i])):
 			option_sel = i
 			Sfx.play("menu_move")
 		if wheel:
 			return UIKit.wheel_menu(ev, option_items, i)
-		if i >= 0 and a and a.action == "confirm" and Game.set_volume_at(option_items[i], ev.position.x, OPT_X + 94.0):
+		if i >= 0 and a and a.action == "confirm" and Game.set_volume_at(option_items[i], ev.position.x, opt_x + 94.0):
 			Sfx.refresh_volume()
 			Sfx.play("menu_select")
 			return null   # a click on a volume slider sets it there
@@ -483,7 +492,7 @@ func _draw_confirm_restart(e: float) -> void:
 
 
 func _draw_options(e: float) -> void:
-	var r := Rect2(OPT_X, 12, 144, 14 + option_items.size() * 12)
+	var r := options_rect()
 	UIKit.panel(self, r, e)
 	UIKit.panel_title(self, r, "OPTIONS", e)
 	for i in option_items.size():
@@ -501,9 +510,38 @@ func _draw_options(e: float) -> void:
 			"Reduce Flashing": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), e)
 			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
 			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)
-	UIKit.help_box(self, Vector2(166, 20), option_items[option_sel], e)
+	UIKit.help_box(self, help_rect().position, option_items[option_sel], e)
 	var pairs := [[Game.move_label(), "Change"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
+
+
+## The pause Options panel goes on the side of the screen away from Mira, and
+## its help box (short) in her column, at the top or the bottom, whichever
+## clears her (see help_rect).
+func layout_options(mira: Vector2) -> void:
+	var right := mira.x < 160.0
+	opt_x = 320.0 - OPT_X - OPT_W if right else OPT_X
+	help_x = OPT_X if right else HELP_X
+	mira_at = mira
+
+
+## Roughly the space Mira's sprite covers around her centre.
+static func mira_rect(c: Vector2) -> Rect2:
+	return Rect2(c - Vector2(6, 9), Vector2(12, 18))
+
+
+func options_rect() -> Rect2:
+	return Rect2(opt_x, 12, OPT_W, 14 + option_items.size() * 12)
+
+
+## The help box at the top of its column, or at the bottom when only that
+## clears Mira (so it moves only for her, and only between rows whose texts
+## differ in length).
+func help_rect() -> Rect2:
+	var h := UIKit.help_box_height(option_items[option_sel])
+	var top := Rect2(help_x, HELP_TOP, UIKit.HELP_BOX_W, h)
+	var bottom := Rect2(help_x, HELP_BOTTOM - h, UIKit.HELP_BOX_W, h)
+	return bottom if top.intersects(mira_rect(mira_at)) and not bottom.intersects(mira_rect(mira_at)) else top
 
 
 func _draw_wipe(k: float) -> void:

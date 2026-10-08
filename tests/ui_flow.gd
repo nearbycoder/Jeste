@@ -232,7 +232,8 @@ func _ready() -> void:
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "up", 4],
 		["press", "confirm", 4], ["press", "confirm", 4], ["press", "back", 10],
 		["press", "down", 4], ["press", "confirm", 10],          # Options
-		["check", "options_open", 0],
+		["check", "options_open", 0], ["check", "opt_layout", 0], ["check", "opt_layout_sweep", 0],   # the panel opens on the side away from Mira
+		["opt_side", "240", 0],                                   # (Mira on the right: the steps below use the left-hand panel)
 		["press", "right", 4], ["press", "left", 4],
 		["press", "up", 4], ["press", "up", 4], ["check", "on_pause_controls", 0],   # Options > Controls, mid-climb
 		["press", "confirm", 6], ["check", "pause_controls", 0],
@@ -250,6 +251,11 @@ func _ready() -> void:
 		["click", "104,37", 4], ["check", "volume_sfx_0", 0],    # the pause menu's sliders take a click too
 		["click", "135,37", 4], ["check", "volume_sfx_8", 0],
 		["wheel", "135,37,down", 4], ["check", "volume_sfx_7", 0], ["wheel", "135,37,up", 4], ["check", "volume_sfx_8", 0],
+		["opt_side", "80", 0],                                    # Mira on the left: the panel and its sliders on the right
+		["click", "256,37", 4], ["check", "volume_sfx_0", 0], ["click", "287,37", 4], ["check", "volume_sfx_8", 0],
+		["wheel", "287,37,down", 4], ["check", "volume_sfx_7", 0], ["wheel", "287,37,up", 4], ["check", "volume_sfx_8", 0],
+		["click", "104,37", 4], ["check", "volume_sfx_8", 0],    # (where the slider was does nothing now)
+		["mouse_at", "200,25", 2], ["check", "pause_opt_sel_0", 0],
 		["press", "back", 10],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
 		["check", "unpaused", 0],
@@ -569,6 +575,12 @@ func _process(_d: float) -> void:
 			ev.keycode = ev.physical_keycode
 			ev.pressed = s[0] == "key_down"
 			Input.parse_input_event(ev)
+		"opt_side":
+			# lay the pause Options out for Mira at x (screen px), mid-height
+			cur.hud.layout_options(Vector2(float(s[1]), 90.0))
+			var want_x := 164.0 if float(s[1]) < 160.0 else 12.0
+			if cur.hud.opt_x != want_x:
+				_fail("step %d: Options panel at x %d for Mira at %s" % [idx, cur.hud.opt_x, s[1]])
 		"set_deadzone":
 			var g: Node = get_node("/root/Game")
 			g.settings.stick_deadzone = float(s[1])
@@ -824,6 +836,9 @@ func _process(_d: float) -> void:
 					and not Input.is_action_pressed("down") and is_equal_approx(gm.stick_vector(0).y, 0.5)
 				"deadzone_dial": ok = _deadzone_dial_ok(cur.controls)
 				"deadzone_sweep": ok = _deadzone_sweep_ok()
+				"opt_layout": ok = _opt_layout_ok(cur)
+				"opt_layout_sweep": ok = _opt_layout_sweep_ok(cur)
+				"pause_opt_sel_0": ok = cur.paused and cur.hud.options_open and cur.hud.option_sel == 0
 				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"pause_ctl_sel_1": ok = cur.hud.controls_open and cur.hud.controls.sel == 1
@@ -1404,6 +1419,51 @@ func _stick_sectors_ok() -> bool:
 		print("stick at rest still gives a direction")
 		ok = false
 	return ok
+
+
+## The pause Options just opened: Mira's screen position is where the camera
+## puts her, and the panel is on the other side of the screen.
+func _opt_layout_ok(lv: Node) -> bool:
+	var m: Vector2 = lv.mira_screen_pos()
+	var by_cam: Vector2 = lv.world.player_center() - lv.camera.get_screen_center_position() + Vector2(160, 90)
+	var ok: bool = m.distance_to(by_cam) < 1.5 and Rect2(0, 0, 320, 180).has_point(m) \
+		and not lv.hud.options_rect().intersects(Hud.mira_rect(m)) and (lv.hud.opt_x > 100.0) == (m.x < 160.0)
+	print("Options layout: opened with Mira at %s (camera says %s), panel %s" % [m, by_cam, lv.hud.options_rect()])
+	return ok
+
+
+## Mira anywhere on the screen (4 px steps): neither the panel nor the help
+## box covers her, for every row at every Smooth Motion and Window Size value
+## (each text fits 4 lines, so one end of her column always clears her).
+## Restores the layout for Mira's real position and the settings.
+func _opt_layout_sweep_ok(lv: Node) -> bool:
+	var g: Node = get_node("/root/Game")
+	var keep: Dictionary = g.settings.duplicate()
+	var hud: Hud = lv.hud
+	var covered := {}
+	var sel := hud.option_sel
+	for sm in ["auto", "on", "off"]:
+		for ws in [0, 2]:
+			g.settings.smooth_motion = sm
+			g.settings.window_scale = ws
+			for x in range(2, 320, 4):
+				for y in range(2, 180, 4):
+					var m := Vector2(x, y)
+					hud.layout_options(m)
+					var me := Hud.mira_rect(m)
+					if hud.options_rect().intersects(me):
+						covered["panel"] = int(covered.get("panel", 0)) + 1
+					for i in hud.option_items.size():
+						hud.option_sel = i
+						if hud.help_rect().intersects(me):
+							var k := "%s (%s, %d)" % [hud.option_items[i], sm, ws]
+							covered[k] = int(covered.get(k, 0)) + 1
+	g.settings = keep
+	hud.option_sel = sel
+	hud.layout_options(lv.mira_screen_pos())
+	if not covered.is_empty():
+		print("Options layout covers Mira: ", covered)
+	return covered.is_empty()
 
 
 ## Stick Deadzone: at 20%, 60% and 70% the stick gives the eight 45-degree

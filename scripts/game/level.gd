@@ -558,6 +558,12 @@ func _pc() -> Vector2:
 	return world.player_center()
 
 
+## Where Mira's centre is on the 320x180 screen (the pause Options panel
+## opens on the other side).
+func mira_screen_pos() -> Vector2:
+	return player_view.get_global_transform_with_canvas() * world.player_center()
+
+
 func _handle_event(ev: String) -> void:
 	if fast:
 		if ev.begins_with("berry:") or ev.begins_with("bell:"):

@@ -177,7 +177,8 @@ A title screen with a campfire and a juggling Mira. Chapter select shows living
 postcards rendered from each chapter's real opening room. Results screens show berries,
 deaths, time, bells, golden runs and whether the climb set a new Best (or the Best it didn't beat). Options cover volume, fullscreen, window size, smooth motion, screen shake,
 reduced flashing, rumble, an optional speedrun timer and key rebinding, and a box beside the
-panel says what the highlighted one does. The game auto-pauses when the window loses focus,
+panel says what the highlighted one does (in the pause menu both open on the side of the screen
+away from Mira, so she stays in view). The game auto-pauses when the window loses focus,
 *Continue* returns you to the last room you entered, and any room you've reached can be a
 starting checkpoint.
 

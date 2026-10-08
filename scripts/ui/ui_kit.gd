@@ -70,7 +70,7 @@ static func option_help(item: String) -> String:
 			if OS.has_feature("web"):
 				return "The browser page sets the size of the game."
 			if int(Game.settings.get("window_scale", 0)) <= 0:
-				return "Auto: the window takes about three quarters of your screen. Or pick 2x and up: each game pixel that many screen pixels wide."
+				return "Auto: about three quarters of your screen. Or 2x and up: each game pixel that many screen pixels wide."
 			return "Each game pixel %d screen pixels wide. Auto sizes the window to about three quarters of your screen." % Game.window_scale()
 		"Smooth Motion":
 			match str(Game.settings.get("smooth_motion", "auto")):
@@ -80,7 +80,7 @@ static func option_help(item: String) -> String:
 		"Screen Shake":
 			return "The camera shakes on dashes, deaths, broken walls, bumpers and gates."
 		"Reduce Flashing":
-			return "Dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength."
+			return "Dims full-screen flashes (bells, deaths, mask swaps...) and the dash shimmer to a fifth."
 		"Rumble":
 			return "The gamepad vibrates on jumps off walls, landings, dashes, springs and deaths."
 		"Speedrun Timer":
@@ -98,12 +98,16 @@ const HELP_TEXT_W := HELP_BOX_W - 14
 ## The help box beside the Options panel: the row's name and its help text.
 static func help_box(ci: CanvasItem, pos: Vector2, item: String, a: float) -> void:
 	var lines := PixelText.wrap(option_help(item), HELP_TEXT_W)
-	var r := Rect2(pos, Vector2(HELP_BOX_W, 26 + lines.size() * PixelText.LINE_H))
+	var r := Rect2(pos, Vector2(HELP_BOX_W, help_box_height(item)))
 	panel(ci, r, a)
 	PixelText.draw_outlined(ci, r.position + Vector2(7, 7), item, Color(GOLD, a), Color(INK, a))
 	ci.draw_rect(Rect2(r.position.x + 7, r.position.y + 18, PixelText.width(item), 1), Color(GOLD_DK, 0.8 * a))
 	for i in lines.size():
 		PixelText.draw_outlined(ci, r.position + Vector2(7, 22 + i * PixelText.LINE_H), lines[i], Color(CREAM, 0.9 * a), Color(INK, a))
+
+
+static func help_box_height(item: String) -> float:
+	return 26.0 + PixelText.wrap(option_help(item), HELP_TEXT_W).size() * PixelText.LINE_H
 
 
 ## Mouse in menus: the row under `p` for rows drawn by menu_row() at
