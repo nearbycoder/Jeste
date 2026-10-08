@@ -1112,3 +1112,79 @@ a private, invisible KWin session as in round 8. Screenshots are in
   still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, the wrong key names
   on non-US keyboards, the maximised window on 720p X11 screens, and now the jump or dash on
   closing the pause menu and the deaths Invincibility missed.
+
+## Round 10 scope (2026-10-07)
+
+Baseline on `improvements-10` (from `main` = `origin/main` = `1b3e529`): the full suite passes in
+23 s at load average 0.3. All runs this round use a throwaway user-data directory (the suite's
+`build/test_user/`, or `build/r10/` for probes), with `TMPDIR` in `build/r10/tmp/` so scratch
+files stay off the shared `/tmp`. The real user-data folder's checksums (save and log files)
+were recorded before the first run and are compared at the end. Window captures run inside a
+private, invisible KWin session as in rounds 7–9.
+
+**Probes for this plan (throwaway, in the git-ignored `build/r10/`):**
+1. *The stick's eight directions.* Sweeping the left stick round a full circle (0.1° steps)
+   through `Game.read_input()` at several tilts. Each axis has its own deadzone (0.4), so the
+   diagonals depend on how far the stick is pushed:
+
+   | Tilt | Each cardinal | Each diagonal | No direction |
+   |---|---|---|---|
+   | 45% | 54.5° | **none** | 142° |
+   | 60% | 83.7° | **6.3°** | 0° |
+   | 80% | 59.9° | 30.1° | 0° |
+   | 100% | 47.1° | 42.9° | 0° |
+
+   A diagonal dash, the move the game is built on, needs the stick pushed almost to the rim, and
+   Dash Aim on a pad has the same problem.
+2. *Options rows.* The title and pause Options panels list 12 and 11 rows with no explanation;
+   *Smooth Motion: Auto (Off)* and *Window Size: Auto 3x* in particular say little. Both panels
+   already reach the hints line, so text can't go underneath (round 9 left this for a redesign).
+   Screenshots: `title_before.png`, `pause_before.png` (in `build/r10/shots/`).
+3. *Menus have only been tested on scripted paths.* ui_flow drives fixed sequences. Nothing has
+   thrown random input at the menus and the level together (pause, assist, options, controls,
+   cutscenes, chapter select, results) to look for script errors or states a player could get
+   stuck in.
+
+Picked for a real player's experience, and because each can be checked here:
+
+### A. The stick aims in eight equal directions at any tilt
+- **Do:** in play, the left stick is read as one vector: past a round deadzone (0.4) it gives
+  one of eight 45° directions by angle, however far it's pushed. Keys, the d-pad and menus are
+  unchanged (menus keep their own stick thresholds).
+- **Accept:** the sweep in probe 1 gives every direction 45° (±0.5°) at tilts from 45% to 100%,
+  and nothing below the deadzone; a stick at rest or drifting below 0.4 gives no direction;
+  keyboard and d-pad play unchanged.
+- **Verify:** the sweep rerun; a ui_flow check of the sweep (fails with the change disabled); a
+  Dash Aim on a half-pushed diagonal stick in ui_flow; the full suite.
+
+### B. Options rows say what they do
+- **Do:** on the title and in the pause menu, the Options panel moves left and a box to its right
+  describes the highlighted row, with the current value's meaning where it has one (Smooth
+  Motion's three values, Window Size's Auto). Mouse hit areas move with the panel.
+- **Accept:** every row on both panels has a description that fits its box in the pixel font;
+  the box doesn't cover Mira and the campfire on the title; mouse hover, click and wheel still
+  land on the right rows.
+- **Verify:** a ui_flow check that each row has a text, each fits, and the different values of
+  Smooth Motion read differently; the existing mouse steps (updated positions); before/after
+  screenshots.
+
+### C. Random input through the menus and the level
+- **Do:** a seeded fuzz scene, `tests/menu_fuzz.gd`, that runs from the title through Options,
+  Controls, chapter select, the checkpoint picker, a level, its pause, Assist, Options and
+  Controls, cutscenes and results with random key, pad-button, stick, mouse-click and wheel
+  events, releasing everything at intervals. Fix what it finds.
+- **Accept:** each check holds on every frame: no script errors; a paused level always shows
+  its pause menu, and an unpaused one is stepping at the chosen Game Speed; once every input
+  is released, nothing reads as held; Quit is never chosen (the fuzz skips it).
+- **Verify:** several long seeds run clean after the fixes (log names in the results); a short
+  seed added to the suite.
+
+### D. The pause screen shows the chapter's time (if A–C land cleanly)
+- **Do:** the line under the pause menu shows the chapter's time beside its deaths, whether or
+  not the Speedrun Timer is on.
+- **Accept:** the time matches the chapter timer and fits on the line for the longest chapter
+  name.
+- **Verify:** a ui_flow check and a screenshot.
+
+Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
+builds, license and releases (owner decisions); new content (too large).
