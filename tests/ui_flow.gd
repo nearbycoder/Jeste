@@ -242,7 +242,7 @@ func _ready() -> void:
 		["speed", "0.5", 40], ["check", "half_speed", 0],        # Game Speed 50% = half the simulation steps
 		["speed", "1.0", 40], ["check", "full_speed", 0],
 		# the press that closes the pause menu doesn't also jump or dash
-		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],
+		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0], ["check", "pause_time", 0],
 		["watch_moves", "", 0], ["key_down", "C", 20], ["check", "unpaused", 0], ["key_up", "C", 10], ["check", "no_moves", 0],
 		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],
 		["watch_moves", "", 0], ["key_down", "X", 20], ["check", "unpaused", 0], ["key_up", "X", 10], ["check", "no_moves", 0],
@@ -707,6 +707,7 @@ func _process(_d: float) -> void:
 				"aim_probe_pure": ok = _aim_probe_pure_ok()
 				"assist_help": ok = _assist_help_ok()
 				"stick_sectors": ok = _stick_sectors_ok()
+				"pause_time": ok = _pause_time_ok(cur)
 				"option_help": ok = _option_help_ok()
 				"on_air_dashes": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Air Dashes"
 				"air_two": ok = str(get_node("/root/Game").settings.air_dashes) == "two" and cur.world.assist_air_dashes == World.AIR_DASHES_TWO \
@@ -1245,6 +1246,21 @@ func _option_help_ok() -> bool:
 		print("option help: %d different texts, want 15" % seen.size())
 		ok = false
 	return ok
+
+
+## The pause screen shows the chapter's time (with the Speedrun Timer off),
+## and the line fits for every chapter at 999 deaths and an hour's climb.
+func _pause_time_ok(cur: Node) -> bool:
+	var info: String = cur.hud.pause_info()
+	if bool(get_node("/root/Game").settings.show_timer) or cur.chapter_time <= 0.0 or not info.ends_with("   " + Level.fmt_time(cur.chapter_time)):
+		print("pause info: %s (time %.2f)" % [info, cur.chapter_time])
+		return false
+	for n in 9:
+		var w := PixelText.width("%s   Deaths %d   %s" % [LevelDB.get_chapter(n).name, 999, Level.fmt_time(3599.99)])
+		if w > 300:
+			print("pause info too wide for chapter %d: %d px" % [n, w])
+			return false
+	return true
 
 
 ## The left stick at <angle> (radians, counter-clockwise from right) and <tilt>.

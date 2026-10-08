@@ -82,7 +82,7 @@ is always one menu away.
   which of its berries and bell you still lack, and a red dot over a room's pip means something
   there is still missing. Only runs from the chapter's start can set a Best time.
 - **Pause → Restart Chapter** (after a confirm) starts a fresh run from the chapter's first
-  room, for golden-berry attempts and speedruns. The pause screen also shows the chapter's berries.
+  room, for golden-berry attempts and speedruns. The pause screen also shows the chapter's deaths, time and berries.
 - **Options → Controls** (on the title screen or in the pause menu) rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. On-screen prompts follow whichever device you used last, name keys the way your keyboard layout prints them (keys are bound by position, so on a French AZERTY keyboard the default Grab key reads W and WASD reads ZQSD), and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
 - **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
 - **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.

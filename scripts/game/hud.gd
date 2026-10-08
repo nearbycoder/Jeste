@@ -436,7 +436,7 @@ func _draw_pause(e: float) -> void:
 	for i in pause_items.size():
 		UIKit.menu_row(self, r.position.x + 6, r.position.y + 10 + i * 14, r.size.x - 12, pause_items[i], 0.0 if confirm_restart else row_k[i], time, e, true)
 	if level:
-		var info := "%s   Deaths %d" % [str(level.chapter.name), level.deaths_this_chapter]
+		var info := pause_info()
 		PixelText.draw_centered_outlined(self, 160, r.end.y + 6, info, Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))
 		_draw_pause_berries(r.end.y + 17, e)
 	if confirm_restart:
@@ -444,6 +444,12 @@ func _draw_pause(e: float) -> void:
 		return
 	var pairs := [[Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Resume"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
+
+
+## The line under the pause menu: the chapter, its deaths and its time so
+## far (the time whether or not the Speedrun Timer is on).
+func pause_info() -> String:
+	return "%s   Deaths %d   %s" % [str(level.chapter.name), level.deaths_this_chapter, Level.fmt_time(level.chapter_time)]
 
 
 ## This chapter's berries (and its bell, found or not) under the pause menu.
