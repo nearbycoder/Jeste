@@ -1366,3 +1366,78 @@ passed with no script errors. Seed 23 reached both the title's and the pause men
   on non-US keyboards, the maximised window on 720p X11 screens, the jump or dash on closing the
   pause menu, the deaths Invincibility missed and now the pad's X doing nothing in menus. It also
   lacks round 10's and this round's stick, Options and pause changes.
+
+## Round 12 scope (2026-10-08)
+
+Baseline on `improvements-12` (from `main` = `origin/main` = `85239ff`). All runs this round use
+a throwaway user-data directory (the suite's `build/test_user/`, or `build/r12/` for probes and
+captures), with `TMPDIR` in `build/r12/tmp/`. The real user-data folder's checksums (103 files)
+and Godot's config folder were recorded before the first run and are compared at the end.
+Window captures and frame-time runs happen inside a private, invisible KWin session (Vulkan,
+the game's real Mobile renderer, works there on this machine's Radeon 8060S).
+
+This round's focus is AAA polish and a Graphics Fidelity setting. The owner relaxed earlier
+rounds' "the look is off-limits" for polish that keeps the pixel-art style; gameplay, difficulty
+and story stay as they are.
+
+**What the code shows (read for this plan):**
+1. *No graphics setting.* The look is fixed: a full-screen post pass (16-tap bloom, per-chapter
+   grade, impact shimmer) that copies the screen every frame, an additive light pass, parallax
+   backdrops with fog bands, light shafts and 60 ambient particles, and particle effects capped
+   at 600. A weak GPU can't turn any of it down, and a strong one has nothing more to show.
+2. *Options are full.* The title's Options panel has 12 rows at 12 px and ends 2 px above the
+   hint line; the pause panel's 11 rows end 8 px above it. Another row needs a tighter pitch.
+3. *Menus are silent going back.* Moving and selecting play a cue everywhere, but backing out of
+   Options, Controls, Assist, the Restart box, chapter select or the checkpoint picker plays
+   nothing, so Back feels dead next to every other press. Toggles snap from off to on.
+4. *Pausing just darkens the frame* (a flat 60% dim), so busy rooms compete with the panel.
+
+Picked for a real player's experience, and because each can be checked here (all four are in
+the round's focus):
+
+### A. Options → Graphics: Low / Medium / High / Ultra
+- **Do:** one *Graphics* row on the title and pause Options panels (after Window Size), stepped
+  like Window Size by keys, pad, mouse click and wheel, saved with the other settings and applied
+  at once. *High* (the default) is today's look. *Medium* keeps the grade with a lighter bloom and
+  drops the light shafts and a third of the ambient particles. *Low* turns the full-screen post
+  pass off (no screen copy), drops fog bands and light shafts, two thirds of the ambient
+  particles, half of the effect particles and the dash ribbon. *Ultra* is item B. Options rows go
+  from 12 px to 11 px apart so the new row fits; the help box says what each step does.
+- **Accept:** four steps, saved and restored; keys, pad, click and wheel each step it; with the
+  RNG seeded, *High* renders the same frame pixel-identical to `main`; each step's same-frame
+  screenshot shows its changes; mouse hover, slider clicks and the wheel still land on the right
+  rows of both panels at the new pitch.
+- **Verify:** ui_flow steps and checks (each fails with the change disabled); same-frame
+  screenshots of three rooms and the title at all four steps; a frame-time run of each step (CPU
+  frame time and the GPU's measured render time, with the load noted).
+
+### B. Ultra: a richer look
+- **Do:** at *Ultra*, a wide soft bloom (many taps over a larger radius, on top of today's), a
+  gentle filmic contrast curve, depth of field on the far and middle backdrop layers, light pools
+  with twice as many falloff steps, twice the ambient particles in three depths plus a few soft
+  out-of-focus motes in front, 1.5× the effect particles and a longer dash ribbon.
+- **Accept:** visible in the same-frame screenshots across chapters; the HUD, menus and text are
+  untouched (they sit above the post pass); nothing in the simulation changes (the suite's route
+  replays still pass); Ultra's frame time is measured and reported.
+- **Verify:** screenshots, the frame-time run, the full suite.
+
+### C. The game softens behind the pause menu
+- **Do:** when the pause menu (and its Assist, Options and Controls) opens, the world behind it
+  eases into a soft blur and loses some colour, and eases back on resume, at *Medium* and up;
+  *Low* keeps today's flat dim (no extra pass).
+- **Accept:** screenshots paused and unpaused; the blur is off when not paused; no change at Low.
+- **Verify:** a ui_flow check of the post pass's pause amount through open and close;
+  screenshots.
+
+### D. Every press in a menu answers
+- **Do:** a *back* cue (a lower, softer select) when backing out anywhere: title Options,
+  Controls, Erase Save, chapter select and its checkpoint picker, the pause menu's Assist,
+  Options, Controls and Restart box. Toggles slide their knob instead of snapping, and a value
+  that changes (toggle, slider, Window Size, Smooth Motion, Graphics) pops briefly.
+- **Accept:** each back-out plays the back cue once; nothing else changes in the menus' flow.
+- **Verify:** ui_flow checks the cue each back-out plays (fails with the cue removed); a
+  screenshot of a toggle mid-slide.
+
+Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
+builds, license and releases (owner decisions); new content (too large); real-time 2D shadows
+from terrain (a much larger change to how rooms are drawn, kept for a later round).
