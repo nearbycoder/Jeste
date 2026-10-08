@@ -116,7 +116,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			leaving_room = "" if cp_sel == 0 else cp_rooms[cp_sel]
 		elif ev.is_action_pressed("back"):
 			picking = false
-			Sfx.play("menu_move")
+			Sfx.back()
 		return
 	var n := LevelDB.chapter_count()
 	if ev.is_action_pressed("left") and sel > 0:
@@ -131,6 +131,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			leaving = sel
 			leaving_room = ""
 	elif ev.is_action_pressed("back"):
+		Sfx.back()
 		Game.goto_title()
 
 

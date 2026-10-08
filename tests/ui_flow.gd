@@ -10,6 +10,7 @@ var idx := 0
 var wait := 0
 var failed := ""
 var music_before := 0.0
+var back_before := 0
 var scroll_before := 0.0
 var skip_id := ""
 var speed_from := 0
@@ -187,11 +188,15 @@ func _ready() -> void:
 		["mouse_at", "160,117", 2], ["check", "on_deadzone", 0],   # the wheel over Stick Deadzone steps it
 		["wheel", "160,117,down", 4], ["check", "deadzone_35", 0], ["wheel", "160,117,up", 4], ["check", "deadzone_40", 0],
 		["check", "deadzone_dial", 0],
+		["mark_back", "", 0],
 		["rclick", "160,57", 10], ["check", "options", 0],       # a right click closes the panel
+		["check", "back_cued_1", 0],                             # (each back-out plays the back cue once)
 		["click", "76,127", 10], ["check", "controls", 0],      # and a click on Controls opens it again
+		["mark_back", "", 0],
 		["press", "back", 10],
 		["press", "back", 20],
-		["check", "main", 0],
+		["check", "main", 0], ["check", "back_cued_2", 0],
+		["check", "ui_anim", 0],
 		["press", "up", 6],                                      # Climb
 		["press", "confirm", 90],
 		["expect", "ChapterSelect", 0],
@@ -302,8 +307,9 @@ func _ready() -> void:
 		["check", "ghost_off", 0],
 		["press", "up", 4], ["press", "up", 4], ["check", "on_dash_aim", 0],
 		["press", "right", 4], ["check", "dash_aim_on", 0],      # Dash Aim on
+		["mark_back", "", 0],
 		["press", "back", 10], ["press", "back", 20],
-		["check", "unpaused", 0],
+		["check", "unpaused", 0], ["check", "back_cued_2", 0],   # Assist -> pause -> play, a back cue each
 		["wait_ground", "", 2],
 		# Dash Aim: holding Dash stops time; she dashes the last way aimed on release
 		["watch_moves", "", 0], ["key_down", "X", 2], ["check", "aiming", 0], ["mark_frame", "", 0],
@@ -343,7 +349,9 @@ func _ready() -> void:
 		["check", "backfill", 0],                                # checkpoint select
 		["seed_checkpoints", "", 0],
 		["scene", "res://scenes/chapter_select.tscn", 60],
+		["mark_back", "", 0],
 		["padbtn", "X", 60], ["expect", "Title", 0],              # pad X (the hint's Back) leaves chapter select
+		["check", "back_cued_1", 0],
 		["scene", "res://scenes/chapter_select.tscn", 60],
 		["rclick", "160,10", 60], ["expect", "Title", 0],         # the mouse in chapter select: right click goes back
 		["scene", "res://scenes/chapter_select.tscn", 60],
@@ -683,6 +691,8 @@ func _process(_d: float) -> void:
 			wait = int(s[1])
 		"set_opt0":
 			cur.opt_sel = 0
+		"mark_back":
+			back_before = int(get_node("/root/Sfx").cues.get("back", 0))
 		"mark_scroll":
 			scroll_before = cur.scroll
 		"wheel":
@@ -872,6 +882,12 @@ func _process(_d: float) -> void:
 						and is_equal_approx(cur.post.soften, 0.4 if want > 0 else 0.0)   # less blur under Options, none at Low
 				"soften_full": ok = cur.post.fidelity >= 1 and is_equal_approx(cur.post.soften, 1.0) and is_equal_approx(float(cur.post.mat.get_shader_parameter("soften")), 1.0)
 				"soften_off": ok = cur.post.soften == 0.0 and float(cur.post.mat.get_shader_parameter("soften")) == 0.0
+				"back_cued_1", "back_cued_2":
+					var n := int(get_node("/root/Sfx").cues.get("back", 0)) - back_before
+					ok = n == int(str(s[1]).get_slice("_", 2))
+					if not ok:
+						print("back cues: %d" % n)
+				"ui_anim": ok = _ui_anim_ok()
 				"pause_opt_sel_0": ok = cur.paused and cur.hud.options_open and cur.hud.option_sel == 0
 				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
@@ -1360,6 +1376,20 @@ func _aim_probe_pure_ok() -> bool:
 			if a.dead or a.exited or a.end_reached:
 				break
 	return asked > 0
+
+
+## A toggle's knob eases (it doesn't jump the moment it's switched) and a
+## changed value flashes; either snaps after the panel wasn't drawn a while.
+func _ui_anim_ok() -> bool:
+	var ok := UIKit.eased("t:flow", 0.0) == 0.0
+	var v := UIKit.eased("t:flow", 1.0)
+	ok = ok and v >= 0.0 and v < 1.0
+	ok = ok and UIKit.value_flash("v:flow", "Low") == 0.0 and UIKit.value_flash("v:flow", "Medium") > 0.9
+	OS.delay_msec(350)   # past the snap and the flash
+	ok = ok and UIKit.eased("t:flow", 0.0) == 0.0 and UIKit.value_flash("v:flow", "High") == 0.0
+	if not ok:
+		print("ui anim: eased %.2f" % v)
+	return ok
 
 
 ## The PostFX layer under a scene (title, chapter select, level).

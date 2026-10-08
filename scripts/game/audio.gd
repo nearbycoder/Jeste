@@ -20,6 +20,7 @@ var _current_amb := ""
 const AMB_DB := -9.0
 var _fade := 0.0
 var _muted := false
+var cues := {}   # how many times each menu cue was asked for (counted even when muted, for the tests)
 
 
 func _ready() -> void:
@@ -80,6 +81,12 @@ func play(name: String, pitch: float = 1.0, vol: float = 0.0) -> void:
 			p.volume_db = _sfx_db() + vol
 			p.play()
 			return
+
+
+## Backing out of a menu: a lower, softer take on the select cue.
+func back() -> void:
+	cues["back"] = int(cues.get("back", 0)) + 1
+	play("menu_select", 0.72, -4.0)
 
 
 func play_voice(who: String) -> void:

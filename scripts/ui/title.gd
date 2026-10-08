@@ -214,6 +214,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 			elif ev.is_action_pressed("back"):
 				screen = "main"
 				Game.save_settings()
+				Sfx.back()
 		"controls":
 			if controls.navigate(ev):
 				screen = "options"
@@ -225,6 +226,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 				Sfx.play("death")
 			elif ev.is_action_pressed("back"):
 				screen = "options"
+				Sfx.back()
 
 
 ## Mouse on the main menu, Options and Controls: pointing at a row selects it,
@@ -276,7 +278,11 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 
 
 func _change_option(d: int, confirm: bool) -> void:
-	Sfx.play("menu_select")
+	if OPTIONS[opt_sel] == "Back":
+		if confirm:
+			Sfx.back()
+	else:
+		Sfx.play("menu_select")
 	match OPTIONS[opt_sel]:
 		"Music Volume":
 			Game.settings.music = clampf(snappedf(float(Game.settings.music) + 0.1 * d, 0.1), 0.0, 1.0)
@@ -452,17 +458,17 @@ func _draw_opt_value(name: String, right: Vector2, a: float) -> void:
 		"Sound Volume":
 			UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.sfx), a)
 		"Fullscreen":
-			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), a)
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), a, "Fullscreen")
 		"Graphics":
 			UIKit.fidelity_value(self, right, a)
 		"Window Size", "Smooth Motion":
 			var v := Game.window_scale_label() if name == "Window Size" else Game.smooth_motion_label()
-			PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), right.y), v, Color(UIKit.GOLD, a), Color(UIKit.INK, a))
+			UIKit.value_text(self, right, name, v, a)
 		"Screen Shake":
-			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), a)
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), a, "Screen Shake")
 		"Reduce Flashing":
-			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), a)
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), a, "Reduce Flashing")
 		"Rumble":
-			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), a)
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), a, "Rumble")
 		"Speedrun Timer":
-			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), a)
+			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), a, "Speedrun Timer")

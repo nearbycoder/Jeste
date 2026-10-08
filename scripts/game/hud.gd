@@ -170,6 +170,7 @@ func handle_menu_input(ev: InputEvent) -> bool:
 				pause_choice.emit("Restart Chapter")
 		elif ev.is_action_pressed("back") or ev.is_action_pressed("pause"):
 			confirm_restart = false
+			Sfx.back()
 		return true
 	if assist_open:
 		if ev.is_action_pressed("up"):
@@ -202,9 +203,13 @@ func handle_menu_input(ev: InputEvent) -> bool:
 						assist_open = false
 			Game.save_settings()
 			pause_choice.emit("assist_changed")
-			Sfx.play("menu_select")
+			if assist_open:
+				Sfx.play("menu_select")
+			else:
+				Sfx.back()
 		elif ev.is_action_pressed("back"):
 			assist_open = false
+			Sfx.back()
 		return true
 	if options_open:
 		if ev.is_action_pressed("up"):
@@ -249,10 +254,14 @@ func handle_menu_input(ev: InputEvent) -> bool:
 					if ev.is_action_pressed("confirm"):
 						options_open = false
 			Game.save_settings()
-			Sfx.play("menu_select")
+			if options_open:
+				Sfx.play("menu_select")
+			else:
+				Sfx.back()
 		elif ev.is_action_pressed("back"):
 			options_open = false
 			Game.save_settings()
+			Sfx.back()
 		return true
 	if ev.is_action_pressed("up"):
 		pause_sel = (pause_sel + pause_items.size() - 1) % pause_items.size()
@@ -277,6 +286,7 @@ func handle_menu_input(ev: InputEvent) -> bool:
 		else:
 			pause_choice.emit(item)
 	elif ev.is_action_pressed("back") or ev.is_action_pressed("pause"):
+		Sfx.back()
 		pause_choice.emit("Resume")
 	return true
 
@@ -511,15 +521,15 @@ func _draw_options(e: float) -> void:
 		match option_items[i]:
 			"Music Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.music), e)
 			"Sound Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.sfx), e)
-			"Fullscreen": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), e)
+			"Fullscreen": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), e, "Fullscreen")
 			"Graphics": UIKit.fidelity_value(self, right, e)
 			"Window Size", "Smooth Motion":
 				var v := Game.window_scale_label() if option_items[i] == "Window Size" else Game.smooth_motion_label()
-				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
-			"Screen Shake": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), e)
-			"Reduce Flashing": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), e)
-			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e)
-			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e)
+				UIKit.value_text(self, Vector2(right.x, y), option_items[i], v, e)
+			"Screen Shake": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.screen_shake), e, "Screen Shake")
+			"Reduce Flashing": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("reduce_flashing", false)), e, "Reduce Flashing")
+			"Rumble": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("rumble", true)), e, "Rumble")
+			"Speedrun Timer": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.show_timer), e, "Speedrun Timer")
 	UIKit.help_box(self, help_rect().position, option_items[option_sel], e)
 	var pairs := [[Game.move_label(), "Change"], [Game.key_label("dash"), "Back"]]
 	UIKit.hints(self, Vector2(roundf(160 - UIKit.hints_width(pairs) / 2.0), 166), pairs, e * 0.9)
@@ -581,10 +591,10 @@ func _draw_assist(e: float = 1.0) -> void:
 				var v := "%d%%" % int(float(Game.settings.game_speed) * 100.0) if assist_items[i] == "Game Speed" \
 					else str(Game.settings.get("air_dashes", "default")).capitalize() if assist_items[i] == "Air Dashes" \
 					else Game.ghost_mode().capitalize()
-				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
-			"Infinite Stamina": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.infinite_stamina), e)
-			"Dash Aim": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("dash_aim", false)), e)
-			"Invincibility": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.invincible), e)
+				UIKit.value_text(self, Vector2(right.x, y), assist_items[i], v, e)
+			"Infinite Stamina": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.infinite_stamina), e, "Infinite Stamina")
+			"Dash Aim": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.get("dash_aim", false)), e, "Dash Aim")
+			"Invincibility": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.invincible), e, "Invincibility")
 	var lines := PixelText.wrap(assist_help(assist_items[assist_sel]), ASSIST_HELP_W)
 	for i in lines.size():
 		PixelText.draw_centered_outlined(self, 160, r.end.y + 5 + i * PixelText.LINE_H, lines[i], Color(UIKit.CREAM, 0.85 * e), Color(UIKit.INK, e))

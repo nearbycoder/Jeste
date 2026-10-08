@@ -44,7 +44,7 @@ func capture(ev: InputEvent) -> bool:
 		var btn: int = (ev as InputEventJoypadButton).button_index
 		if btn == JOY_BUTTON_START:
 			waiting_key = false
-			Sfx.play("menu_move")
+			Sfx.back()
 		elif Game.rebind_pad(ITEMS[sel], btn):
 			waiting_key = false
 			Game.save_settings()
@@ -55,7 +55,7 @@ func capture(ev: InputEvent) -> bool:
 	var key: int = (ev as InputEventKey).physical_keycode
 	waiting_key = false
 	if key == KEY_ESCAPE:
-		Sfx.play("menu_move")
+		Sfx.back()
 		return true
 	Game.rebind(ITEMS[sel], key)
 	Game.save_settings()
@@ -82,16 +82,18 @@ func navigate(ev: InputEvent) -> bool:
 		Game.step_stick_deadzone(-1 if ev.is_action_pressed("left") else 1, ev.is_action_pressed("confirm"))
 		Game.save_settings()
 	elif ev.is_action_pressed("confirm"):
+		if ITEMS[sel] == "Back":
+			Sfx.back()
+			return true
 		Sfx.play("menu_select")
 		match ITEMS[sel]:
 			"Reset Defaults":
 				Game.reset_bindings()
 				Game.save_settings()
-			"Back":
-				return true
 			_:
 				waiting_key = true
 	elif ev.is_action_pressed("back"):
+		Sfx.back()
 		return true
 	return false
 
@@ -106,7 +108,7 @@ func mouse(ev: InputEventMouse) -> InputEvent:
 	if waiting_key:
 		if a and a.action == "back":
 			waiting_key = false
-			Sfx.play("menu_move")
+			Sfx.back()
 		return null
 	var i := UIKit.row_at(ev.position, PANEL.position.x + 12, PANEL.position.y + 10, 140, 12, ITEMS.size())
 	if UIKit.is_wheel(ev):

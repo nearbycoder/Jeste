@@ -265,13 +265,53 @@ static func hints_width(pairs: Array) -> float:
 	return x - 9.0
 
 
-static func toggle(ci: CanvasItem, pos: Vector2, on: bool, a: float = 1.0) -> void:
+## A toggle switch. With a `key` (the row's name) its knob slides and its
+## colour fades between off and on instead of snapping (see eased).
+static func toggle(ci: CanvasItem, pos: Vector2, on: bool, a: float = 1.0, key := "") -> void:
+	var k := eased("toggle:" + key, 1.0 if on else 0.0) if key != "" else (1.0 if on else 0.0)
 	var r := Rect2(pos.round(), Vector2(15, 7))
 	ci.draw_rect(r.grow(1), Color(INK, a))
-	ci.draw_rect(r, Color(Color("4fae5a") if on else Color("3a3448"), a))
-	var kx := r.position.x + (9.0 if on else 1.0)
+	ci.draw_rect(r, Color(Color("3a3448").lerp(Color("4fae5a"), k), a))
+	var kx := roundf(r.position.x + 1.0 + 8.0 * k)
 	ci.draw_rect(Rect2(kx, r.position.y + 1, 5, 5), Color(CREAM, a))
 	ci.draw_rect(Rect2(kx, r.position.y + 5, 5, 1), Color(MUTED.darkened(0.3), a))
+
+
+# Menu animation state that callers don't keep: per key, the value shown and
+# when it was last drawn (eased), and the last text and when it changed
+# (value_flash). A key not drawn for a moment (a panel just opened) snaps.
+static var _anim := {}
+static var _flash := {}
+const ANIM_SNAP_MS := 200
+
+
+## The shown value for `key`, moved toward `target` at `speed` per second
+## since it was last drawn.
+static func eased(key: String, target: float, speed := 9.0) -> float:
+	var now := Time.get_ticks_msec()
+	var st: Array = _anim.get(key, [target, now])
+	var gap := now - int(st[1])
+	var v := target if gap > ANIM_SNAP_MS else move_toward(float(st[0]), target, gap / 1000.0 * speed)
+	_anim[key] = [v, now]
+	return v
+
+
+## 1 right after the text drawn for `key` changes, fading to 0 over 0.3 s.
+static func value_flash(key: String, text: String) -> float:
+	var now := Time.get_ticks_msec()
+	var st: Array = _flash.get(key, [text, now, -100000])
+	var changed := int(st[2])
+	if str(st[0]) != text and now - int(st[1]) <= ANIM_SNAP_MS:
+		changed = now
+	_flash[key] = [text, now, changed]
+	return clampf(1.0 - (now - changed) / 300.0, 0.0, 1.0)
+
+
+## A setting's value, right-aligned at `right` in gold; it flashes toward
+## white and hops a pixel when it changes.
+static func value_text(ci: CanvasItem, right: Vector2, key: String, text: String, a: float = 1.0) -> void:
+	var f := value_flash(key, text)
+	PixelText.draw_outlined(ci, Vector2(right.x - PixelText.width(text), right.y - roundf(f)), text, Color(GOLD.lerp(Color.WHITE, f * 0.8), a), Color(INK, a))
 
 
 ## Options > Graphics (fidelity)'s value, right-aligned at `right`: a meter of
@@ -286,8 +326,7 @@ static func fidelity_meter_x(right_x: float) -> float:
 
 
 static func fidelity_value(ci: CanvasItem, right: Vector2, a: float = 1.0) -> void:
-	var name := Game.fidelity_label()
-	PixelText.draw_outlined(ci, Vector2(right.x - PixelText.width(name), right.y), name, Color(GOLD, a), Color(INK, a))
+	value_text(ci, right, "Graphics", Game.fidelity_label(), a)
 	var x0 := fidelity_meter_x(right.x)
 	for i in Game.FIDELITY_NAMES.size():
 		var h := 3.0 + i * 1.5
