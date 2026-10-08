@@ -62,6 +62,8 @@ is always one menu away.
 - **Hold jump** to jump higher. **Jump off a wall** to kick away from it.
 - **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
+- On a gamepad, the left stick points in eight equal directions (45° each) however far you push
+  it past a small deadzone, so a half-pushed diagonal still dashes diagonally.
 - Menus repeat when you hold a direction (keys, D-pad or stick).
 - **F11 or Alt+Enter** switches between fullscreen and a window anywhere in the game (F11
   only if you haven't bound it to an action).

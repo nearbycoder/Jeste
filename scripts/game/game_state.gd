@@ -38,6 +38,11 @@ const PAD_DIRS := {"up": "Up", "down": "Down", "left": "Left", "right": "Right"}
 const STICK_PRESS := 0.5
 const STICK_RELEASE := 0.3
 var _axis_dir := {}            # (device, axis) -> -1, 0 or 1
+## In play the left stick is one vector: past a round deadzone it points one
+## of eight equal 45-degree ways, however far it's pushed (see stick_input).
+## Each axis on its own would need the stick near the rim for a diagonal.
+const STICK_DEADZONE := 0.4
+var _stick_pads := {}          # devices whose left stick has moved
 ## Menu hold-to-repeat: a held direction re-sends its press after
 ## REPEAT_DELAY, then every REPEAT_RATE seconds (real time).
 const REPEAT_DELAY := 0.35
@@ -72,6 +77,7 @@ func _on_joy_connection_changed(device: int, connected: bool) -> void:
 	for k in _axis_dir.keys():
 		if int(k) / 64 == device:
 			_axis_dir.erase(k)
+	_stick_pads.erase(device)
 	pad_disconnected.emit()
 
 
@@ -134,6 +140,8 @@ func _input(ev: InputEvent) -> void:
 			set_cursor_hidden(false)
 	elif not cursor_hidden and (ev is InputEventKey or ev is InputEventJoypadButton) and ev.pressed:
 		set_cursor_hidden(true)
+	if ev is InputEventJoypadMotion and (ev.axis == JOY_AXIS_LEFT_X or ev.axis == JOY_AXIS_LEFT_Y):
+		_stick_pads[ev.device] = true
 	if ev is InputEventJoypadButton or (ev is InputEventJoypadMotion and absf((ev as InputEventJoypadMotion).axis_value) > 0.5):
 		using_pad = true
 		pad_device = ev.device
@@ -417,6 +425,7 @@ func read_input() -> int:
 	if Input.is_action_pressed("down"): b |= World.IN_DOWN
 	if Input.is_action_pressed("jump"): b |= World.IN_JUMP
 	if Input.is_action_pressed("dash"): b |= World.IN_DASH
+	b |= stick_input()
 	var grab := Input.is_action_pressed("grab")
 	if str(settings.get("grab_mode", "hold")) == "toggle":
 		if grab and not _grab_down:
@@ -429,6 +438,24 @@ func read_input() -> int:
 		b &= ~(World.IN_LEFT | World.IN_RIGHT)
 	if (b & World.IN_UP) and (b & World.IN_DOWN):
 		b &= ~(World.IN_UP | World.IN_DOWN)
+	return b
+
+
+## The direction bits of the left sticks: by angle, in eight 45-degree
+## sectors, once a stick is past STICK_DEADZONE. The actions also see each
+## axis past 0.4, but that only ever adds a direction a sector already gives
+## (for a stick within the unit circle), so read_input() can OR the two.
+func stick_input() -> int:
+	var b := 0
+	for d in _stick_pads:
+		var v := Vector2(Input.get_joy_axis(d, JOY_AXIS_LEFT_X), Input.get_joy_axis(d, JOY_AXIS_LEFT_Y))
+		if v.length() < STICK_DEADZONE:
+			continue
+		var s := posmod(roundi(v.angle() / (PI / 4.0)), 8)   # 0 = right, 2 = down (y points down)
+		if s in [7, 0, 1]: b |= World.IN_RIGHT
+		if s in [1, 2, 3]: b |= World.IN_DOWN
+		if s in [3, 4, 5]: b |= World.IN_LEFT
+		if s in [5, 6, 7]: b |= World.IN_UP
 	return b
 
 

@@ -53,6 +53,7 @@ func _ready() -> void:
 		["check", "invincible_sim", 0],
 		["check", "aim_probe_pure", 0],
 		["check", "assist_help", 0],
+		["check", "stick_sectors", 0],
 		["stick", "down", 6],                                     # one stick push = one row
 		["check", "title_sel_1", 0],
 		["stick", "up", 6],
@@ -267,6 +268,9 @@ func _ready() -> void:
 		["wait_ground", "", 2],
 		["key_down", "X", 2], ["key_down", "Up", 0], ["key_down", "Right", 4], ["key_up", "Right", 10],   # a stick rolled to straight up
 		["check", "aim_up", 0], ["key_up", "X", 3], ["check", "aim_dashed_up", 0], ["key_up", "Up", 0],
+		["wait_ground", "", 2],
+		["key_down", "X", 2], ["stick_at", "30,0.55", 6], ["check", "aim_up_right", 0],   # a stick half-pushed up-right aims up-right
+		["key_up", "X", 3], ["check", "aim_dashed", 0], ["stick_at", "0,0", 2],
 		["wait_ground", "", 2],
 		["watch_moves", "", 0], ["key_down", "X", 2], ["check", "aiming", 0],   # pausing drops the aim
 		["key_down", "Escape", 2], ["key_up", "Escape", 4], ["check", "paused_not_aiming", 0],
@@ -533,6 +537,9 @@ func _process(_d: float) -> void:
 			ev.keycode = ev.physical_keycode
 			ev.pressed = s[0] == "key_down"
 			Input.parse_input_event(ev)
+		"stick_at":
+			var pa: PackedStringArray = str(s[1]).split(",")
+			_stick(deg_to_rad(float(pa[0])), float(pa[1]))
 		"watch_moves":
 			moves = {}
 		"mark_frame":
@@ -698,6 +705,7 @@ func _process(_d: float) -> void:
 				"invincible_sim": ok = _invincible_ok()
 				"aim_probe_pure": ok = _aim_probe_pure_ok()
 				"assist_help": ok = _assist_help_ok()
+				"stick_sectors": ok = _stick_sectors_ok()
 				"on_air_dashes": ok = cur.hud.assist_open and cur.hud.assist_items[cur.hud.assist_sel] == "Air Dashes"
 				"air_two": ok = str(get_node("/root/Game").settings.air_dashes) == "two" and cur.world.assist_air_dashes == World.AIR_DASHES_TWO \
 					and cur.room_id == "1-01" and cur.world.max_dashes == 2
@@ -730,6 +738,7 @@ func _process(_d: float) -> void:
 				"aim_dashed": ok = not cur.aiming and moves.has("dash") and cur.world.dash_dir_x == 1 and cur.world.dash_dir_y == -1
 				"not_aiming": ok = not cur.aiming
 				"aim_up": ok = cur.aiming and cur.aim_bits == World.IN_UP
+				"aim_up_right": ok = cur.aiming and cur.aim_bits == (World.IN_UP | World.IN_RIGHT)
 				"aim_dashed_up": ok = not cur.aiming and cur.world.dash_dir_x == 0 and cur.world.dash_dir_y == -1 and cur.world.state == World.ST_DASH
 				"paused_not_aiming": ok = cur.paused and not cur.aiming
 				"jumped": ok = moves.has("jump")
@@ -1197,6 +1206,47 @@ func _aim_probe_pure_ok() -> bool:
 			if a.dead or a.exited or a.end_reached:
 				break
 	return asked > 0
+
+
+## The left stick at <angle> (radians, counter-clockwise from right) and <tilt>.
+func _stick(angle: float, tilt: float) -> void:
+	for ax in [[JOY_AXIS_LEFT_X, cos(angle) * tilt], [JOY_AXIS_LEFT_Y, -sin(angle) * tilt]]:
+		var ev := InputEventJoypadMotion.new()
+		ev.device = 0
+		ev.axis = ax[0]
+		ev.axis_value = ax[1]
+		Input.parse_input_event(ev)
+	Input.flush_buffered_events()
+
+
+## In play the stick points eight equal ways at any tilt past the deadzone
+## (each axis alone made a diagonal need the stick near its rim), and gives
+## nothing below it.
+func _stick_sectors_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var dirs := World.IN_LEFT | World.IN_RIGHT | World.IN_UP | World.IN_DOWN
+	var ok := true
+	for tilt in [0.3, 0.45, 0.6, 1.0]:
+		var counts := {}
+		for deg in 360:
+			_stick(deg_to_rad(deg + 0.25), tilt)   # off the 22.5-degree boundaries
+			var b: int = g.read_input() & dirs
+			counts[b] = int(counts.get(b, 0)) + 1
+		if tilt < g.STICK_DEADZONE:
+			if counts.keys() != [0]:
+				print("stick at %.2f gives a direction: %s" % [tilt, counts])
+				ok = false
+			continue
+		for d in [World.IN_RIGHT, World.IN_RIGHT | World.IN_UP, World.IN_UP, World.IN_UP | World.IN_LEFT,
+				World.IN_LEFT, World.IN_LEFT | World.IN_DOWN, World.IN_DOWN, World.IN_DOWN | World.IN_RIGHT]:
+			if int(counts.get(d, 0)) != 45:
+				print("stick at %.2f: direction %d covers %d degrees, want 45 (%s)" % [tilt, d, int(counts.get(d, 0)), counts])
+				ok = false
+	_stick(0.0, 0.0)
+	if g.read_input() & dirs:
+		print("stick at rest still gives a direction")
+		ok = false
+	return ok
 
 
 ## Every Assist row, at every value of Air Dashes and Route Ghost, has its
