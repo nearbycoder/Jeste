@@ -386,8 +386,13 @@ func setup_input() -> void:
 	for a in PAD_REBINDABLE:
 		_pad(a, pad_buttons_for(a))
 	_pad("pause", [JOY_BUTTON_START])
-	_pad("confirm", [JOY_BUTTON_A])
-	_pad("back", [JOY_BUTTON_B])
+	# Menu hints name Jump's button for Select and Dash's for Back, so on a pad
+	# (as on the keyboard) those buttons confirm and go back. A and B keep
+	# their usual meaning unless they're bound to the other action.
+	var jb := pad_buttons_for("jump")
+	var db := pad_buttons_for("dash")
+	_pad("confirm", jb + ([] if db.has(JOY_BUTTON_A) or jb.has(JOY_BUTTON_A) else [JOY_BUTTON_A]))
+	_pad("back", db + ([] if jb.has(JOY_BUTTON_B) or db.has(JOY_BUTTON_B) else [JOY_BUTTON_B]))
 	_pad("left", [JOY_BUTTON_DPAD_LEFT]); _pad("right", [JOY_BUTTON_DPAD_RIGHT])
 	_pad("up", [JOY_BUTTON_DPAD_UP]); _pad("down", [JOY_BUTTON_DPAD_DOWN])
 	_axis("left", JOY_AXIS_LEFT_X, -1.0); _axis("right", JOY_AXIS_LEFT_X, 1.0)

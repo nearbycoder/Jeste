@@ -45,6 +45,7 @@ func _ready() -> void:
 		["expect", "Title", 0],
 		["check", "helpers", 0],
 		["check", "layout_names", 0],
+		["check", "pad_hints", 0],
 		["check", "ghost_parts", 0],
 		["check", "ghost_items", 0],
 		["check", "ghost_pickups", 0],
@@ -246,6 +247,10 @@ func _ready() -> void:
 		["watch_moves", "", 0], ["key_down", "C", 20], ["check", "unpaused", 0], ["key_up", "C", 10], ["check", "no_moves", 0],
 		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],
 		["watch_moves", "", 0], ["key_down", "X", 20], ["check", "unpaused", 0], ["key_up", "X", 10], ["check", "no_moves", 0],
+		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],   # on a pad, X (Dash) is the hint's Resume
+		["watch_moves", "", 0], ["pad_down", "X", 20], ["check", "unpaused", 0], ["pad_up", "X", 10], ["check", "no_moves", 0],
+		["key_down", "Escape", 2], ["key_up", "Escape", 10], ["check", "paused", 0],   # and Y (Jump) selects Resume
+		["watch_moves", "", 0], ["pad_down", "Y", 20], ["check", "unpaused", 0], ["pad_up", "Y", 10], ["check", "no_moves", 0],
 		["watch_moves", "", 0], ["key_down", "C", 4], ["key_up", "C", 40], ["check", "jumped", 0],   # a fresh press still jumps
 		["dialogue_held", "", 20], ["check", "no_moves", 0], ["action_up", "jump", 10],   # nor does the last line of a cutscene
 		["press", "pause", 20], ["press", "down", 4], ["press", "down", 4], ["press", "confirm", 10],   # Assist
@@ -297,6 +302,8 @@ func _ready() -> void:
 		["expect", "ChapterSelect", 0],
 		["check", "backfill", 0],                                # checkpoint select
 		["seed_checkpoints", "", 0],
+		["scene", "res://scenes/chapter_select.tscn", 60],
+		["padbtn", "X", 60], ["expect", "Title", 0],              # pad X (the hint's Back) leaves chapter select
 		["scene", "res://scenes/chapter_select.tscn", 60],
 		["rclick", "160,10", 60], ["expect", "Title", 0],         # the mouse in chapter select: right click goes back
 		["scene", "res://scenes/chapter_select.tscn", 60],
@@ -415,6 +422,9 @@ func _scene() -> Node:
 	return get_tree().current_scene
 
 
+const PAD_STEP_BUTTONS := {"A": JOY_BUTTON_A, "B": JOY_BUTTON_B, "X": JOY_BUTTON_X, "Y": JOY_BUTTON_Y, "DPAD_UP": JOY_BUTTON_DPAD_UP}
+
+
 func _process(_d: float) -> void:
 	frame += 1
 	var lv := _scene()
@@ -487,12 +497,17 @@ func _process(_d: float) -> void:
 			Input.parse_input_event(ev)
 		"padbtn":
 			var ev := InputEventJoypadButton.new()
-			ev.button_index = JOY_BUTTON_X if s[1] == "X" else JOY_BUTTON_DPAD_UP
+			ev.button_index = PAD_STEP_BUTTONS[s[1]]
 			ev.pressed = true
 			Input.parse_input_event(ev)
 			var up := ev.duplicate()
 			up.pressed = false
 			Input.parse_input_event.call_deferred(up)
+		"pad_down", "pad_up":
+			var ev := InputEventJoypadButton.new()
+			ev.button_index = PAD_STEP_BUTTONS[s[1]]
+			ev.pressed = s[0] == "pad_down"
+			Input.parse_input_event(ev)
 		"wait_dialogue":
 			if not cur.dialogue.active:
 				idx -= 1
@@ -697,6 +712,7 @@ func _process(_d: float) -> void:
 						and not g.smooth_wanted("auto", 240.0, 1.0) and not g.smooth_wanted("auto", -1.0, 1.0) and g.smooth_wanted("auto", 60.0, 0.5) \
 						and g.smooth_wanted("on", 60.0, 1.0) and not g.smooth_wanted("off", 144.0, 0.5)
 				"layout_names": ok = _layout_names_ok()
+				"pad_hints": ok = _pad_hints_ok()
 				"controls": ok = cur.screen == "controls"
 				"jump_is_n": ok = get_node("/root/Game").key_label("jump") == "N"
 				"jump_default": ok = get_node("/root/Game").key_label("jump") == "C"
@@ -925,6 +941,48 @@ func _layout_names_ok() -> bool:
 	if got != want:
 		print("layout names: ", got)
 	return got == want
+
+
+## On a pad, the button each menu hint names does what the hint says: Jump's
+## first button (the "Select" hint) confirms and Dash's (the "Back" and
+## "Resume" hint) goes back, with the default pad and after rebinding, and the
+## keyboard's keys still do.
+func _pad_hints_ok() -> bool:
+	var g: Node = get_node("/root/Game")
+	var ok := true
+	var saved = g.settings.get("pad_bindings", {}).duplicate()
+	for rebind in [[], ["jump", JOY_BUTTON_X], ["dash", JOY_BUTTON_A], ["jump", JOY_BUTTON_B], ["dash", JOY_BUTTON_Y]]:
+		g.settings.pad_bindings = {}
+		if rebind:
+			g.rebind_pad(rebind[0], rebind[1])
+		else:
+			g.setup_input()
+		for pad in [true, false]:
+			g.using_pad = pad
+			for pair in [["jump", "confirm", "back"], ["dash", "back", "confirm"]]:
+				var lbl: String = g.key_label(pair[0])
+				var ev: InputEvent
+				if pad:
+					for b in g.PAD_BUTTON_NAMES:
+						if g.pad_button_name(b, "xbox") == lbl:
+							ev = InputEventJoypadButton.new()
+							ev.button_index = b
+				else:
+					ev = InputEventKey.new()
+					ev.physical_keycode = g.keys_for(pair[0])[0]
+				if ev == null:
+					print("pad hints: no button named ", lbl)
+					ok = false
+					continue
+				ev.pressed = true
+				if not ev.is_action_pressed(pair[1]) or ev.is_action_pressed(pair[2]):
+					print("pad hints: %s %s %s (%s) confirm %s back %s" % [rebind, "pad" if pad else "keys", pair[0], lbl,
+						ev.is_action_pressed("confirm"), ev.is_action_pressed("back")])
+					ok = false
+	g.using_pad = false
+	g.settings.pad_bindings = saved
+	g.setup_input()
+	return ok
 
 
 ## Route Ghost parts: once the player has broken 1-03's boards, the ghost's

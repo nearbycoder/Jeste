@@ -64,6 +64,9 @@ is always one menu away.
 - **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
 - On a gamepad, the left stick points in eight equal directions (45° each) however far you push
   it past a small deadzone, so a half-pushed diagonal still dashes diagonally.
+- In menus, Jump's keys or buttons select and Dash's go back (the hints at the bottom name them),
+  on a pad as on the keyboard; a pad's A and B also select and go back unless you've bound them
+  to the other action.
 - Menus repeat when you hold a direction (keys, D-pad or stick).
 - **F11 or Alt+Enter** switches between fullscreen and a window anywhere in the game (F11
   only if you haven't bound it to an action).
@@ -399,6 +402,10 @@ and credits. It is a first release, so expect rough edges.
     the menu with Dash (which the pause screen offers as Resume), still had the key down when play
     came back, so she jumped or dashed. A held Jump as a cutscene's last line closed could too.
     A key held when play comes back now counts only after it's let go.
+  - *On a pad, the button the menus named for Back did nothing.* The hint line names Dash's
+    button for Back and Resume (X on an Xbox pad, Square on a PlayStation one), but on a pad only
+    B went back and only A selected, whatever Jump and Dash were bound to. Now a pad's Jump and
+    Dash buttons select and go back, as the keyboard's always have.
   - *Invincibility didn't stop every death.* Falling into a bottomless pit and dashing out of a
     curtain into a wall still killed, and a gondola that crushed Mira left her stuck inside the
     wall. All three are now caught (see Assist above). A rare dash along the very bottom edge of
