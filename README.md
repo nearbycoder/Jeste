@@ -364,9 +364,11 @@ and credits. It is a first release, so expect rough edges.
 
 - **Linux only** for now. Other platforms should export cleanly but haven't been tested.
 - **Gamepad support** (bindings, rebinding, prompts, rumble, analog-stick menu navigation,
-  pausing when a pad disconnects) was exercised with simulated input, not on a range of
-  physical controllers. Controller families are
-  recognised by the name the pad reports, so an unusual pad may show Xbox button names.
+  the stick's eight equal directions in play, pausing when a pad disconnects) was exercised
+  with simulated input, not on a range of physical controllers. Controller families are
+  recognised by the name the pad reports, so an unusual pad may show Xbox button names. The
+  stick's deadzone (0.4 of full tilt) isn't adjustable, so a badly drifting stick may still
+  move Mira.
 - **Difficulty was tuned against a bot.** Every room is proven possible, now also with the
   basic moveset alone (no supers, hypers or wall-bounces, which the game never teaches), and
   the three rooms where small timing slips were most often fatal were eased (2-03, 6-06,
@@ -402,8 +404,8 @@ and credits. It is a first release, so expect rough edges.
     wall. All three are now caught (see Assist above). A rare dash along the very bottom edge of
     a room could also carry her under the floor and past a side wall to fall for ever; that now
     counts as a fall.
-- **Dash Aim** was checked with simulated key presses, not played by hand with a keyboard or a
-  pad. Time stops only when a dash would start right then, and pausing drops the aim without
+- **Dash Aim** was checked with simulated key presses and stick moves, not played by hand with
+  a keyboard or a pad. Time stops only when a dash would start right then, and pausing drops the aim without
   dashing.
 - **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
   gate she has opened, a mask block that swapped for her) is still drawn as your solid block,

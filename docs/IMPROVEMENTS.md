@@ -1188,3 +1188,54 @@ Picked for a real player's experience, and because each can be checked here:
 
 Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
 builds, license and releases (owner decisions); new content (too large).
+
+## Round 10 results (2026-10-07)
+
+All commits are on `improvements-10`; nothing has been pushed. The full suite passes after every
+item (fastest-route and basic-moveset proofs, golden runs, end-to-end playthroughs, hint
+replays, save check, menu flow and, from C on, a menu fuzz seed). The final run took 75 s at
+load average 21–24, and ui_flow then passed two more standalone runs at load 22–24. Every run
+used a throwaway user-data directory (`build/test_user/` or `build/r10/`), with `TMPDIR` in
+`build/r10/tmp/`, and the real user-data folder (103 save, log and cache files) had the same
+checksums before and after. Window captures ran inside a private, invisible KWin session as in
+rounds 7–9. Screenshots are in `docs/media/improvements/round10/`.
+
+| Item | Status | Commit | Verified by |
+|---|---|---|---|
+| A. The stick aims in eight equal directions at any tilt | Done | `40010df` | Probe 1 rerun (0.1° steps): every direction 44.9–45.1° at 45%, 60%, 80% and 100% tilt, nothing at 30% (it was 6.3° diagonals at 60% and none at 45%). ui_flow sweeps the stick at four tilts (each direction exactly 45 one-degree samples, nothing below the deadzone, nothing at rest) and aims a Dash Aim with the stick half-pushed (55%) at 30°, which dashes up-right; before, that read as Right only. With the change disabled ui_flow fails the sweep, and with the sweep skipped it fails the Dash Aim. |
+| B. Options rows say what they do | Done | `a256a5e` | ui_flow: all 12 rows (title and pause) have a text that fits the 128 px box, and on the title the box ends above Mira's juggling; across Smooth Motion's three values and Window Size's Auto and fixed scale there are 15 different texts. Emptying one fails it. The existing mouse steps (hover, slider clicks, wheel, Erase Save, Controls) pass with the panels' new positions. Screenshot (before on the left, after on the right): `options_help.png`. |
+| C. Random input through the menus and the level | Done, nothing found | `b55d9f0` | `tests/menu_fuzz.gd`. Seeds 2–10 (20,000 frames for seed 2, 60,000 for the rest) used keys, pad buttons, the stick, the trigger and the mouse; seeds 11–17 (20,000 for seed 11, 60,000 for the rest) also unplugged the pad and took focus away. In total 880,000 frames (about 4 hours of play at 60 fps), with 16–35 levels entered per long seed: every check held, and the logs (`build/r10/fuzz_*.log`) have no script errors or warnings. Between them the seeds reached every menu and state the fuzz records: title Options, Controls, a pending rebind and Erase Save; chapter select and the checkpoint picker; cutscenes, deaths, room transitions, results and the credits; the pause menu, Assist, Options, Controls and the Restart box; and Dash Aim. Disabling auto-pause fails it (seed 11, frame 1597), and so does not releasing actions when a pad is unplugged (seeds 11 and 12: Dash stays held). The suite runs seed 1 for 8,000 frames. |
+| D. The pause screen shows the chapter's time | Done | `870bf0c` | ui_flow: with the Speedrun Timer off, the line under the pause menu ends with the chapter timer's value, and the line for every chapter at 999 deaths and 59:59.99 fits in 300 px; it fails with the time taken out. Screenshot: `pause_time.png`. |
+
+### Deviations and limits
+- **A:** the stick's deadzone is round and stays at 0.4 (the same as each axis before), so a
+  stick drifting below 40% does nothing, as before; it isn't adjustable. The per-axis action
+  layer is still there (menus use it), and gameplay ORs it with the sectors. Inside the unit
+  circle it only ever gives directions the sector already gives. A stick reporting beyond the
+  circle (a square gate's corner, e.g. 1.2 at 70°) can still add a direction near a sector edge.
+  No physical pad was used.
+- **B:** in the pause menu the Options panel now sits on the left, over Mira (the game is
+  paused, and the pause screen is dimmed anyway). Controls, Assist and the main pause list are
+  unchanged. Texts were written from the code (what each setting does), and nobody has read them
+  in play.
+- **C found no bugs.** The first batch (seeds 2–10) ran an earlier version without pad unplugs
+  or focus loss. The unplug sends the signal the game listens to, without release events (as
+  when a cable is pulled), but Godot's own record of that pad's stick and buttons isn't reset as
+  a real removal might be. Focus loss is the engine notification, not a real window losing
+  focus. The fuzz doesn't look at what's drawn, and it doesn't check the round 9 pause
+  jump/dash (ui_flow does). It runs with saving on, so it refuses to start unless `user://`
+  is under `build/`.
+- **D:** the time shows `m:ss.cc` like the results screen; past an hour the minutes keep counting
+  (`75:02.10`).
+
+### Still open
+- A human playtest (Dash Aim, the stick's eight directions, the invincible bounce, Air Dashes,
+  ghost outlines, Berries mode, the Options help texts), physical controllers, a physical mouse
+  and touchpad, a real 144/165 Hz display, and a non-US keyboard in hand.
+- An adjustable stick deadzone, if pads with drift turn up in testing.
+- **Owner decisions (unchanged):** export templates and Windows/web/macOS builds, signing and
+  notarization, hosting, license, releases and tags, re-cutting the trailer. The v0.1.0 release
+  still has the Game Speed, crash-save and stuck-Dash bugs that `main` fixes, the wrong key names
+  on non-US keyboards, the maximised window on 720p X11 screens, the jump or dash on closing the
+  pause menu and the deaths Invincibility missed; it also lacks this round's stick, Options and
+  pause changes.
