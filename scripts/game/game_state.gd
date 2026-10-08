@@ -736,6 +736,7 @@ func default_settings() -> Dictionary:
 		"invincible": false, "rumble": true, "window_scale": 0,
 		"reduce_flashing": false, "route_ghost": false, "smooth_motion": "auto", "grab_mode": "hold",
 		"air_dashes": "default", "ghost_goal": "exit", "dash_aim": false, "stick_deadzone": STICK_DEADZONE,
+		"fidelity": FIDELITY_DEFAULT,
 	}
 
 
@@ -935,6 +936,41 @@ func step_smooth_motion(d: int) -> void:
 ## latest step is drawn as-is but fights interpolation, so it's only on then.
 func apply_smooth_motion() -> void:
 	Engine.physics_jitter_fix = 0.0 if smooth_motion() else 0.5
+
+
+# ---------------------------------------------------------------- graphics
+
+## Options > Graphics, Low to Ultra. High (the default) is the look the game
+## shipped with. PostFX, Backdrop, Effects, Lighting and PlayerView read it,
+## and follow it live through fidelity_changed.
+const FIDELITY_NAMES := ["Low", "Medium", "High", "Ultra"]
+const FIDELITY_LOW := 0
+const FIDELITY_MEDIUM := 1
+const FIDELITY_HIGH := 2
+const FIDELITY_ULTRA := 3
+const FIDELITY_DEFAULT := FIDELITY_HIGH
+signal fidelity_changed
+
+
+func fidelity() -> int:
+	var v = settings.get("fidelity", FIDELITY_DEFAULT) if settings else FIDELITY_DEFAULT
+	return clampi(int(v), FIDELITY_LOW, FIDELITY_ULTRA) if (v is int or v is float) else FIDELITY_DEFAULT
+
+
+func fidelity_label() -> String:
+	return FIDELITY_NAMES[fidelity()]
+
+
+## Steps the setting by `d`, clamped, or wrapping when `wrap` (confirm cycles).
+func step_fidelity(d: int, wrap := false) -> void:
+	var i := fidelity() + d
+	settings.fidelity = posmod(i, FIDELITY_NAMES.size()) if wrap else clampi(i, FIDELITY_LOW, FIDELITY_ULTRA)
+	fidelity_changed.emit()
+
+
+func set_fidelity(i: int) -> void:
+	settings.fidelity = clampi(i, FIDELITY_LOW, FIDELITY_ULTRA)
+	fidelity_changed.emit()
 
 
 ## Multiplier for full-screen flashes and the impact shimmer (accessibility).

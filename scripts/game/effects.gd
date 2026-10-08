@@ -8,12 +8,36 @@ var rings: Array = []      # shockwaves {c, t, dur, col, r}
 var orbs: Array = []       # death / respawn orbs {c, t, dur, col, inward}
 var popups: Array = []     # {p, text, life, col}
 var time := 0.0
+# Options > Graphics: how many of the particles asked for are made (Low keeps
+# half, Ultra adds a jittered twin to every other one) and the most alive.
+const DENSITY := [0.5, 0.75, 1.0, 1.5]
+const CAP := [300, 450, 600, 900]
+var _acc := 0.0
+var _rng := RandomNumberGenerator.new()   # Ultra's twins draw their own numbers, leaving the game's alone
+
+
+func _init() -> void:
+	_rng.seed = 7
 
 
 func _add(kind: String, p: Vector2, v: Vector2, life: float, col: Color, size: float, grav: float = 0.0, drag: float = 2.0) -> void:
-	if parts.size() > 600:
+	var f := Game.fidelity()
+	if parts.size() > CAP[f]:
 		return
+	var density: float = DENSITY[f]
+	if density < 1.0:
+		_acc += density
+		if _acc < 1.0:
+			return
+		_acc -= 1.0
 	parts.append({"kind": kind, "p": p, "v": v, "life": life, "max": life, "col": col, "size": size, "grav": grav, "drag": drag})
+	if density > 1.0:
+		_acc += density - 1.0
+		if _acc >= 1.0:
+			_acc -= 1.0
+			var tl := life * _rng.randf_range(0.7, 0.95)
+			parts.append({"kind": kind, "p": p + Vector2(_rng.randf_range(-1.5, 1.5), _rng.randf_range(-1.5, 1.5)), "v": v.rotated(_rng.randf_range(-0.35, 0.35)) * _rng.randf_range(0.75, 1.1),
+				"life": tl, "max": tl, "col": col, "size": maxf(1.0, size * _rng.randf_range(0.7, 1.0)), "grav": grav, "drag": drag})
 
 
 ## Soft round dust puff that grows and fades.

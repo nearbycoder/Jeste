@@ -22,7 +22,7 @@ var jingled := false
 var bell_swing := 0.0
 var notice := ""          # a damaged save was set aside (see Game.read_json)
 
-const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
+const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Graphics", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
 var controls := ControlsMenu.new()
 const LOGO_Y := 25.0
 const MENU_X := 40.0
@@ -253,7 +253,7 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 			sel = i
 			Sfx.play("menu_move")
 	else:
-		i = UIKit.row_at(ev.position, OPT_X + 12, 16, 140, 12, OPTIONS.size())
+		i = UIKit.row_at(ev.position, OPT_X + 12, 16, 140, UIKit.OPTION_STEP, OPTIONS.size())
 		# the wheel selects only a value row it steps; elsewhere it moves the selection
 		if i >= 0 and i != opt_sel and (not UIKit.is_wheel(ev) or UIKit.WHEEL_VALUE_ROWS.has(OPTIONS[i])):
 			opt_sel = i
@@ -265,6 +265,11 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 		Sfx.refresh_volume()
 		Sfx.play("menu_select")
 		return null   # a click on a volume slider sets it there
+	if a and a.action == "confirm" and i >= 0 and screen == "options" and OPTIONS[i] == "Graphics" and UIKit.fidelity_at(ev.position.x, OPT_X + 142.0) >= 0:
+		Game.set_fidelity(UIKit.fidelity_at(ev.position.x, OPT_X + 142.0))
+		Game.save_settings()
+		Sfx.play("menu_select")
+		return null   # a click on the meter sets that step
 	if a and a.action == "confirm" and i < 0:
 		return null   # a click outside the rows does nothing
 	return a
@@ -283,6 +288,8 @@ func _change_option(d: int, confirm: bool) -> void:
 			Game.toggle_fullscreen()
 		"Window Size":
 			Game.step_window_scale(d)
+		"Graphics":
+			Game.step_fidelity(d, confirm)
 		"Smooth Motion":
 			Game.step_smooth_motion(d)
 		"Screen Shake":
@@ -351,7 +358,7 @@ func _draw_logo() -> void:
 
 
 func _draw_glow() -> void:
-	var tex := Lighting.light_texture()
+	var tex := Lighting.light_texture(Game.fidelity() >= Game.FIDELITY_ULTRA)
 	var fl := 0.85 + 0.1 * sin(time * 11.0) * sin(time * 7.3)
 	glow.draw_texture_rect(tex, Rect2(FIRE - Vector2(56, 60), Vector2(112, 112)), false, Color(1.0, 0.55, 0.2, 0.32 * fl))
 	glow.draw_texture_rect(tex, Rect2(FIRE - Vector2(22, 28), Vector2(44, 44)), false, Color(1.0, 0.8, 0.4, 0.3 * fl))
@@ -393,13 +400,13 @@ func _draw() -> void:
 	# options / confirm panel
 	if panel_k > 0.0:
 		var e := ease(panel_k, 0.3)
-		var r := Rect2(OPT_X, 6 + (1.0 - e) * 12.0, 152, 14 + OPTIONS.size() * 12)
+		var r := Rect2(OPT_X, 6 + (1.0 - e) * 12.0, 152, 14 + OPTIONS.size() * UIKit.OPTION_STEP)
 		if screen == "controls":
 			e = 0.0   # the controls panel replaces the options panel
 		UIKit.panel(self, r, e)
 		UIKit.panel_title(self, r, "OPTIONS", e)
 		for i in OPTIONS.size():
-			var y := r.position.y + 10 + i * 12
+			var y := r.position.y + 10 + i * UIKit.OPTION_STEP
 			UIKit.menu_row(self, r.position.x + 12, y, 128, OPTIONS[i], opt_k[i], time, e)
 			_draw_opt_value(OPTIONS[i], Vector2(r.end.x - 10, y), e)
 		if e > 0.0:   # what the highlighted row does, above Mira and the fire
@@ -446,6 +453,8 @@ func _draw_opt_value(name: String, right: Vector2, a: float) -> void:
 			UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.sfx), a)
 		"Fullscreen":
 			UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), a)
+		"Graphics":
+			UIKit.fidelity_value(self, right, a)
 		"Window Size", "Smooth Motion":
 			var v := Game.window_scale_label() if name == "Window Size" else Game.smooth_motion_label()
 			PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), right.y), v, Color(UIKit.GOLD, a), Color(UIKit.INK, a))

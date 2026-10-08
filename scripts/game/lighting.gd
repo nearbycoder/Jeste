@@ -2,7 +2,8 @@ class_name Lighting
 extends Node2D
 ## Additive glow pass drawn over the room: soft, pixel-stepped light pools for
 ## the player, collectibles and light-emitting decorations. Darker chapters
-## get stronger lights.
+## get stronger lights. At Ultra (Options > Graphics) the pools are drawn
+## from a finer texture with twice the falloff steps.
 
 var world: World
 var room_view: RoomView
@@ -11,22 +12,29 @@ var chapter := 0
 var time := 0.0
 var strength := 1.0
 static var _light_tex: Texture2D
+static var _fine_tex: Texture2D
 
 
-static func light_texture() -> Texture2D:
-	if _light_tex:
-		return _light_tex
-	var n := 64
+static func light_texture(fine := false) -> Texture2D:
+	if fine:
+		if _fine_tex == null:
+			_fine_tex = _make_light(128, 12.0)
+		return _fine_tex
+	if _light_tex == null:
+		_light_tex = _make_light(64, 6.0)
+	return _light_tex
+
+
+static func _make_light(n: int, steps: float) -> Texture2D:
 	var img := Image.create(n, n, false, Image.FORMAT_RGBA8)
 	for y in n:
 		for x in n:
 			var d := Vector2(x - n / 2.0 + 0.5, y - n / 2.0 + 0.5).length() / (n / 2.0)
 			var v := clampf(1.0 - d, 0.0, 1.0)
 			v = v * v
-			v = floorf(v * 6.0) / 6.0   # stepped falloff keeps the pixel-art look
+			v = floorf(v * steps) / steps   # stepped falloff keeps the pixel-art look
 			img.set_pixel(x, y, Color(1, 1, 1, v))
-	_light_tex = ImageTexture.create_from_image(img)
-	return _light_tex
+	return ImageTexture.create_from_image(img)
 
 
 func _ready() -> void:
@@ -46,7 +54,7 @@ func _process(delta: float) -> void:
 
 
 func _light(pos: Vector2, radius: float, col: Color, a: float) -> void:
-	var tex := light_texture()
+	var tex := light_texture(Game.fidelity() >= Game.FIDELITY_ULTRA)
 	var r := radius
 	draw_texture_rect(tex, Rect2(pos - Vector2(r, r), Vector2(r * 2.0, r * 2.0)), false, Color(col.r, col.g, col.b, a * strength))
 

@@ -79,7 +79,7 @@ class TrailDrawer:
 		for i in range(1, pv.ribbon.size()):
 			var a: Dictionary = pv.ribbon[i - 1]
 			var b: Dictionary = pv.ribbon[i]
-			var k: float = clampf(b.life / 0.35, 0.0, 1.0)
+			var k: float = clampf(b.life / float(b.get("max", 0.35)), 0.0, 1.0)
 			var c: Color = b.col
 			draw_line(a.p, b.p, Color(c.r, c.g, c.b, 0.55 * k), maxf(1.0, 3.0 * k))
 		for t in pv.trail:
@@ -319,14 +319,15 @@ func _update_player(delta: float) -> void:
 	if dashing:
 		trail_timer -= 1
 		if trail_timer <= 0:
-			trail_timer = 3
+			trail_timer = 2 if Game.fidelity() >= Game.FIDELITY_ULTRA else 3   # Ultra: denser afterimages
 			trail.append({"pos": _feet(), "frame": last_frame, "flip": _facing() < 0, "col": cap_col, "life": 0.4, "max": 0.4})
 		if effects and int(anim_time * 60.0) % 2 == 0:
 			var back := -Vector2(world.vx, world.vy).normalized()
 			effects.streak(_feet() + Vector2(randf_range(-4, 4), randf_range(-12, -2)), back * randf_range(40, 90), Color(1, 1, 1, 0.7))
-	if dashing or Vector2(world.vx, world.vy).length() > 200.0:
+	if (dashing or Vector2(world.vx, world.vy).length() > 200.0) and Game.fidelity() > Game.FIDELITY_LOW:   # no ribbon at Low
 		var tip: Vector2 = tails[0][TAIL_N - 1] if not tails.is_empty() else _feet()
-		ribbon.append({"p": tip, "life": 0.35, "col": cap_col})
+		var rl := 0.5 if Game.fidelity() >= Game.FIDELITY_ULTRA else 0.35   # Ultra: a longer ribbon
+		ribbon.append({"p": tip, "life": rl, "max": rl, "col": cap_col})
 	# footstep dust on run contact frames
 	if effects and grounded and absf(world.vx) > 30.0:
 		var phase := int(run_dist / 3.2) % 8

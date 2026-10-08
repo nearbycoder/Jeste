@@ -41,7 +41,7 @@ var assist_open := false
 var assist_items := ["Game Speed", "Infinite Stamina", "Air Dashes", "Dash Aim", "Invincibility", "Route Ghost", "Back"]
 var assist_sel := 0
 var options_open := false
-var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Back"]
+var option_items := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Graphics", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Back"]
 var option_sel := 0
 const OPT_X := 12.0              # the Options panel on the left, its help box right of it
 const OPT_W := 144.0
@@ -224,6 +224,8 @@ func handle_menu_input(ev: InputEvent) -> bool:
 					Game.toggle_fullscreen()
 				"Window Size":
 					Game.step_window_scale(dir)
+				"Graphics":
+					Game.step_fidelity(dir, ev.is_action_pressed("confirm"))
 				"Smooth Motion":
 					Game.step_smooth_motion(dir)
 				"Screen Shake":
@@ -302,7 +304,7 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 		if wheel:
 			return UIKit.wheel_menu(ev, assist_items, i)
 	elif options_open:
-		i = UIKit.row_at(ev.position, opt_x + 12, 22, 132, 12, option_items.size())
+		i = UIKit.row_at(ev.position, opt_x + 12, 22, 132, UIKit.OPTION_STEP, option_items.size())
 		if i >= 0 and i != option_sel and (not wheel or UIKit.WHEEL_VALUE_ROWS.has(option_items[i])):
 			option_sel = i
 			Sfx.play("menu_move")
@@ -312,6 +314,11 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 			Sfx.refresh_volume()
 			Sfx.play("menu_select")
 			return null   # a click on a volume slider sets it there
+		if i >= 0 and a and a.action == "confirm" and option_items[i] == "Graphics" and UIKit.fidelity_at(ev.position.x, opt_x + OPT_W - 10.0) >= 0:
+			Game.set_fidelity(UIKit.fidelity_at(ev.position.x, opt_x + OPT_W - 10.0))
+			Game.save_settings()
+			Sfx.play("menu_select")
+			return null   # a click on the meter sets that step
 	else:
 		if wheel:
 			return UIKit.wheel_action(ev, "up", "down")
@@ -496,13 +503,14 @@ func _draw_options(e: float) -> void:
 	UIKit.panel(self, r, e)
 	UIKit.panel_title(self, r, "OPTIONS", e)
 	for i in option_items.size():
-		var y := r.position.y + 10 + i * 12
+		var y := r.position.y + 10 + i * UIKit.OPTION_STEP
 		UIKit.menu_row(self, r.position.x + 12, y, 120, option_items[i], row_k[i], time, e)
 		var right := Vector2(r.end.x - 10, y)
 		match option_items[i]:
 			"Music Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.music), e)
 			"Sound Volume": UIKit.slider(self, right - Vector2(40, -1), float(Game.settings.sfx), e)
 			"Fullscreen": UIKit.toggle(self, right - Vector2(15, -1), bool(Game.settings.fullscreen), e)
+			"Graphics": UIKit.fidelity_value(self, right, e)
 			"Window Size", "Smooth Motion":
 				var v := Game.window_scale_label() if option_items[i] == "Window Size" else Game.smooth_motion_label()
 				PixelText.draw_outlined(self, Vector2(right.x - PixelText.width(v), y), v, Color(UIKit.GOLD, e), Color(UIKit.INK, e))
@@ -531,7 +539,7 @@ static func mira_rect(c: Vector2) -> Rect2:
 
 
 func options_rect() -> Rect2:
-	return Rect2(opt_x, 12, OPT_W, 14 + option_items.size() * 12)
+	return Rect2(opt_x, 12, OPT_W, 14 + option_items.size() * UIKit.OPTION_STEP)
 
 
 ## The help box at the top of its column, or at the bottom when only that

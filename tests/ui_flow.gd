@@ -120,6 +120,17 @@ func _ready() -> void:
 		["check", "window_auto", 0],
 		["press", "right", 4], ["check", "window_2x", 0],
 		["press", "left", 4], ["check", "window_auto", 0],
+		["press", "down", 4], ["check", "fid_2", 0],             # Graphics Fidelity: High by default
+		["press", "right", 4], ["check", "fid_3", 0], ["press", "right", 4], ["check", "fid_3", 0],   # Right stops at Ultra
+		["press", "confirm", 4], ["check", "fid_0", 0],          # Confirm wraps to Low
+		["press", "left", 4], ["check", "fid_0", 0],             # Left stops at Low
+		["padbtn", "DPAD_RIGHT", 4], ["check", "fid_1", 0],      # the pad's D-pad steps it
+		["wheel", "60,62,up", 4], ["check", "fid_2", 0],         # so does the wheel over the row
+		["click", "110,62", 4], ["check", "fid_1", 0],           # a click on a meter bar sets that step
+		["click", "118,62", 4], ["check", "fid_3", 0],           # (an order Confirm's wrap can't give)
+		["click", "106,62", 4], ["check", "fid_0", 0],
+		["click", "40,62", 4], ["check", "fid_1", 0],            # a click on the name steps it like Confirm
+		["press", "right", 4], ["check", "fid_2", 0],
 		["press", "down", 4], ["check", "smooth_auto", 0],       # Smooth Motion: Auto -> On -> Off -> Auto
 		["press", "right", 4], ["check", "smooth_on", 0],
 		["press", "right", 4], ["check", "smooth_off", 0],
@@ -255,6 +266,11 @@ func _ready() -> void:
 		["click", "256,37", 4], ["check", "volume_sfx_0", 0], ["click", "287,37", 4], ["check", "volume_sfx_8", 0],
 		["wheel", "287,37,down", 4], ["check", "volume_sfx_7", 0], ["wheel", "287,37,up", 4], ["check", "volume_sfx_8", 0],
 		["click", "104,37", 4], ["check", "volume_sfx_8", 0],    # (where the slider was does nothing now)
+		["click", "256,68", 4], ["check", "pause_fid_1", 0],     # Graphics in the pause menu: a click on a meter bar...
+		["click", "264,68", 4], ["check", "pause_fid_3", 0],
+		["click", "252,68", 4], ["check", "pause_fid_0", 0],     # ...and the level's post pass, backdrop and particles follow
+		["wheel", "200,68,up", 4], ["check", "pause_fid_1", 0],
+		["press", "right", 4], ["check", "pause_fid_2", 0],
 		["mouse_at", "200,25", 2], ["check", "pause_opt_sel_0", 0],
 		["press", "back", 10],
 		["press", "up", 4], ["press", "up", 4], ["press", "up", 4], ["press", "confirm", 20],   # Resume
@@ -444,7 +460,7 @@ func _scene() -> Node:
 	return get_tree().current_scene
 
 
-const PAD_STEP_BUTTONS := {"A": JOY_BUTTON_A, "B": JOY_BUTTON_B, "X": JOY_BUTTON_X, "Y": JOY_BUTTON_Y, "DPAD_UP": JOY_BUTTON_DPAD_UP}
+const PAD_STEP_BUTTONS := {"A": JOY_BUTTON_A, "B": JOY_BUTTON_B, "X": JOY_BUTTON_X, "Y": JOY_BUTTON_Y, "DPAD_UP": JOY_BUTTON_DPAD_UP, "DPAD_RIGHT": JOY_BUTTON_DPAD_RIGHT}
 
 
 func _process(_d: float) -> void:
@@ -701,6 +717,11 @@ func _process(_d: float) -> void:
 				"assist_sel_5": ok = cur.hud.assist_open and cur.hud.assist_sel == 5
 				"assist_closed": ok = cur.paused and not cur.hud.assist_open
 				"reduced_flashing": ok = bool(get_node("/root/Game").settings.reduce_flashing) and is_equal_approx(get_node("/root/Game").flash_scale(), 0.2)
+				"fid_0", "fid_1", "fid_2", "fid_3":   # the Graphics Fidelity row, at that step, and the title's post pass with it
+					var want := int(str(s[1]).get_slice("_", 1))
+					var pf: PostFX = _find_post(cur)
+					ok = cur.OPTIONS[cur.opt_sel] == "Graphics" and get_node("/root/Game").fidelity() == want \
+						and int(get_node("/root/Game").settings.fidelity) == want and pf != null and pf.fidelity == want and pf.rect.visible == (want > 0)
 				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
 				"smooth_auto": ok = cur.OPTIONS[cur.opt_sel] == "Smooth Motion" and str(get_node("/root/Game").settings.smooth_motion) == "auto" \
 					and get_node("/root/Game").smooth_motion_label().begins_with("Auto")
@@ -838,6 +859,13 @@ func _process(_d: float) -> void:
 				"deadzone_sweep": ok = _deadzone_sweep_ok()
 				"opt_layout": ok = _opt_layout_ok(cur)
 				"opt_layout_sweep": ok = _opt_layout_sweep_ok(cur)
+				"pause_fid_0", "pause_fid_1", "pause_fid_2", "pause_fid_3":
+					var want := int(str(s[1]).get_slice("_", 2))
+					var dens: float = Effects.DENSITY[want]
+					ok = cur.paused and cur.hud.options_open and cur.hud.option_items[cur.hud.option_sel] == "Graphics" \
+						and get_node("/root/Game").fidelity() == want and cur.post.fidelity == want and cur.post.rect.visible == (want > 0) \
+						and cur.backdrop.fidelity == want and cur.backdrop.ambient.size() == (120 if want == 3 else Backdrop.AMBIENT_N[want]) \
+						and cur.backdrop.motes.is_empty() == (want < 3) and is_equal_approx(dens, [0.5, 0.75, 1.0, 1.5][want])
 				"pause_opt_sel_0": ok = cur.paused and cur.hud.options_open and cur.hud.option_sel == 0
 				"ctl_waiting": ok = cur.screen == "controls" and cur.controls.sel == 1 and cur.controls.waiting_key and gm.kb_label("dash") == "X"
 				"ctl_cancelled": ok = cur.screen == "controls" and not cur.controls.waiting_key and gm.kb_label("dash") == "X"
@@ -1328,6 +1356,14 @@ func _aim_probe_pure_ok() -> bool:
 	return asked > 0
 
 
+## The PostFX layer under a scene (title, chapter select, level).
+func _find_post(n: Node) -> PostFX:
+	for c in n.get_children():
+		if c is PostFX:
+			return c
+	return null
+
+
 ## Every Options row (title and pause) has its own help text, which fits its
 ## box; on the title the box stays above Mira's juggling (y 110). Smooth
 ## Motion's three values and Window Size's Auto read differently.
@@ -1343,9 +1379,10 @@ func _option_help_ok() -> bool:
 			rows.append(r)
 	var seen := {}
 	for sm in ["auto", "on", "off"]:
-		for ws in [0, 2]:
+		for k in 8:   # Window Size Auto and 2x, at each Graphics Fidelity step
 			g.settings.smooth_motion = sm
-			g.settings.window_scale = ws
+			g.settings.window_scale = [0, 2][k % 2]
+			g.settings.fidelity = k / 2
 			for r in rows:
 				var t := UIKit.option_help(r)
 				seen[t] = true
@@ -1358,9 +1395,10 @@ func _option_help_ok() -> bool:
 						print("option help line too wide: ", l)
 						ok = false
 	g.settings = keep
-	# 12 rows, plus Smooth Motion's other two values and Window Size's fixed scale
-	if seen.size() != 15:
-		print("option help: %d different texts, want 15" % seen.size())
+	# 13 rows, plus Smooth Motion's other two values, Window Size's fixed scale
+	# and Graphics Fidelity's other three steps
+	if seen.size() != 19:
+		print("option help: %d different texts, want 19" % seen.size())
 		ok = false
 	return ok
 

@@ -72,6 +72,12 @@ static func option_help(item: String) -> String:
 			if int(Game.settings.get("window_scale", 0)) <= 0:
 				return "Auto: about three quarters of your screen. Or 2x and up: each game pixel that many screen pixels wide."
 			return "Each game pixel %d screen pixels wide. Auto sizes the window to about three quarters of your screen." % Game.window_scale()
+		"Graphics":
+			match Game.fidelity():
+				Game.FIDELITY_LOW: return "Low: no glow or colour grading, fog or light shafts, and half the particles. For weak GPUs."
+				Game.FIDELITY_MEDIUM: return "Medium: a lighter glow, no light shafts and fewer particles than High."
+				Game.FIDELITY_ULTRA: return "Ultra: High plus a wide soft glow, depth of field, finer lights and more particles."
+			return "High: the full look, with glow, colour grading, fog, light shafts and particles."
 		"Smooth Motion":
 			match str(Game.settings.get("smooth_motion", "auto")):
 				"on": return "Draws movement between the game's 60 steps a second: smoother on 144 Hz screens, up to 17 ms later."
@@ -92,16 +98,21 @@ static func option_help(item: String) -> String:
 	return "Settings are saved as you change them."
 
 
+const OPTION_STEP := 11.0        # Options rows (title and pause), top to top
 const HELP_BOX_W := 142          # the Options help box, beside the panel
 const HELP_TEXT_W := HELP_BOX_W - 14
+
+const HELP_HEADINGS := {"Graphics": "Graphics Fidelity"}   # a row's full name, where the row is short of room
+
 
 ## The help box beside the Options panel: the row's name and its help text.
 static func help_box(ci: CanvasItem, pos: Vector2, item: String, a: float) -> void:
 	var lines := PixelText.wrap(option_help(item), HELP_TEXT_W)
 	var r := Rect2(pos, Vector2(HELP_BOX_W, help_box_height(item)))
 	panel(ci, r, a)
-	PixelText.draw_outlined(ci, r.position + Vector2(7, 7), item, Color(GOLD, a), Color(INK, a))
-	ci.draw_rect(Rect2(r.position.x + 7, r.position.y + 18, PixelText.width(item), 1), Color(GOLD_DK, 0.8 * a))
+	var heading: String = HELP_HEADINGS.get(item, item)
+	PixelText.draw_outlined(ci, r.position + Vector2(7, 7), heading, Color(GOLD, a), Color(INK, a))
+	ci.draw_rect(Rect2(r.position.x + 7, r.position.y + 18, PixelText.width(heading), 1), Color(GOLD_DK, 0.8 * a))
 	for i in lines.size():
 		PixelText.draw_outlined(ci, r.position + Vector2(7, 22 + i * PixelText.LINE_H), lines[i], Color(CREAM, 0.9 * a), Color(INK, a))
 
@@ -174,7 +185,7 @@ static func wheel_action(ev: InputEvent, up: String, down: String) -> InputEvent
 
 ## Rows whose value the wheel steps when the pointer is on them (elsewhere in
 ## a list it moves the selection).
-const WHEEL_VALUE_ROWS := ["Music Volume", "Sound Volume", "Window Size", "Smooth Motion", "Game Speed", "Air Dashes", "Route Ghost", "Stick Deadzone"]
+const WHEEL_VALUE_ROWS := ["Music Volume", "Sound Volume", "Window Size", "Graphics", "Smooth Motion", "Game Speed", "Air Dashes", "Route Ghost", "Stick Deadzone"]
 
 
 ## Wheel on a menu list: over a row in WHEEL_VALUE_ROWS it steps that value
@@ -261,6 +272,37 @@ static func toggle(ci: CanvasItem, pos: Vector2, on: bool, a: float = 1.0) -> vo
 	var kx := r.position.x + (9.0 if on else 1.0)
 	ci.draw_rect(Rect2(kx, r.position.y + 1, 5, 5), Color(CREAM, a))
 	ci.draw_rect(Rect2(kx, r.position.y + 5, 5, 1), Color(MUTED.darkened(0.3), a))
+
+
+## Options > Graphics (fidelity)'s value, right-aligned at `right`: a meter of
+## four rising bars (lit up to the current step) and the step's name. The
+## meter sits at a fixed place, so a click on a bar sets that step
+## (fidelity_at).
+const FIDELITY_NAME_W := 28.0    # the widest step name ("Medium")
+
+
+static func fidelity_meter_x(right_x: float) -> float:
+	return right_x - FIDELITY_NAME_W - 19.0
+
+
+static func fidelity_value(ci: CanvasItem, right: Vector2, a: float = 1.0) -> void:
+	var name := Game.fidelity_label()
+	PixelText.draw_outlined(ci, Vector2(right.x - PixelText.width(name), right.y), name, Color(GOLD, a), Color(INK, a))
+	var x0 := fidelity_meter_x(right.x)
+	for i in Game.FIDELITY_NAMES.size():
+		var h := 3.0 + i * 1.5
+		var r := Rect2(x0 + i * 4, right.y + 8 - h, 3, h)
+		ci.draw_rect(r.grow(1), Color(INK, a))
+		ci.draw_rect(r, Color(GOLD if i <= Game.fidelity() else Color("3a3448"), a))
+
+
+## Mouse: the Graphics step under a click at x on a meter drawn by
+## fidelity_value() at right_x, or -1 off the meter.
+static func fidelity_at(x: float, right_x: float) -> int:
+	var x0 := fidelity_meter_x(right_x)
+	if x < x0 - 1.0 or x >= x0 + Game.FIDELITY_NAMES.size() * 4.0:
+		return -1
+	return clampi(floori((x - x0 + 1.0) / 4.0), 0, Game.FIDELITY_NAMES.size() - 1)
 
 
 ## Mouse: the value (0..1, in tenths) a click at x sets on a slider drawn at

@@ -207,6 +207,13 @@ func _build_nodes() -> void:
 	lighting.player_view = player_view
 	lighting.setup(chapter_n)
 	stage.add_child(lighting)
+	var motes_layer := CanvasLayer.new()   # Ultra's out-of-focus motes, in front of the room and under the post pass
+	motes_layer.layer = 2
+	add_child(motes_layer)
+	var motes := Node2D.new()
+	motes.draw.connect(func(): backdrop.draw_motes(motes))
+	motes_layer.add_child(motes)
+	backdrop.draw.connect(motes.queue_redraw)
 
 	camera = Camera2D.new()
 	camera.position = cam_center
