@@ -1239,3 +1239,68 @@ rounds 7–9. Screenshots are in `docs/media/improvements/round10/`.
   on non-US keyboards, the maximised window on 720p X11 screens, the jump or dash on closing the
   pause menu and the deaths Invincibility missed; it also lacks this round's stick, Options and
   pause changes.
+
+## Round 11 scope (2026-10-08)
+
+Baseline on `improvements-11` (from `main` = `origin/main` = `7e3ffaf`): the full suite passes in
+28 s at load average 1.0 (`build/r11/suite_baseline.log`). All runs this round use a throwaway
+user-data directory (the suite's `build/test_user/`, or `build/r11/` for probes), with `TMPDIR` in
+`build/r11/tmp/` so scratch files stay off the shared `/tmp`. The real user-data folder's
+checksums (105 save, log and cache files) were recorded before the first run and are compared at
+the end. Window captures, if any, run inside a private, invisible KWin session as in rounds 7–10.
+
+**What the code and probes show (read for this plan):**
+1. *On a pad, "Back" names a button that doesn't go back.* Every menu's hint line names Dash's
+   first button for Back or Resume (`X Back`, `X Resume` on an Xbox pad; `Square` on PlayStation).
+   On the keyboard the Back action includes the Dash keys, so this works; on a pad Back is only
+   B, and Confirm only A, whatever Jump and Dash are bound to. So a pad player who presses the
+   button the pause screen, Options, Controls, Assist, chapter select or the Erase Save box tells
+   them to press gets nothing, since v0.1.0.
+2. *A drifting stick.* Round 10 left the stick's deadzone at 0.4 with no setting. A pad whose
+   stick rests past 0.4 moves Mira on its own, and a player with a worn stick has no way to see
+   how far it drifts.
+3. *The pause Options panel* sits on the left since round 10, over Mira whenever she's in the
+   left half of the screen.
+4. *Long key names* (a probe of all 344 names Godot gives keys, in the pixel font): the longest a
+   player can bind (`MediaPrevious`, 56 px; `BracketRight`, 52 px) still fits the Controls rows
+   and the hint lines. No change needed.
+
+Picked for a real player's experience, and because each can be checked here:
+
+### A. On a pad, the buttons the hints name do what they say
+- **Do:** on a pad, Confirm also takes Jump's buttons and Back also takes Dash's buttons (as the
+  keyboard already does), following pad rebinding. A stays Confirm and B stays Back unless the
+  player has bound that button to the other action.
+- **Accept:** with the default pad and after rebinding pad Jump or Dash, the button each hint
+  names (`key_label("jump")` for Select, `key_label("dash")` for Back or Resume) triggers that
+  action and not the other; X resumes from the pause menu without Mira dashing, and backs out
+  of chapter select; keyboard behaviour is unchanged.
+- **Verify:** a ui_flow check over default and rebound pads that fails without the change; ui_flow
+  steps that press pad X in the pause menu (resumes, no dash) and chapter select (back to the
+  title); the full suite and the menu fuzz.
+
+### B. Options → Controls → Stick Deadzone, with a live view of the stick
+- **Do:** a Controls row, *Stick Deadzone* (10–70% in 5% steps, default 40%), that sets how far the
+  left stick must be pushed before it counts in play, for the eight-direction reading and the
+  per-axis actions alike; menus need at least that much push too. While the row is highlighted, a
+  small dial beside the panel shows where the stick is, the deadzone ring and the direction it
+  gives, so drift is visible. Reset Defaults keeps it (as it keeps Grab Mode).
+- **Accept:** at 60% a stick resting at 0.5 gives no direction in play or in menus, and at 65%
+  tilt still gives all eight 45° directions; at 20% a 0.25 push gives a direction; at the default
+  40% the round 10 sweep is unchanged; the setting is saved.
+- **Verify:** ui_flow steps the row and sweeps the stick at three deadzones (fails with the
+  setting ignored); a menu step with a drifting stick at 60%; mouse steps updated for the new row;
+  a screenshot of the dial.
+
+### C. The pause Options panel moves away from Mira
+- **Do:** when Mira is in the left half of the screen, the pause Options panel opens on the right
+  and its help box on the left; otherwise as now. Mouse hit areas move with it.
+- **Accept:** in both layouts the panel doesn't cover Mira's screen position; mouse hover,
+  slider clicks and the wheel land on the right rows in both.
+- **Verify:** a ui_flow check of the panel rectangle against Mira's position with her on each
+  side, the existing pause-options mouse steps on one side and a slider click on the other;
+  screenshots of both layouts.
+
+Not picked: physical controllers, a physical mouse and 144/165 Hz displays (no hardware here);
+builds, license and releases (owner decisions); new content (too large); a low-effects option for
+weaker GPUs (no slow hardware here to show it helps).
