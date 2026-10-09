@@ -374,6 +374,10 @@ window.jesteTouch = (function () {
 			const d = Object.getOwnPropertyDescriptor(Document.prototype, name);
 			if (d && d.get) Object.defineProperty(document, name, { configurable: true, get() { const e = d.get.call(document); return e === de ? canvas : e; } });
 		}
+		// the engine follows fullscreen changes only on the canvas: pass the page's on
+		for (const t of ['fullscreenchange', 'webkitfullscreenchange']) {
+			document.addEventListener(t, (e) => { if (e.target === de) canvas.dispatchEvent(new Event(t, { bubbles: true })); });
+		}
 		document.addEventListener('fullscreenchange', () => {
 			if (api.on && document.fullscreenElement && screen.orientation && screen.orientation.lock && Math.min(screen.width, screen.height) < 600) {
 				screen.orientation.lock('landscape').catch(() => {});
