@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+<meta name="description" content="Jeste: a pixel-art precision platformer about a young jester climbing a mountain that laughs back. Plays in your browser.">
+<title>Jeste</title>
+<!-- Jeste's page shell for the web export (tools/build-pages.sh). Every URL is
+     relative, so the site works from any subpath (GitHub Pages: /Jeste/). -->
+<style>
+html, body, #canvas { margin: 0; padding: 0; border: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+	color: #f3e9d2;
+	background: #0d0a17;
+	overflow: hidden;
+	touch-action: none;
+	font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
+}
+#canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+#canvas:focus { outline: none; }
+#status {
+	position: fixed; inset: 0;
+	display: flex; flex-direction: column; justify-content: center; align-items: center;
+	gap: 1.1rem; padding: 2rem; box-sizing: border-box; text-align: center;
+	background: #0d0a17;
+}
+#status h1 { margin: 0; font-size: clamp(2.5rem, 9vw, 5rem); letter-spacing: 0.3em; color: #f2c14e; text-shadow: 0.08em 0.08em 0 #d8344f; }
+#status .tag { margin: -0.6rem 0 0.6rem; font-style: italic; opacity: 0.8; }
+#bar { width: min(26rem, 80vw); height: 0.9rem; border: 2px solid #f3e9d2; padding: 2px; box-sizing: border-box; }
+#fill { height: 100%; width: 0; background: #f2c14e; transition: width 0.15s; }
+#bar.busy #fill { width: 100%; opacity: 0.5; animation: pulse 1s ease-in-out infinite alternate; }
+@keyframes pulse { from { opacity: 0.25; } to { opacity: 0.7; } }
+#label { min-height: 1.3em; font-size: 0.95rem; }
+#hint { font-size: 0.85rem; opacity: 0.65; max-width: 34rem; line-height: 1.5; }
+#notice {
+	display: none; max-width: 36rem; padding: 1rem 1.25rem; line-height: 1.5;
+	background: #3a1f2a; border: 2px solid #d8344f; border-radius: 4px;
+}
+#notice a { color: #f2c14e; }
+body.failed #bar, body.failed #label, body.failed #hint { display: none; }
+body.failed #notice { display: block; }
+</style>
+<link id="-gd-engine-icon" rel="icon" type="image/png" href="index.icon.png" />
+<link rel="apple-touch-icon" href="index.apple-touch-icon.png"/>
+
+</head>
+<body>
+<canvas id="canvas" tabindex="0">Jeste needs a browser that can draw to a canvas.</canvas>
+<div id="status" role="status" aria-live="polite">
+	<h1>JESTE</h1>
+	<p class="tag">A mountain that laughs back.</p>
+	<div id="bar"><div id="fill"></div></div>
+	<div id="label">Loading...</div>
+	<div id="hint">Keyboard, mouse or gamepad. Sound starts with your first click or key press.</div>
+	<div id="notice"></div>
+	<noscript><div style="display:block" class="noscript">Jeste needs JavaScript to run in the browser.</div></noscript>
+</div>
+<script src="index.js"></script>
+<script>
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":18553776,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_THREADS_ENABLED = false;
+(function () {
+	const status = document.getElementById('status');
+	const fill = document.getElementById('fill');
+	const bar = document.getElementById('bar');
+	const label = document.getElementById('label');
+	const notice = document.getElementById('notice');
+	const started = performance.now();
+	const desktop = 'https://github.com/nearbycoder/Jeste#play-it';
+	document.body.dataset.jesteScreen = 'loading';
+
+	function fail(message, detail) {
+		if (detail) console.error(detail);
+		document.body.dataset.jesteScreen = 'error';
+		document.body.dataset.jesteError = message;
+		notice.textContent = '';
+		message.split('\n').forEach((line, i) => {
+			if (i) notice.appendChild(document.createElement('br'));
+			notice.appendChild(document.createTextNode(line));
+		});
+		notice.appendChild(document.createElement('br'));
+		notice.appendChild(document.createElement('br'));
+		const a = document.createElement('a');
+		a.href = desktop;
+		a.textContent = 'Play the desktop version instead';
+		notice.appendChild(a);
+		document.body.classList.add('failed');
+		status.style.display = 'flex';
+	}
+
+	function mb(n) { return (n / 1048576).toFixed(1); }
+
+	// Godot's Compatibility renderer draws with WebGL 2.
+	let gl = null;
+	try { gl = document.createElement('canvas').getContext('webgl2'); } catch (e) { gl = null; }
+	if (!gl) {
+		fail('Jeste needs WebGL 2, and this browser has it turned off or unavailable.\n'
+			+ 'Try an up-to-date Firefox, Chrome, Edge or Safari, and check that hardware acceleration is on.');
+		return;
+	}
+	const missing = Engine.getMissingFeatures({ threads: GODOT_THREADS_ENABLED });
+	if (missing.length) {
+		fail('This browser is missing features Jeste needs:\n' + missing.join('\n'));
+		return;
+	}
+
+	const engine = new Engine(GODOT_CONFIG);
+	engine.startGame({
+		onExit: function (code) {
+			if (code) fail('Jeste stopped unexpectedly (exit code ' + code + ').\nReload the page to try again.');
+		},
+		onProgress: function (current, total) {
+			if (current > 0 && total > 0) {
+				bar.classList.remove('busy');
+				fill.style.width = Math.min(100, 100 * current / total).toFixed(1) + '%';
+				label.textContent = 'Loading ' + mb(current) + ' / ' + mb(total) + ' MB';
+				if (current >= total) label.textContent = 'Starting...';
+			} else {
+				bar.classList.add('busy');
+				label.textContent = current > 0 ? 'Loading ' + mb(current) + ' MB' : 'Loading...';
+			}
+		},
+	}).then(() => {
+		window.jesteLoadMs = Math.round(performance.now() - started);
+		status.style.display = 'none';
+		document.getElementById('canvas').focus();
+	}, (err) => {
+		fail('Jeste could not start: ' + (err && err.message ? err.message : String(err))
+			+ '\nCheck your connection and reload the page.', err);
+	});
+}());
+</script>
+</body>
+</html>
+
