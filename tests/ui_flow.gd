@@ -732,10 +732,10 @@ func _process(_d: float) -> void:
 				"fid_0", "fid_1", "fid_2", "fid_3":   # the Graphics Fidelity row, at that step, and the title's post pass with it
 					var want := int(str(s[1]).get_slice("_", 1))
 					var pf: PostFX = _find_post(cur)
-					ok = cur.OPTIONS[cur.opt_sel] == "Graphics" and get_node("/root/Game").fidelity() == want \
+					ok = cur.options[cur.opt_sel] == "Graphics" and get_node("/root/Game").fidelity() == want \
 						and int(get_node("/root/Game").settings.fidelity) == want and pf != null and pf.fidelity == want and pf.rect.visible == (want > 0)
-				"window_auto": ok = cur.OPTIONS[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
-				"smooth_auto": ok = cur.OPTIONS[cur.opt_sel] == "Smooth Motion" and str(get_node("/root/Game").settings.smooth_motion) == "auto" \
+				"window_auto": ok = cur.options[cur.opt_sel] == "Window Size" and int(get_node("/root/Game").settings.window_scale) == 0
+				"smooth_auto": ok = cur.options[cur.opt_sel] == "Smooth Motion" and str(get_node("/root/Game").settings.smooth_motion) == "auto" \
 					and get_node("/root/Game").smooth_motion_label().begins_with("Auto")
 				"smooth_on": ok = get_node("/root/Game").smooth_motion() and get_node("/root/Game").smooth_motion_label() == "On" \
 					and is_zero_approx(Engine.physics_jitter_fix)

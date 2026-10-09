@@ -22,7 +22,8 @@ var jingled := false
 var bell_swing := 0.0
 var notice := ""          # a damaged save was set aside (see Game.read_json)
 
-var options: Array = Game.platform_options(["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Graphics", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"])   # less the rows a browser can't use
+const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Graphics", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
+var options: Array = Game.platform_options(OPTIONS)   # less the rows a browser can't use
 var controls := ControlsMenu.new()
 const LOGO_Y := 25.0
 const MENU_X := 40.0
