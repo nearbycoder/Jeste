@@ -386,6 +386,37 @@ const PRELOAD = `
 
 // ---------------------------------------------------------------------- checks
 
+const FIDELITY_NAMES = ['Low', 'Medium', 'High', 'Ultra'];   // Options > Graphics, as stored
+
+// The settings file as the engine last stored it in IndexedDB (Emscripten's
+// IDBFS: a database per mount, files in FILE_DATA keyed by path): what a
+// reload would read. { db, settings } or null when there's none yet.
+const STORED_SETTINGS = `(async () => {
+	const names = indexedDB.databases ? (await indexedDB.databases()).map((d) => d.name) : ['/userfs'];
+	for (const name of names) {
+		const found = await new Promise((resolve) => {
+			const req = indexedDB.open(name);
+			req.onupgradeneeded = () => req.transaction.abort();   // not there: don't make it
+			req.onerror = () => resolve(null);
+			req.onsuccess = () => {
+				const db = req.result;
+				if (!db.objectStoreNames.contains('FILE_DATA')) { db.close(); resolve(null); return; }
+				const c = db.transaction('FILE_DATA', 'readonly').objectStore('FILE_DATA').openCursor();
+				let text = null;
+				c.onsuccess = () => {
+					const cur = c.result;
+					if (!cur) { db.close(); resolve(text); return; }
+					if (String(cur.key).endsWith('/jeste_settings.json') && cur.value && cur.value.contents) text = new TextDecoder().decode(cur.value.contents);
+					cur.continue();
+				};
+				c.onerror = () => { db.close(); resolve(null); };
+			};
+		});
+		if (found) { try { return { db: name, settings: JSON.parse(found) }; } catch (e) { return { db: name, unreadable: found.slice(0, 80) }; } }
+	}
+	return null;
+})()`;
+
 class Log {
 	constructor(file) { this.file = file; this.errors = []; this.lines = 0; fs.writeFileSync(file, ''); }
 	write(s) {
@@ -479,7 +510,19 @@ async function check(browser, outDir) {
 			await sleep(400);
 			await p.screenshot(path.join(outDir, '2-options.png'));
 			await p.key('Backspace');                   // back to the menu: saves the settings
-			await sleep(2000);                          // IndexedDB sync
+			// The game writes user:// to memory and the engine copies it to
+			// IndexedDB from the next frame on; reload only once the new setting
+			// is there (a slow, loaded machine can take seconds to get to it).
+			const want = FIDELITY_NAMES.indexOf(was) - 1;
+			const savedAt = Date.now();
+			let stored = null;
+			while (Date.now() - savedAt < opt.timeout * 1000) {
+				stored = await p.eval(STORED_SETTINGS);
+				if (stored && stored.settings && stored.settings.fidelity === want) break;
+				await sleep(100);
+			}
+			step('setting saved to IndexedDB', { ms: Date.now() - savedAt, db: stored && stored.db, fidelity: stored && stored.settings ? stored.settings.fidelity : null, want });
+			if (!stored || !stored.settings || stored.settings.fidelity !== want) throw new Error(`the changed setting never reached IndexedDB (${JSON.stringify(stored)})`);
 			await p.reload();
 			const again = await waitFor(p, 'the title after reload', (d) => d.jesteScreen === 'title', opt.timeout);
 			step('setting after reload', { before: was, after: again.jesteFidelity });
