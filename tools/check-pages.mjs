@@ -91,12 +91,30 @@ function freePort() {
 	});
 }
 
+// Browsers this run started and their profiles, cleaned up if the check
+// itself is interrupted.
+const running = new Set();
+const profiles = new Set();
+for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+	process.on(sig, async () => {
+		for (const p of running) p.kill('SIGKILL');
+		await sleep(500);
+		for (const d of profiles) fs.rmSync(d, { recursive: true, force: true });
+		process.exit(130);
+	});
+}
+
 // Launches a browser and waits for the line it prints with its debugging URL.
 function launch(exe, args, pattern, env) {
 	return new Promise((resolve, reject) => {
 		const proc = spawn(exe, args, { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, ...env } });
+		running.add(proc);
+		proc.on('exit', () => running.delete(proc));
 		let buf = '';
-		const timer = setTimeout(() => { reject(new Error(`${path.basename(exe)} did not start:\n${buf.slice(-2000)}`)); }, 120000);
+		const timer = setTimeout(() => {
+			proc.kill('SIGKILL');   // don't leave it running
+			reject(new Error(`${path.basename(exe)} did not start:\n${buf.slice(-2000)}`));
+		}, 120000);
 		const onData = (d) => {
 			buf += d;
 			if (buf.length > 200000) buf = buf.slice(-100000);
@@ -161,7 +179,7 @@ class ChromiumPage {
 			'--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', 'about:blank'];
 		const b = await launch(exe, args, /DevTools listening on (ws:\/\/\S+)/);
 		const p = new ChromiumPage(b, exe, log);
-		await p.init();
+		try { await p.init(); } catch (e) { await stop(b.proc, 0); throw e; }
 		return p;
 	}
 	constructor(b, exe, log) { this.b = b; this.exe = exe; this.log = log; this.name = 'chromium'; }
@@ -249,7 +267,7 @@ class FirefoxPage {
 			'--width', '1280', '--height', '720', 'about:blank'];
 		const b = await launch(exe, args, /WebDriver BiDi listening on (ws:\/\/\S+)/, { MOZ_CRASHREPORTER_DISABLE: '1' });
 		const p = new FirefoxPage(b, exe, log);
-		await p.init();
+		try { await p.init(); } catch (e) { await stop(b.proc, 0); throw e; }
 		return p;
 	}
 	constructor(b, exe, log) { this.b = b; this.exe = exe; this.log = log; this.name = 'firefox'; }
@@ -305,10 +323,10 @@ class FirefoxPage {
 	async close() { try { await this.ws.send('browser.close', {}); } catch { /* gone */ } this.ws.close(); await stop(this.b.proc); }
 }
 
-async function stop(proc) {
+async function stop(proc, graceMs = 5000) {
 	if (proc.exitCode !== null) return;
 	const gone = new Promise((r) => proc.once('exit', r));
-	await Promise.race([gone, sleep(5000)]);
+	await Promise.race([gone, sleep(graceMs)]);
 	if (proc.exitCode === null) { proc.kill('SIGTERM'); await Promise.race([gone, sleep(5000)]); }
 	if (proc.exitCode === null) proc.kill('SIGKILL');
 }
@@ -400,6 +418,7 @@ async function check(browser, outDir) {
 	fs.mkdirSync(outDir, { recursive: true });
 	const log = new Log(path.join(outDir, 'console.log'));
 	const profile = fs.mkdtempSync(path.join(ROOT, 'build', 'pages-work', `profile-${browser}-`));
+	profiles.add(profile);
 	const report = { browser, url: opt.url, full: opt.full, steps: [], ok: false };
 	let p = null;
 	const step = (name, data = {}) => { report.steps.push({ name, ...data }); log.note(`${name} ${Object.keys(data).length ? JSON.stringify(data) : ''}`); };
