@@ -11,13 +11,14 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/engine-Godot%204.7-478cbf?logo=godotengine&logoColor=white" alt="Engine: Godot 4.7">
-  <img src="https://img.shields.io/badge/platform-Linux-f2c14e?logo=linux&logoColor=black" alt="Platform: Linux">
+  <img src="https://img.shields.io/badge/platform-Linux%20%7C%20Web-f2c14e?logo=linux&logoColor=black" alt="Platform: Linux and web">
   <img src="https://img.shields.io/badge/language-GDScript-355570" alt="Language: GDScript">
   <img src="https://img.shields.io/badge/release-0.1.0-d8344f" alt="Latest release: 0.1.0">
   <img src="https://img.shields.io/badge/every%20room-proven%20beatable-6fbf73" alt="Every room proven beatable">
 </p>
 
 <p align="center">
+  <a href="https://nearbycoder.github.io/Jeste/"><b>Play in your browser</b></a> ·
   <a href="docs/media/jeste_trailer.mp4"><b>Watch the trailer</b></a> ·
   <a href="#play-it"><b>Play it</b></a> ·
   <a href="#build-from-source"><b>Build from source</b></a>
@@ -27,7 +28,8 @@
 > [v0.1.0](https://github.com/nearbycoder/Jeste/releases/latest) (October 4, 2026), predates
 > twelve rounds of improvements on `main`: the Graphics steps, Route Ghost, checkpoint select,
 > mouse menus, Dash Aim, crash-safe saves and many fixes. To play the game as described and shown
-> here, [run it from source](#build-from-source) (Godot 4.6+, no build step).
+> here, [run it from source](#build-from-source) (Godot 4.6+, no build step), or
+> [play it in your browser](#in-your-browser), which is built from `main`.
 
 ## Trailer
 
@@ -238,6 +240,34 @@ All captured from `main` at *Graphics: Ultra*.
 
 ## Play it
 
+### In your browser
+
+**[nearbycoder.github.io/Jeste](https://nearbycoder.github.io/Jeste/)**, served by GitHub Pages
+and built from `main` with Godot's single-threaded web export (`tools/build-pages.sh`). It
+needs a browser with WebGL 2 and a keyboard, mouse or gamepad; there are no touch controls.
+The first visit downloads about 56 MB (a 38 MB engine file, which compresses to about 10 MB if
+the server gzips it, and an 18 MB game pack); after that the browser usually has it cached.
+
+Tested on Linux in headless Firefox 157 (on the GPU: 41 to 60 fps at the title on a heavily
+loaded machine) and headless Chromium 151 (software rendering only): it loads to the title with no console errors, sound
+starts after the first key press, a setting survives a reload, and the first room plays.
+Safari, phones and real gamepads haven't been tried. What differs from the desktop game:
+
+- **Saves and settings** are kept in the browser's storage for this site, apart from any
+  desktop save. Clearing the site's data erases them.
+- **Sound** starts with your first click or key press, as browsers require.
+- **Fullscreen** is the Options toggle (Esc leaves it); F11 and Alt+Enter are left to the
+  browser. The game opens in the page each visit.
+- **Window Size** and **Rumble** aren't in Options: the page sets the size, and browsers can't
+  rumble a gamepad.
+- **Smooth Motion** *Auto* is on, because browsers don't report the screen's refresh rate.
+- **Key names** in prompts are the US ones (browsers don't tell games the keyboard layout);
+  the bindings themselves are key positions, as on desktop.
+- **Graphics** starts at *High*, as on desktop (the game draws at 320×180, so it's light);
+  *Low* is there for weak GPUs.
+
+### On your computer
+
 **System requirements:** 64-bit Linux (x86_64) and a Vulkan-capable GPU. Developed and tested on
 CachyOS with an AMD Radeon 8060S iGPU under Wayland and Xwayland. A keyboard or gamepad to play.
 
@@ -255,10 +285,9 @@ godot --path .                      # or open the folder in the Godot editor and
 
 Saves and settings live in `~/.local/share/godot/app_userdata/Jeste/`.
 
-Windows, macOS and web builds aren't published. `export_presets.cfg` has presets for all three
-(Windows x86_64, a single-threaded web build, and an ad-hoc-signed, un-notarized universal macOS
-app with bundle id `com.nearbycoder.jeste`), but none of them has been exported or run: this
-machine has only the Linux export template. Treat them as untested starting points.
+Windows and macOS builds aren't published. `export_presets.cfg` has presets for both (Windows
+x86_64, and an ad-hoc-signed, un-notarized universal macOS app with bundle id
+`com.nearbycoder.jeste`), but neither has been run. Treat them as untested starting points.
 
 ## Build from source
 
@@ -300,9 +329,25 @@ python3 -m venv .venv && .venv/bin/pip install numpy
 ```sh
 mkdir -p build/linux
 godot --headless --path . --export-release "Linux" build/linux/Jeste.x86_64
-# untested presets: "Windows Desktop" (build/windows/Jeste.exe), "Web" (build/web/index.html),
+# untested presets: "Windows Desktop" (build/windows/Jeste.exe),
 # "macOS" (build/macos/Jeste.zip, not notarized, so Gatekeeper will warn)
 ```
+
+**Build and check the browser version.** `tools/build-pages.sh` exports the "Web" preset
+(single-threaded, so no special server headers) with the page in `tools/web/shell.html` into
+`build/pages/`, a static site with relative URLs that works from any subpath. The check needs
+Node 22+ and a Chromium or Firefox (it finds Playwright's cached browsers), and no npm packages:
+
+```sh
+tools/build-pages.sh                                     # -> build/pages/ (index.html, .nojekyll)
+mkdir -p build/serve && cp -r build/pages build/serve/Jeste
+python3 -m http.server 8000 --directory build/serve &    # http://localhost:8000/Jeste/
+node tools/check-pages.mjs http://localhost:8000/Jeste/                         # reaches the title, no errors
+node tools/check-pages.mjs http://localhost:8000/Jeste/ --browser all --full    # plus sound, a reload, play
+```
+
+The check exits 0 only when the game reaches its title with no console errors or failed
+requests. Logs, screenshots and a report go to `build/pages-work/check/<browser>/`.
 
 **Rebuild the trailer, teaser, poster and screenshots.** This needs a display, because Godot's
 Movie Maker renders the footage (offline, at *Graphics: Ultra*, so every frame is kept). Set
@@ -344,6 +389,7 @@ data/story/        cutscene scripts
 assets/            generated art (PNG) and audio (Ogg / WAV), see tools/
 tools/             art + audio generators, debug renderers, demo reel, Graphics frame captures
 tools/trailer/     trailer pipeline: shot recorder, cards, caption plates, ffmpeg assembly
+tools/web/         the browser version's page; tools/build-pages.sh and check-pages.mjs build and check it
 tests/             verification suite, cached solver solutions (fastest and basic-moveset), proven routes
 docs/media/        trailer, teaser, poster and screenshots used by this README
 docs/IMPROVEMENTS.md   plans and results of every improvement round since release
