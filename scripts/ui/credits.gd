@@ -43,6 +43,7 @@ func _ready() -> void:
 	var post := PostFX.new()
 	add_child(post)
 	post.setup(8)
+	Game.web_status({"screen": "credits"})
 	backdrop.setup(8)
 	ledge_tex = _make_ledge()
 	Sfx.play_music("credits")

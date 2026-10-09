@@ -13,10 +13,15 @@ boot_splash/bg_color=Color(0.05, 0.04, 0.09, 1)
 boot_splash/show_image=false
 config/icon="res://assets/icon.png"
 
+[audio]
+
+driver/output_latency.web=150
+
 [autoload]
 
 Game="*res://scripts/game/game_state.gd"
 Sfx="*res://scripts/game/audio.gd"
+Touch="*res://scripts/game/touch.gd"
 
 [display]
 

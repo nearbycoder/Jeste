@@ -44,6 +44,7 @@ func _ready() -> void:
 	backdrop.setup(sel)
 	post.setup(sel)
 	marker_x = _marker_pos(sel).x
+	Game.web_status({"screen": "chapters"})
 	pc_vp = SubViewport.new()
 	pc_vp.size = Vector2i(int(PC.size.x), int(PC.size.y))
 	pc_vp.transparent_bg = true

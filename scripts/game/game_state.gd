@@ -17,6 +17,7 @@ var pending_spawn := 0
 var headless_test := false     # set by test harness: no saving to disk
 var using_pad := false         # last input came from a gamepad (prompts show pad buttons)
 var pad_device := 0            # gamepad that sent the last pad input (for button names)
+var using_touch := false       # the browser shows its on-screen controls (prompts name them; see Touch)
 ## Button names per controller family [xbox, playstation, nintendo]. Godot
 ## maps face buttons by position (JOY_BUTTON_A is always the bottom one), so
 ## only the names differ. These are also the buttons a player may rebind.
@@ -252,8 +253,11 @@ func rebind_pad(action: String, button: int) -> bool:
 	return true
 
 
-## Label for the movement prompt ("Arrows" on keyboard, "Stick" on a pad).
+## Label for the movement prompt ("Arrows" on keyboard, "Stick" on a pad,
+## "Pad" for the on-screen d-pad).
 func move_label() -> String:
+	if using_touch:
+		return "Pad"
 	return "Stick" if using_pad else "Arrows"
 
 
@@ -306,7 +310,13 @@ func kb_label(action: String) -> String:
 	return "?" if ks.is_empty() else key_name(int(ks[0]))
 
 
+## The on-screen buttons' names, as their keycaps read in prompts.
+const TOUCH_LABELS := {"jump": "Jump", "dash": "Dash", "grab": "Grab", "pause": "II", "up": "Up", "down": "Down", "left": "Left", "right": "Right"}
+
+
 func key_label(action: String) -> String:
+	if using_touch and TOUCH_LABELS.has(action):
+		return TOUCH_LABELS[action]
 	if using_pad:
 		return pad_label(action)
 	var ks := keys_for(action)
@@ -790,6 +800,13 @@ func load_settings() -> void:
 		settings[k] = parsed[k]
 	if OS.has_feature("web"):
 		settings.fullscreen = false   # a page opens windowed; only a click or key may ask for fullscreen
+		# Phones and tablets start a step lighter (their GPUs and batteries are
+		# smaller), unless Graphics was chosen; after the browser closed the tab
+		# mid-game (out of memory), the page reloads asking for Low.
+		if TouchControls.recovering():
+			settings.fidelity = FIDELITY_LOW
+		elif not parsed.has("fidelity") and TouchControls.touch_first():
+			settings.fidelity = FIDELITY_MOBILE
 
 
 func save_settings() -> void:
@@ -906,7 +923,7 @@ func web_status(fields: Dictionary) -> void:
 		return
 	var js := ""
 	for k in fields:
-		js += "document.body.dataset.jeste%s=%s;" % [str(k).capitalize(), JSON.stringify(str(fields[k]))]
+		js += "document.body.dataset.jeste%s=%s;" % [str(k).to_pascal_case(), JSON.stringify(str(fields[k]))]
 	JavaScriptBridge.eval(js)
 
 
@@ -984,6 +1001,7 @@ const FIDELITY_MEDIUM := 1
 const FIDELITY_HIGH := 2
 const FIDELITY_ULTRA := 3
 const FIDELITY_DEFAULT := FIDELITY_HIGH
+const FIDELITY_MOBILE := FIDELITY_MEDIUM   # the default on a phone or tablet (browser)
 signal fidelity_changed
 
 

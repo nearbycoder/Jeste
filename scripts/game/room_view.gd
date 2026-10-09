@@ -152,6 +152,21 @@ static func painted(def_: RoomDef, ts: String) -> Dictionary:
 	return art
 
 
+## Drops the painted art of rooms outside `defs` (a chapter's rooms, as
+## [RoomDef, tileset] pairs), so a session holds one chapter's worth (up to
+## ~11 MB) rather than every chapter it has visited (~64 MB): it matters on
+## a phone, where the browser closes a tab that grows too big.
+static func forget_others(defs: Array) -> void:
+	var keep := {}
+	for p in defs:
+		keep[_art_key(p[0], p[1])] = true
+	_mutex.lock()
+	for key in _art_cache.keys():
+		if not keep.has(key) and not _tasks.has(key):
+			_art_cache.erase(key)
+	_mutex.unlock()
+
+
 ## Wait for every queued job (call before quitting / freeing scenes).
 static func flush_bakes() -> void:
 	_mutex.lock()

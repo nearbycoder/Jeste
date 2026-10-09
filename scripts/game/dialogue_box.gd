@@ -226,7 +226,7 @@ func _draw() -> void:
 
 ## "Hold Esc  Skip" under the box, with a ring that fills while held.
 func _draw_skip_hint(a: float) -> void:
-	var key := "Start" if Game.using_pad else "Esc"
+	var key := Game.key_label("pause") if Game.using_touch else ("Start" if Game.using_pad else "Esc")
 	var label := "Hold to skip"
 	var w := PixelText.width(label)
 	var x := BOX.end.x - w - 4

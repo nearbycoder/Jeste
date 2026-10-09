@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#0d0a17">
 <meta name="description" content="Jeste: a pixel-art precision platformer about a young jester climbing a mountain that laughs back. Plays in your browser.">
 <title>$GODOT_PROJECT_NAME</title>
 <!-- Jeste's page shell for the web export (tools/build-pages.sh). Every URL is
@@ -14,7 +18,13 @@ body {
 	color: #f3e9d2;
 	background: #0d0a17;
 	overflow: hidden;
+	overscroll-behavior: none;
 	touch-action: none;
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-touch-callout: none;
+	-webkit-tap-highlight-color: transparent;
+	-webkit-text-size-adjust: 100%;
 	font-family: ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace;
 }
 #canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
@@ -40,6 +50,101 @@ body {
 #notice a { color: #f2c14e; }
 body.failed #bar, body.failed #label, body.failed #hint { display: none; }
 body.failed #notice { display: block; }
+#recovered { display: none; max-width: 34rem; font-size: 0.85rem; line-height: 1.5; color: #f2c14e; }
+body.recovering #recovered { display: block; }
+
+/* On-screen controls (phones and tablets): shown only in touch mode
+   (body.touch), sized in CSS pixels (= points on iOS), clear of the notch and
+   the home indicator. */
+:root {
+	--sl: env(safe-area-inset-left, 0px);
+	--sr: env(safe-area-inset-right, 0px);
+	--st: env(safe-area-inset-top, 0px);
+	--sb: env(safe-area-inset-bottom, 0px);
+	--edge: 16px;
+	--pad: clamp(124px, 37vmin, 180px);
+	--jump: clamp(64px, 19vmin, 88px);
+	--dash: clamp(58px, 17vmin, 80px);
+	--grab: clamp(52px, 15vmin, 70px);
+	--gap: 10px;
+	--ink: rgba(20, 12, 28, 0.55);
+	--gold: #f2c14e;
+	--crimson: #d8344f;
+	--cream: #fff1d6;
+}
+#touch { display: none; position: fixed; inset: 0; z-index: 5; pointer-events: none; }
+body.touch.running #touch { display: block; }
+.t-ctl {
+	position: absolute; box-sizing: border-box; pointer-events: auto; touch-action: none;
+	-webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+}
+#t-pad {
+	left: calc(var(--sl) + var(--edge)); bottom: calc(var(--sb) + var(--edge));
+	width: var(--pad); height: var(--pad); border-radius: 50%;
+	background: var(--ink); border: 3px solid rgba(243, 233, 210, 0.35);
+	box-shadow: 0 4px 0 rgba(13, 10, 23, 0.5);
+}
+#t-pad::before { content: ""; position: absolute; inset: -26px; border-radius: 50%; }   /* a larger hit area */
+#t-pad .arm {
+	position: absolute; left: 50%; top: 50%; width: 30%; height: 30%;
+	margin: -15% 0 0 -15%; box-sizing: border-box;
+	background: rgba(243, 233, 210, 0.16); border: 2px solid rgba(243, 233, 210, 0.45); border-radius: 4px;
+}
+#t-pad .arm::after {
+	content: ""; position: absolute; left: 50%; top: 50%; width: 0; height: 0; margin: -6px 0 0 -6px;
+	border: 6px solid transparent; border-bottom: 8px solid var(--cream); border-top: 0; transform-origin: 6px 6px;
+}
+#t-pad .up { transform: translateY(-100%); }
+#t-pad .down { transform: translateY(100%) rotate(180deg); }
+#t-pad .left { transform: translateX(-100%) rotate(-90deg); }
+#t-pad .right { transform: translateX(100%) rotate(90deg); }
+#t-pad .arm.on { background: var(--gold); border-color: var(--cream); }
+#t-pad .arm.on::after { border-bottom-color: #140c1c; }
+#t-knob {
+	position: absolute; left: 50%; top: 50%; width: 22%; height: 22%; margin: -11% 0 0 -11%;
+	border-radius: 50%; background: rgba(243, 233, 210, 0.22); border: 2px solid rgba(243, 233, 210, 0.5);
+	pointer-events: none;
+}
+#t-pad.active #t-knob { background: rgba(242, 193, 78, 0.6); border-color: var(--cream); }
+.t-btn {
+	display: flex; align-items: center; justify-content: center; border-radius: 50%;
+	background: var(--ink); border: 3px solid var(--gold); color: var(--cream);
+	font: bold 13px/1 ui-monospace, "DejaVu Sans Mono", Menlo, Consolas, monospace; letter-spacing: 0.08em;
+	text-shadow: 1px 1px 0 #140c1c, -1px 1px 0 #140c1c, 1px -1px 0 #140c1c, -1px -1px 0 #140c1c;
+	box-shadow: 0 4px 0 rgba(13, 10, 23, 0.55);
+}
+.t-btn.on { background: var(--gold); color: #140c1c; text-shadow: none; transform: translateY(2px); box-shadow: 0 2px 0 rgba(13, 10, 23, 0.55); }
+#t-jump { width: var(--jump); height: var(--jump); right: calc(var(--sr) + var(--edge)); bottom: calc(var(--sb) + var(--edge)); }
+#t-dash {
+	width: var(--dash); height: var(--dash); border-color: var(--crimson);
+	right: calc(var(--sr) + var(--edge) + var(--jump) + var(--gap)); bottom: calc(var(--sb) + var(--edge) + var(--jump) * 0.3);
+}
+#t-dash.on { background: var(--crimson); color: var(--cream); }
+#t-grab {
+	width: var(--grab); height: var(--grab); border-color: #c8b8e8;
+	right: calc(var(--sr) + var(--edge) + (var(--jump) - var(--grab)) / 2); bottom: calc(var(--sb) + var(--edge) + var(--jump) + var(--gap));
+}
+#t-grab.on, #t-grab.latched { background: #c8b8e8; color: #140c1c; text-shadow: none; }
+#t-grab.toggle::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; border: 2px dashed rgba(200, 184, 232, 0.6); }
+#t-pause {
+	width: 44px; height: 44px; border-radius: 8px; border-color: rgba(243, 233, 210, 0.6);
+	right: calc(var(--sr) + 10px); top: calc(var(--st) + 10px);
+}
+#t-pause::before, #t-pause::after { content: ""; width: 5px; height: 16px; margin: 0 3px; background: var(--cream); box-shadow: 1px 1px 0 #140c1c; }
+#t-pause.on::before, #t-pause.on::after { background: #140c1c; box-shadow: none; }
+#rotate {
+	display: none; position: fixed; inset: 0; z-index: 10; background: #0d0a17;
+	flex-direction: column; justify-content: center; align-items: center; gap: 1.4rem; padding: 2rem; text-align: center;
+}
+body.touch.running.rotate #rotate { display: flex; }
+#rotate .phone {
+	width: 3rem; height: 5rem; border: 3px solid var(--cream); border-radius: 0.5rem; position: relative;
+	animation: turn 2.4s ease-in-out infinite;
+}
+#rotate .phone::after { content: ""; position: absolute; left: 50%; bottom: 0.3rem; width: 0.8rem; height: 3px; margin-left: -0.4rem; background: var(--cream); }
+@keyframes turn { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+#rotate p { margin: 0; font-size: 1.05rem; line-height: 1.5; }
+#rotate b { color: var(--gold); }
 </style>
 $GODOT_HEAD_INCLUDE
 </head>
@@ -51,9 +156,265 @@ $GODOT_HEAD_INCLUDE
 	<div id="bar"><div id="fill"></div></div>
 	<div id="label">Loading...</div>
 	<div id="hint">Keyboard, mouse or gamepad. Sound starts with your first click or key press.</div>
+	<div id="recovered">The browser closed Jeste last time, most likely because it ran short of memory. It starts with Graphics on Low this time (Options &gt; Graphics).</div>
 	<div id="notice"></div>
 	<noscript><div style="display:block" class="noscript">Jeste needs JavaScript to run in the browser.</div></noscript>
 </div>
+<div id="touch" aria-hidden="true">
+	<div id="t-pad" class="t-ctl"><div class="arm up"></div><div class="arm down"></div><div class="arm left"></div><div class="arm right"></div><div id="t-knob"></div></div>
+	<div id="t-grab" class="t-ctl t-btn" data-b="grab">GRAB</div>
+	<div id="t-dash" class="t-ctl t-btn" data-b="dash">DASH</div>
+	<div id="t-jump" class="t-ctl t-btn" data-b="jump">JUMP</div>
+	<div id="t-pause" class="t-ctl t-btn" data-b="pause" aria-label="Pause"></div>
+</div>
+<div id="rotate" role="alert"><div class="phone"></div><p>Turn your phone sideways to play <b>Jeste</b>.</p></div>
+<script>
+// Touch: the on-screen controls, and what a phone or tablet needs around
+// them. The game (scripts/game/touch.gd) attaches a callback and gets
+// ("down"|"up", button), ("mode", "1"|"0") and ("blocked", "1"|"0").
+window.jesteTouch = (function () {
+	const body = document.body;
+	const canvas = document.getElementById('canvas');
+	const pad = document.getElementById('t-pad');
+	const knob = document.getElementById('t-knob');
+	const grab = document.getElementById('t-grab');
+	const arms = {};
+	for (const d of ['up', 'down', 'left', 'right']) arms[d] = pad.querySelector('.' + d);
+	const mq = (q) => !!(window.matchMedia && window.matchMedia(q).matches);
+	const api = {
+		touchFirst: mq('(pointer: coarse)') && !mq('(any-pointer: fine)'),
+		recovering: false,
+		on: false,
+	};
+	let cb = null;
+	let blocked = false;
+	const held = new Map();       // button -> fingers on it
+	const fingers = new Map();    // pointerId -> { pad: true } | { btn }
+	let padDirs = [];
+	let sector = -1;
+
+	function send(op, arg) {
+		if (!cb) return;
+		try { cb(op, arg); } catch (e) { console.warn('jesteTouch:', e); }
+	}
+	function el(b) { return b === 'up' || b === 'down' || b === 'left' || b === 'right' ? arms[b] : document.getElementById('t-' + b); }
+	function press(b) {
+		const n = (held.get(b) || 0) + 1;
+		held.set(b, n);
+		if (n === 1) { el(b).classList.add('on'); send('down', b); }
+	}
+	function release(b) {
+		const n = (held.get(b) || 0) - 1;
+		if (n > 0) { held.set(b, n); return; }
+		if (!held.has(b)) return;
+		held.delete(b);
+		el(b).classList.remove('on');
+		send('up', b);
+	}
+	function releaseAll() {
+		fingers.clear();
+		for (const b of [...held.keys()]) { held.set(b, 1); release(b); }
+		padDirs = [];
+		sector = -1;
+		pad.classList.remove('active');
+		knob.style.transform = '';
+	}
+
+	// The d-pad: eight 45-degree directions around its centre, past a small
+	// dead zone, with a little hysteresis so a thumb on a boundary doesn't
+	// flicker between two.
+	const SECTORS = [['right'], ['down', 'right'], ['down'], ['down', 'left'], ['left'], ['up', 'left'], ['up'], ['up', 'right']];
+	function updatePad(x, y) {
+		const r = pad.getBoundingClientRect();
+		const R = r.width / 2;
+		const dx = x - (r.left + R);
+		const dy = y - (r.top + R);
+		const dist = Math.hypot(dx, dy);
+		let s = -1;
+		if (dist > R * 0.2) {
+			const a = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+			s = Math.round(a / 45) % 8;
+			if (sector >= 0 && s !== sector) {
+				const off = Math.abs(((a - sector * 45) + 540) % 360 - 180);
+				if (off < 22.5 + 7) s = sector;
+			}
+		}
+		sector = s;
+		const want = s < 0 ? [] : SECTORS[s];
+		for (const d of padDirs) if (!want.includes(d)) release(d);
+		for (const d of want) if (!padDirs.includes(d)) press(d);
+		padDirs = want.slice();
+		const k = Math.min(1, dist / R) * 0.62 * R / (dist || 1);
+		knob.style.transform = 'translate(' + (dx * k).toFixed(1) + 'px,' + (dy * k).toFixed(1) + 'px)';
+	}
+
+	function down(e) {
+		if (e.pointerType === 'mouse') return;
+		e.preventDefault();
+		const t = e.target.closest && e.target.closest('.t-ctl');
+		if (!t || !api.on) return;
+		if (t === pad) {
+			for (const [id, f] of fingers) if (f.pad) fingers.delete(id);   // one thumb steers
+			fingers.set(e.pointerId, { pad: true });
+			pad.classList.add('active');
+			updatePad(e.clientX, e.clientY);
+		} else if (t.dataset.b) {
+			fingers.set(e.pointerId, { btn: t.dataset.b });
+			press(t.dataset.b);
+		}
+	}
+	function move(e) {
+		const f = fingers.get(e.pointerId);
+		if (!f) return;
+		e.preventDefault();
+		if (f.pad) { updatePad(e.clientX, e.clientY); return; }
+		if (f.btn === 'pause') return;
+		// a thumb can roll from one action button to the next
+		const over = document.elementFromPoint(e.clientX, e.clientY);
+		const t = over && over.closest && over.closest('.t-btn');
+		if (t && t.dataset.b && t.dataset.b !== f.btn && t.dataset.b !== 'pause') {
+			release(f.btn);
+			f.btn = t.dataset.b;
+			press(f.btn);
+		}
+	}
+	function up(e) {
+		const f = fingers.get(e.pointerId);
+		if (!f) return;
+		fingers.delete(e.pointerId);
+		if (f.pad) {
+			for (const d of padDirs) release(d);
+			padDirs = [];
+			sector = -1;
+			pad.classList.remove('active');
+			knob.style.transform = '';
+		} else release(f.btn);
+	}
+	const root = document.getElementById('touch');
+	root.addEventListener('pointerdown', down);
+	root.addEventListener('pointermove', move);
+	root.addEventListener('pointerup', up);
+	root.addEventListener('pointercancel', up);
+	// no scrolling, zooming, text selection or long-press callouts
+	root.addEventListener('touchstart', (e) => e.preventDefault(), { passive: false });
+	root.addEventListener('contextmenu', (e) => e.preventDefault());
+	document.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+	document.addEventListener('gesturestart', (e) => e.preventDefault());
+	document.addEventListener('dblclick', (e) => e.preventDefault());
+
+	// Touch mode: on for a touch-first device, or after any real touch; off
+	// as soon as a key, the mouse or a gamepad (the game reports it) is used.
+	function setMode(v) {
+		if (api.on === v) return;
+		api.on = v;
+		body.classList.toggle('touch', v);
+		body.dataset.jesteTouch = v ? 'on' : 'off';
+		if (!v) releaseAll();
+		send('mode', v ? '1' : '0');
+		checkRotate();
+	}
+	window.addEventListener('pointerdown', (e) => {
+		if (e.pointerType === 'touch') setMode(true);
+		else if (e.pointerType === 'mouse') setMode(false);
+	}, true);
+	window.addEventListener('touchstart', () => setMode(true), { capture: true, passive: true });
+	window.addEventListener('pointermove', (e) => {
+		if (api.on && e.pointerType === 'mouse' && (e.movementX || e.movementY)) setMode(false);
+	}, true);
+	window.addEventListener('keydown', () => setMode(false), true);
+
+	// A phone held upright: the game is too small to play, so ask to turn it
+	// (and pause). Tablets are wide enough to play either way up, with the
+	// controls below the picture.
+	function checkRotate() {
+		const want = api.on && body.classList.contains('running') && window.innerHeight > window.innerWidth && window.innerWidth < 600;
+		if (want === blocked) return;
+		blocked = want;
+		body.classList.toggle('rotate', want);
+		body.dataset.jesteRotate = want ? 'on' : 'off';
+		if (want) releaseAll();
+		send('blocked', want ? '1' : '0');
+	}
+	window.addEventListener('resize', checkRotate);
+	window.addEventListener('orientationchange', () => setTimeout(checkRotate, 100));
+
+	// Sound may start only from a tap. Godot resumes its AudioContext on
+	// input it sees, but taps on the controls never reach the canvas, and
+	// iOS wants it done on touchend; so every context the page makes is
+	// resumed here on each tap until it runs.
+	const contexts = [];
+	const AC = window.AudioContext || window.webkitAudioContext;
+	if (AC) {
+		const Tracked = class extends AC { constructor(...a) { super(...a); contexts.push(this); } };
+		window.AudioContext = Tracked;
+		if (window.webkitAudioContext) window.webkitAudioContext = Tracked;
+	}
+	function unlock() {
+		for (const c of contexts) {
+			if (c.state === 'running') continue;
+			c.resume().catch(() => {});
+			try {   // older iOS also wants a sound started from the gesture
+				const s = c.createBufferSource();
+				s.buffer = c.createBuffer(1, 1, 22050);
+				s.connect(c.destination);
+				s.start(0);
+			} catch (e) { /* not needed */ }
+		}
+	}
+	for (const t of ['touchend', 'pointerup', 'click', 'keydown']) window.addEventListener(t, unlock, true);
+
+	// Godot puts only the canvas in fullscreen, which would leave the
+	// controls out; the whole page goes instead, and the game is told the
+	// canvas did. A phone in fullscreen also locks to landscape where it can.
+	const de = document.documentElement;
+	const req = de.requestFullscreen || de.webkitRequestFullscreen;
+	if (req) {
+		canvas.requestFullscreen = function () { return req.call(de, { navigationUI: 'hide' }); };
+		for (const name of ['fullscreenElement', 'webkitFullscreenElement']) {
+			const d = Object.getOwnPropertyDescriptor(Document.prototype, name);
+			if (d && d.get) Object.defineProperty(document, name, { configurable: true, get() { const e = d.get.call(document); return e === de ? canvas : e; } });
+		}
+		document.addEventListener('fullscreenchange', () => {
+			if (api.on && document.fullscreenElement && screen.orientation && screen.orientation.lock && Math.min(screen.width, screen.height) < 600) {
+				screen.orientation.lock('landscape').catch(() => {});
+			}
+		});
+	}
+
+	// The tab closed mid-game last time (the flag set when the game started
+	// was never cleared by pagehide): most likely out of memory, which iOS
+	// handles by reloading the page. Start light, and say why.
+	try {
+		api.recovering = sessionStorage.getItem('jeste.running') === '1';
+		sessionStorage.removeItem('jeste.running');
+	} catch (e) { /* storage off */ }
+	if (api.recovering) body.classList.add('recovering');
+	api.started = function () {
+		body.classList.add('running');
+		try { sessionStorage.setItem('jeste.running', '1'); } catch (e) { /* storage off */ }
+		checkRotate();
+	};
+	window.addEventListener('pagehide', () => { try { sessionStorage.removeItem('jeste.running'); } catch (e) { /* storage off */ } });
+	window.addEventListener('pageshow', (e) => { if (e.persisted && body.classList.contains('running')) api.started(); });
+
+	api.attach = function (c) {
+		cb = c;
+		send('mode', api.on ? '1' : '0');
+		if (blocked) send('blocked', '1');
+	};
+	api.hide = function () { setMode(false); };
+	api.grabState = function (mode, latched) {
+		grab.classList.toggle('toggle', mode === 'toggle');
+		grab.classList.toggle('latched', mode === 'toggle' && !!latched);
+	};
+	body.dataset.jesteTouch = 'off';
+	if (api.touchFirst) {
+		setMode(true);
+		document.getElementById('hint').textContent = 'On-screen controls appear once it starts. Sound starts with your first tap.';
+	}
+	return api;
+}());
+</script>
 <script src="$GODOT_URL"></script>
 <script>
 const GODOT_CONFIG = $GODOT_CONFIG;
@@ -89,6 +450,18 @@ const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
 
 	function mb(n) { return (n / 1048576).toFixed(1); }
 
+	// Out of memory: say so rather than leave a frozen page (where the
+	// browser lets the page see it; iOS may close the tab outright, and then
+	// the reload starts light, see jesteTouch.recovering).
+	function oom(e) {
+		const m = String((e && (e.message || (e.reason && (e.reason.message || e.reason)))) || '');
+		if (/out of memory|Aborted\(OOM\)|could not allocate memory|allocation failed|Cannot enlarge memory/i.test(m)) {
+			fail('Jeste ran out of memory in this browser tab.\nClose other tabs and reload the page; Options > Graphics > Low also needs less.', e);
+		}
+	}
+	window.addEventListener('error', oom);
+	window.addEventListener('unhandledrejection', oom);
+
 	// Godot's Compatibility renderer draws with WebGL 2.
 	let gl = null;
 	try { gl = document.createElement('canvas').getContext('webgl2'); } catch (e) { gl = null; }
@@ -122,6 +495,7 @@ const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
 	}).then(() => {
 		window.jesteLoadMs = Math.round(performance.now() - started);
 		status.style.display = 'none';
+		window.jesteTouch.started();
 		document.getElementById('canvas').focus();
 	}, (err) => {
 		fail('Jeste could not start: ' + (err && err.message ? err.message : String(err))

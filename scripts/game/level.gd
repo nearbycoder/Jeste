@@ -89,6 +89,11 @@ func _ready() -> void:
 	Game.release_grab()
 	if not fast:
 		# paint every room on worker threads; the first one is needed right away
+		var defs := []
+		for rid in chapter.rooms:
+			var r: RoomDef = chapter.rooms[rid]
+			defs.append([r, str(r.meta.get("tileset", chapter.tileset))])
+		RoomView.forget_others(defs)
 		var first: RoomDef = chapter.rooms.get(start_room)
 		if first:
 			RoomView.prebake(first, str(first.meta.get("tileset", chapter.tileset)))
@@ -957,7 +962,7 @@ func _process(delta: float) -> void:
 	if fast:
 		return
 	if Engine.get_process_frames() % 30 == 0:
-		Game.web_status({"screen": "level", "mode": mode, "room": room_id, "x": world.x, "y": world.y, "deaths": room_deaths})
+		Game.web_status({"screen": "level", "mode": mode, "room": room_id, "x": world.x, "y": world.y, "deaths": room_deaths, "paused": paused})
 	# how far this frame is between the last two steps, in simulation steps
 	var alpha := 1.0
 	if Game.smooth_motion() and not paused:

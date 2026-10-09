@@ -39,6 +39,12 @@ func process(delta: float) -> void:
 func capture(ev: InputEvent) -> bool:
 	if not waiting_key:
 		return false
+	if ev is InputEventAction:
+		# the on-screen buttons (Touch) can't be bound; Dash / Pause cancels
+		if ev.pressed and (ev.action == "back" or ev.action == "pause"):
+			waiting_key = false
+			Sfx.back()
+		return true
 	if ev is InputEventJoypadButton and ev.pressed:
 		# pad buttons rebind Jump / Dash / Grab; Start cancels
 		var btn: int = (ev as InputEventJoypadButton).button_index
@@ -129,7 +135,7 @@ func mouse(ev: InputEventMouse) -> InputEvent:
 ## Prompt pairs for the bottom of the screen.
 func hints() -> Array:
 	if waiting_key:
-		return [["Start" if Game.using_pad else "Esc", "Cancel"]]
+		return [[Game.key_label("dash") if Game.using_touch else ("Start" if Game.using_pad else "Esc"), "Cancel"]]
 	return [[Game.move_label(), "Change"], [Game.key_label("jump"), "Select"], [Game.key_label("dash"), "Back"]]
 
 

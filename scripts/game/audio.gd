@@ -38,6 +38,17 @@ func _ready() -> void:
 	_amb_b = AudioStreamPlayer.new()
 	add_child(_amb_a)
 	add_child(_amb_b)
+	# In a phone's or tablet's browser, music and ambience stream (decoded as
+	# they play) rather than play as Web Audio samples. A sample is decoded
+	# whole into the page (about 23 MB a minute, copied again for each play)
+	# and the engine keeps every one it has played, so a long climb would pile
+	# up a few hundred MB: enough for iOS to close the tab. Sound effects stay
+	# samples (short, and they play on time even when a frame runs long).
+	# The streams get a deeper buffer (audio/driver/output_latency.web, 150 ms)
+	# so a slow frame doesn't break them up.
+	if TouchControls.touch_first() or TouchControls.recovering():
+		for p in [_music_a, _music_b, _amb_a, _amb_b]:
+			p.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 
 
 func _exit_tree() -> void:
