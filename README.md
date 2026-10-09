@@ -253,7 +253,12 @@ the server gzips it, and an 18 MB game pack); after that the browser usually has
 Tested on Linux in headless Firefox 157 (on the GPU: 41 to 60 fps at the title on a heavily
 loaded machine) and headless Chromium 151 (software rendering only): it loads to the title with no console errors, sound
 starts after the first key press, a setting survives a reload, and the first room plays.
-Safari, phones and real gamepads haven't been tried. What differs from the desktop game:
+Phones and tablets were tried only as stand-ins: headless WebKit 26.6 with iPhone 15 and iPad
+Pro 11 profiles and Chromium with a Pixel 7 profile, both ways up (`tools/check-mobile.mjs`).
+There the menus, every on-screen control and the rotate prompt work, and the WebAssembly heap
+peaks at 67 MB (was 115 MB) with about 6 MB of decoded audio (was about 100 MB after the first
+level, and growing). A real iPhone, Android phone or gamepad hasn't been tried. What differs from
+the desktop game:
 
 - **Saves and settings** are kept in the browser's storage for this site, apart from any
   desktop save. Clearing the site's data erases them.
