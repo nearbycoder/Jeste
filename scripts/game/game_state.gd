@@ -95,6 +95,11 @@ func _process(delta: float) -> void:
 	_mouse_still += real
 	if not cursor_hidden and _mouse_still >= CURSOR_IDLE:
 		set_cursor_hidden(true)
+	# In a browser, Esc (or the browser's own controls) can leave fullscreen
+	# behind the game's back: follow it so the Fullscreen toggle stays true.
+	if OS.has_feature("web") and settings.fullscreen and DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_FULLSCREEN \
+			and Engine.get_process_frames() > _fullscreen_asked + 30:
+		settings.fullscreen = false
 
 
 ## The game has no mouse controls, so the cursor hides once a key or button is
@@ -332,7 +337,7 @@ static func key_name(k: int) -> String:
 	var printed := k
 	if layout_stub is Dictionary:
 		printed = int(layout_stub.get(k, k))
-	elif DisplayServer.get_name() != "headless":
+	elif DisplayServer.get_name() != "headless" and not OS.has_feature("web"):   # browsers don't expose the layout
 		printed = DisplayServer.keyboard_get_keycode_from_physical(k)
 	var s := OS.get_keycode_string(printed)
 	# the pixel font is ASCII only; keyboards with other letters (Cyrillic,
@@ -783,6 +788,8 @@ func load_settings() -> void:
 	var parsed := read_json(SETTINGS_PATH)
 	for k in parsed:
 		settings[k] = parsed[k]
+	if OS.has_feature("web"):
+		settings.fullscreen = false   # a page opens windowed; only a click or key may ask for fullscreen
 
 
 func save_settings() -> void:
@@ -874,7 +881,33 @@ func set_volume_at(row: String, x: float, x0: float) -> bool:
 
 func toggle_fullscreen() -> void:
 	settings.fullscreen = not settings.fullscreen
+	_fullscreen_asked = Engine.get_process_frames()
 	apply_settings()
+
+
+var _fullscreen_asked := -1000   # frame of the last toggle (a browser takes a moment to switch)
+
+
+## Options rows that do nothing in a browser: the page sizes the canvas, and
+## browsers can't rumble a gamepad.
+const WEB_HIDDEN_OPTIONS := ["Window Size", "Rumble"]
+
+
+static func platform_options(rows: Array) -> Array:
+	if not OS.has_feature("web"):
+		return rows
+	return rows.filter(func(r): return not WEB_HIDDEN_OPTIONS.has(r))
+
+
+## In a browser, mirrors a little state onto the page as <body data-jeste-*>
+## attributes, for the Pages check (tools/check-pages.mjs). Nothing elsewhere.
+func web_status(fields: Dictionary) -> void:
+	if not OS.has_feature("web"):
+		return
+	var js := ""
+	for k in fields:
+		js += "document.body.dataset.jeste%s=%s;" % [str(k).capitalize(), JSON.stringify(str(fields[k]))]
+	JavaScriptBridge.eval(js)
 
 
 func _apply_window_size() -> void:
@@ -916,6 +949,8 @@ static func smooth_wanted(mode: String, refresh: float, speed: float) -> bool:
 
 
 func smooth_motion() -> bool:
+	if OS.has_feature("web") and str(settings.get("smooth_motion", "auto")) == "auto":
+		return true   # a browser doesn't report the refresh rate, and many screens aren't 60 Hz
 	return smooth_wanted(str(settings.get("smooth_motion", "auto")), refresh_rate, float(settings.get("game_speed", 1.0)))
 
 

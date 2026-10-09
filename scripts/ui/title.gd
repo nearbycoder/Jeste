@@ -22,7 +22,7 @@ var jingled := false
 var bell_swing := 0.0
 var notice := ""          # a damaged save was set aside (see Game.read_json)
 
-const OPTIONS := ["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Graphics", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"]
+var options: Array = Game.platform_options(["Music Volume", "Sound Volume", "Fullscreen", "Window Size", "Graphics", "Smooth Motion", "Screen Shake", "Reduce Flashing", "Rumble", "Speedrun Timer", "Controls", "Erase Save", "Back"])   # less the rows a browser can't use
 var controls := ControlsMenu.new()
 const LOGO_Y := 25.0
 const MENU_X := 40.0
@@ -43,7 +43,7 @@ func _ready() -> void:
 	post.setup(0)
 	backdrop.setup(0)
 	_build_items()
-	opt_k.resize(OPTIONS.size())
+	opt_k.resize(options.size())
 	opt_k.fill(0.0)
 	ledge_tex = _make_ledge()
 	# warm additive glow from the campfire
@@ -79,6 +79,7 @@ void fragment() {
 	Sfx.play_ambience("amb_meadow")
 	notice = Game.load_notice
 	Game.load_notice = ""
+	Game.web_status({"screen": "title", "fidelity": Game.fidelity_label()})
 
 
 func _make_ledge() -> Texture2D:
@@ -203,10 +204,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 						leaving = it
 		"options":
 			if ev.is_action_pressed("up"):
-				opt_sel = (opt_sel + OPTIONS.size() - 1) % OPTIONS.size()
+				opt_sel = (opt_sel + options.size() - 1) % options.size()
 				Sfx.play("menu_move")
 			elif ev.is_action_pressed("down"):
-				opt_sel = (opt_sel + 1) % OPTIONS.size()
+				opt_sel = (opt_sel + 1) % options.size()
 				Sfx.play("menu_move")
 			elif ev.is_action_pressed("left") or ev.is_action_pressed("right") or ev.is_action_pressed("confirm"):
 				var d := -1 if ev.is_action_pressed("left") else 1
@@ -255,19 +256,19 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 			sel = i
 			Sfx.play("menu_move")
 	else:
-		i = UIKit.row_at(ev.position, OPT_X + 12, 16, 140, UIKit.OPTION_STEP, OPTIONS.size())
+		i = UIKit.row_at(ev.position, OPT_X + 12, 16, 140, UIKit.OPTION_STEP, options.size())
 		# the wheel selects only a value row it steps; elsewhere it moves the selection
-		if i >= 0 and i != opt_sel and (not UIKit.is_wheel(ev) or UIKit.WHEEL_VALUE_ROWS.has(OPTIONS[i])):
+		if i >= 0 and i != opt_sel and (not UIKit.is_wheel(ev) or UIKit.WHEEL_VALUE_ROWS.has(options[i])):
 			opt_sel = i
 			Sfx.play("menu_move")
 		if UIKit.is_wheel(ev):
-			return UIKit.wheel_menu(ev, OPTIONS, i)
+			return UIKit.wheel_menu(ev, options, i)
 	var a := UIKit.click_action(ev)
-	if a and a.action == "confirm" and i >= 0 and screen == "options" and Game.set_volume_at(OPTIONS[i], ev.position.x, OPT_X + 102.0):
+	if a and a.action == "confirm" and i >= 0 and screen == "options" and Game.set_volume_at(options[i], ev.position.x, OPT_X + 102.0):
 		Sfx.refresh_volume()
 		Sfx.play("menu_select")
 		return null   # a click on a volume slider sets it there
-	if a and a.action == "confirm" and i >= 0 and screen == "options" and OPTIONS[i] == "Graphics" and UIKit.fidelity_at(ev.position.x, OPT_X + 142.0) >= 0:
+	if a and a.action == "confirm" and i >= 0 and screen == "options" and options[i] == "Graphics" and UIKit.fidelity_at(ev.position.x, OPT_X + 142.0) >= 0:
 		Game.set_fidelity(UIKit.fidelity_at(ev.position.x, OPT_X + 142.0))
 		Game.save_settings()
 		Sfx.play("menu_select")
@@ -278,12 +279,12 @@ func _mouse_menu(ev: InputEventMouse) -> InputEvent:
 
 
 func _change_option(d: int, confirm: bool) -> void:
-	if OPTIONS[opt_sel] == "Back":
+	if options[opt_sel] == "Back":
 		if confirm:
 			Sfx.back()
 	else:
 		Sfx.play("menu_select")
-	match OPTIONS[opt_sel]:
+	match options[opt_sel]:
 		"Music Volume":
 			Game.settings.music = clampf(snappedf(float(Game.settings.music) + 0.1 * d, 0.1), 0.0, 1.0)
 			Sfx.refresh_volume()
@@ -406,17 +407,17 @@ func _draw() -> void:
 	# options / confirm panel
 	if panel_k > 0.0:
 		var e := ease(panel_k, 0.3)
-		var r := Rect2(OPT_X, 6 + (1.0 - e) * 12.0, 152, 14 + OPTIONS.size() * UIKit.OPTION_STEP)
+		var r := Rect2(OPT_X, 6 + (1.0 - e) * 12.0, 152, 14 + options.size() * UIKit.OPTION_STEP)
 		if screen == "controls":
 			e = 0.0   # the controls panel replaces the options panel
 		UIKit.panel(self, r, e)
 		UIKit.panel_title(self, r, "OPTIONS", e)
-		for i in OPTIONS.size():
+		for i in options.size():
 			var y := r.position.y + 10 + i * UIKit.OPTION_STEP
-			UIKit.menu_row(self, r.position.x + 12, y, 128, OPTIONS[i], opt_k[i], time, e)
-			_draw_opt_value(OPTIONS[i], Vector2(r.end.x - 10, y), e)
+			UIKit.menu_row(self, r.position.x + 12, y, 128, options[i], opt_k[i], time, e)
+			_draw_opt_value(options[i], Vector2(r.end.x - 10, y), e)
 		if e > 0.0:   # what the highlighted row does, above Mira and the fire
-			UIKit.help_box(self, Vector2(170, 14 + (1.0 - e) * 12.0), OPTIONS[opt_sel], e)
+			UIKit.help_box(self, Vector2(170, 14 + (1.0 - e) * 12.0), options[opt_sel], e)
 		if screen == "controls":
 			controls.draw(self, time)
 		if screen == "confirm_reset":

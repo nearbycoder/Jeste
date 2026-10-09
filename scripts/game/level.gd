@@ -956,6 +956,8 @@ func _cam_target() -> Vector2:
 func _process(delta: float) -> void:
 	if fast:
 		return
+	if Engine.get_process_frames() % 30 == 0:
+		Game.web_status({"screen": "level", "mode": mode, "room": room_id, "x": world.x, "y": world.y, "deaths": room_deaths})
 	# how far this frame is between the last two steps, in simulation steps
 	var alpha := 1.0
 	if Game.smooth_motion() and not paused:

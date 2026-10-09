@@ -65,6 +65,8 @@ static func option_help(item: String) -> String:
 		"Sound Volume":
 			return "How loud the sound effects, voices and ambience are."
 		"Fullscreen":
+			if OS.has_feature("web"):
+				return "Fill the screen, or play in the browser page. Esc leaves fullscreen."
 			return "Fill the screen, or play in a window. F11 or Alt+Enter also switch, anywhere in the game."
 		"Window Size":
 			if OS.has_feature("web"):
@@ -82,6 +84,8 @@ static func option_help(item: String) -> String:
 			match str(Game.settings.get("smooth_motion", "auto")):
 				"on": return "Draws movement between the game's 60 steps a second: smoother on 144 Hz screens, up to 17 ms later."
 				"off": return "Draws only the game's 60 steps a second: no added delay, but movement can judder on 144 Hz screens."
+			if OS.has_feature("web"):
+				return "On in a browser, which doesn't report your screen's refresh rate. Off saves up to 17 ms on 60 Hz screens."
 			return "On when your screen isn't a multiple of 60 Hz (144, 165...) or Game Speed is below 100%%. It is %s now." % ("on" if Game.smooth_motion() else "off")
 		"Screen Shake":
 			return "The camera shakes on dashes, deaths, broken walls, bumpers and gates."
