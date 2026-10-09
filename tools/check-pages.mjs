@@ -9,7 +9,8 @@
 // when it gets there with no console errors, page errors or failed requests.
 // --full also plays: it checks that sound starts after the first key press,
 // changes Options > Graphics, reloads to see the setting kept, and climbs into
-// the first level and runs Mira about. Screenshots and a JSON report go to
+// the first level and runs Mira about. Either way the on-screen touch
+// controls must stay hidden. Screenshots and a JSON report go to
 // --out (default build/pages-work/check/<browser>/).
 //
 // No npm packages: Chromium is driven over the DevTools protocol and Firefox
@@ -414,6 +415,14 @@ async function waitFor(p, what, test, seconds) {
 	throw new Error(`timed out after ${seconds}s waiting for ${what} (page state: ${JSON.stringify(d)})`);
 }
 
+// The on-screen controls are for phones and tablets: on a desktop browser
+// (fine pointer, keyboard) they must never show.
+async function noTouchControls(p, step, where) {
+	const t = await p.eval(`(() => { const e = document.getElementById('touch'); return { mode: document.body.dataset.jesteTouch || 'none', shown: !!e && getComputedStyle(e).display !== 'none' }; })()`);
+	step(`touch controls ${where}`, t);
+	if (t.shown || t.mode === 'on') throw new Error(`the on-screen touch controls are showing on a desktop browser (${where})`);
+}
+
 async function check(browser, outDir) {
 	fs.mkdirSync(outDir, { recursive: true });
 	const log = new Log(path.join(outDir, 'console.log'));
@@ -437,6 +446,7 @@ async function check(browser, outDir) {
 		const frames = await p.eval(`new Promise((r) => { let n = 0; const t = performance.now(); const f = () => { if (++n < 120) requestAnimationFrame(f); else r(Math.round(1000 * n / (performance.now() - t))); }; requestAnimationFrame(f); })`);
 		step('title', { loadMs, engineStartMs: await p.eval('window.jesteLoadMs'), transferredMB: +(bytes / 1048576).toFixed(1), fps: frames, fidelity: title.jesteFidelity });
 		await p.screenshot(path.join(outDir, '1-title.png'));
+		await noTouchControls(p, step, 'at the title');
 
 		if (opt.full) {
 			// Sound: silent (suspended) before any input, playing after a key.
@@ -508,6 +518,7 @@ async function check(browser, outDir) {
 			step('play', { room: moved.jesteRoom, mode: moved.jesteMode, from: [start.jesteX, start.jesteY], to: [moved.jesteX, moved.jesteY], deaths: moved.jesteDeaths });
 			if (moved.jesteRoom === start.jesteRoom && Math.abs(Number(moved.jesteX) - Number(start.jesteX)) < 8) throw new Error('Mira did not move');
 			await p.screenshot(path.join(outDir, '4-play.png'));
+			await noTouchControls(p, step, 'in play');
 		}
 		await sleep(500);
 		if (log.errors.length) throw new Error(`${log.errors.length} error(s):\n    ${log.errors.slice(0, 10).join('\n    ')}`);

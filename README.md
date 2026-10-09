@@ -160,7 +160,8 @@ room you entered.
 - **Mouse:** works in every menu. Point to select, left-click to choose, right-click to go back,
   and the wheel steps values, chapters and checkpoints, or scrolls the credits. A click also
   reads the next line of a cutscene. Gameplay itself is keyboard or gamepad only.
-- **Touch** isn't supported.
+- **Touch:** in the browser version on a phone or tablet, on-screen controls (see
+  [On phones and tablets](#on-phones-and-tablets)). The desktop game has no touch controls.
 - **Prompts** follow the device you used last, name keys as your keyboard layout prints them
   (keys are bound by position, so on AZERTY the default Grab key reads W) and name pad buttons the
   way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
@@ -244,7 +245,8 @@ All captured from `main` at *Graphics: Ultra*.
 
 **[nearbycoder.github.io/Jeste](https://nearbycoder.github.io/Jeste/)**, served by GitHub Pages
 and built from `main` with Godot's single-threaded web export (`tools/build-pages.sh`). It
-needs a browser with WebGL 2 and a keyboard, mouse or gamepad; there are no touch controls.
+needs a browser with WebGL 2. Play with a keyboard, mouse or gamepad, or on a phone or tablet
+with the [on-screen controls](#on-phones-and-tablets).
 The first visit downloads about 56 MB (a 38 MB engine file, which compresses to about 10 MB if
 the server gzips it, and an 18 MB game pack); after that the browser usually has it cached.
 
@@ -264,7 +266,38 @@ Safari, phones and real gamepads haven't been tried. What differs from the deskt
 - **Key names** in prompts are the US ones (browsers don't tell games the keyboard layout);
   the bindings themselves are key positions, as on desktop.
 - **Graphics** starts at *High*, as on desktop (the game draws at 320×180, so it's light);
-  *Low* is there for weak GPUs.
+  *Low* is there for weak GPUs. Phones and tablets start at *Medium*.
+
+#### On phones and tablets
+
+On a phone or tablet (a touch screen and no mouse), or after you touch the screen anywhere,
+on-screen controls appear over the game. They're hidden on a computer, and they go away again
+as soon as you press a key, move the mouse or use a gamepad.
+
+| Control | Where | What it does |
+|---|---|---|
+| D-pad | bottom left | Move, aim the dash and climb in eight directions; slide your thumb around it |
+| **JUMP** | bottom right, biggest | Jump; *Select* in menus |
+| **DASH** | left of Jump | Dash the way the d-pad points; *Back* in menus |
+| **GRAB** | above Jump | Grab and climb while held, or once to latch it with Grab Mode *Toggle* (it stays lit) |
+| Pause (II) | top right | Pause; hold it to skip a cutscene |
+
+- **Menus, the chapter map and cutscenes** work by tap: tap a row to choose it, a chapter or the
+  card to climb, and the screen to read on. Volume sliders and the Graphics meter take a tap
+  where you want them.
+- **Multi-touch:** hold a direction and press buttons at once, and roll your thumb from one
+  button to the next. The controls stay clear of the notch and the home indicator, and the page
+  doesn't scroll, zoom, select text or show long-press menus.
+- **Turn a phone sideways:** held upright, the game would be too small to play, so the page asks
+  you to turn it (and pauses). A tablet plays either way up, with the controls below the picture
+  when it's upright. On Android, Options > Fullscreen also keeps the phone in landscape.
+- **Sound** starts with your first tap.
+- **Memory:** iOS closes a browser tab that uses too much memory, and every browser on an iPhone
+  is Safari underneath. So on phones and tablets the music streams (a 1-minute track decoded
+  whole for Web Audio would be about 23 MB, kept until the page closes), and the game holds
+  only the current chapter's painted rooms. If the browser does close the tab mid-game, the page
+  reloads with Graphics on *Low* and says why; if memory runs out where the page can see it, it
+  says so instead of freezing.
 
 ### On your computer
 
@@ -347,7 +380,20 @@ node tools/check-pages.mjs http://localhost:8000/Jeste/ --browser all --full    
 ```
 
 The check exits 0 only when the game reaches its title with no console errors or failed
-requests. Logs, screenshots and a report go to `build/pages-work/check/<browser>/`.
+requests, and the touch controls stay hidden. Logs, screenshots and a report go to
+`build/pages-work/check/<browser>/`.
+
+`tools/check-mobile.mjs` plays `build/pages/` as phones and tablets through Playwright (not a
+dependency here: it uses the `playwright-core` in `$PLAYWRIGHT_CORE`): headless WebKit as an
+iPhone 15 and an iPad Pro 11, and Chromium as a Pixel 7, each way up. It taps through the menus
+with touch events, uses the on-screen controls (hold Pause to skip the scene, run and jump, dash,
+grab, pause and resume), checks the rotate prompt on an upright phone, and records memory (the
+WebAssembly heap, WebGL allocations, Web Audio buffers and the browser's processes), download
+size and frame rate. Results go to `build/pages-work/mobile/<profile>/`:
+
+```sh
+node tools/check-mobile.mjs                          # all six profiles; or --profiles iphone,pixel
+```
 
 **Rebuild the trailer, teaser, poster and screenshots.** This needs a display, because Godot's
 Movie Maker renders the footage (offline, at *Graphics: Ultra*, so every frame is kept). Set
