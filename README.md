@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/media/teaser.gif" alt="Gameplay loop: Mira launches from circus balloons at the summit, bounces off pinball bumpers, outruns her reflection through velvet curtains, rides a gondola and flies past stained glass" width="100%">
+  <img src="docs/media/teaser.gif" alt="Gameplay loop at Ultra graphics: Mira launches from circus balloons at the summit, bounces off pinball bumpers, outruns her reflection through velvet curtains, rides a gondola and flies past stained glass" width="100%">
 </p>
 
 <h1 align="center">JESTE</h1>
@@ -13,23 +13,29 @@
   <img src="https://img.shields.io/badge/engine-Godot%204.7-478cbf?logo=godotengine&logoColor=white" alt="Engine: Godot 4.7">
   <img src="https://img.shields.io/badge/platform-Linux-f2c14e?logo=linux&logoColor=black" alt="Platform: Linux">
   <img src="https://img.shields.io/badge/language-GDScript-355570" alt="Language: GDScript">
-  <img src="https://img.shields.io/badge/version-0.1.0-d8344f" alt="Version 0.1.0">
+  <img src="https://img.shields.io/badge/release-0.1.0-d8344f" alt="Latest release: 0.1.0">
   <img src="https://img.shields.io/badge/every%20room-proven%20beatable-6fbf73" alt="Every room proven beatable">
 </p>
 
 <p align="center">
-  <a href="https://github.com/nearbycoder/Jeste/releases/latest"><b>Download for Linux</b></a> ·
   <a href="docs/media/jeste_trailer.mp4"><b>Watch the trailer</b></a> ·
+  <a href="#play-it"><b>Play it</b></a> ·
   <a href="#build-from-source"><b>Build from source</b></a>
 </p>
+
+> **The download is older than this page.** The only release,
+> [v0.1.0](https://github.com/nearbycoder/Jeste/releases/latest) (October 4, 2026), predates
+> twelve rounds of improvements on `main`: the Graphics steps, Route Ghost, checkpoint select,
+> mouse menus, Dash Aim, crash-safe saves and many fixes. To play the game as described and shown
+> here, [run it from source](#build-from-source) (Godot 4.6+, no build step).
 
 ## Trailer
 
 <p align="center">
   <a href="docs/media/jeste_trailer.mp4">
-    <img src="docs/media/trailer_poster.png" alt="Play the Jeste feature trailer (1:48)" width="100%">
+    <img src="docs/media/trailer_poster.png" alt="Play the Jeste feature trailer (1:51)" width="100%">
   </a>
-  <br><sub>The 1:48 feature trailer (1080p60 MP4, 38 MB): <a href="docs/media/jeste_trailer.mp4">open it on GitHub</a> or <a href="https://github.com/nearbycoder/Jeste/raw/main/docs/media/jeste_trailer.mp4">download it</a>. Every frame is the real game, played by the project's automated solver.</sub>
+  <br><sub>The 1:51 feature trailer (1080p60 MP4, 38 MB): <a href="docs/media/jeste_trailer.mp4">open it on GitHub</a> or <a href="https://github.com/nearbycoder/Jeste/raw/main/docs/media/jeste_trailer.mp4">download it</a>. Every frame is the real game at <i>Graphics: Ultra</i>, recorded from <code>main</code> with Godot's Movie Maker; the climbs are played by the project's automated solver.</sub>
 </p>
 
 ## About
@@ -46,88 +52,14 @@ Jeste alone. The old bell-ringer at the foot of the mountain has a warning for h
 
 Jeste is a tight, forgiving climb in the tradition of modern precision platformers. It runs
 on an eight-way dash and runs through nine chapters, each built around one new idea. Deaths
-cost about a second. The challenge is optional, the secrets are worth it, and an assist mode
-is always one menu away.
-
-## How to play
-
-| Action | Keyboard (rebindable) | Gamepad |
-|---|---|---|
-| Move / aim | Arrow keys or WASD | D-pad or left stick |
-| Jump | C, Space or J | A |
-| Dash (8 directions) | X, K or Shift | X or B |
-| Grab / climb | Z, V or L | Shoulders or triggers |
-| Pause | Esc, Enter or P | Start |
-
-- **Hold jump** to jump higher. **Jump off a wall** to kick away from it.
-- **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
-- **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready (red), spent (blue) or doubled (pink). Landing recharges it.
-- On a gamepad, the left stick points in eight equal directions (45° each) however far you push
-  it past a small deadzone, so a half-pushed diagonal still dashes diagonally.
-- **Options → Controls → Stick Deadzone** (10–70%, default 40%) sets how far the stick must be
-  pushed before it counts. With the row highlighted, a dial beside the panel shows where your
-  stick is right now and the direction it gives, so if Mira moves on her own you can see how far
-  your stick drifts and raise the deadzone past it.
-- In menus, Jump's keys or buttons select and Dash's go back (the hints at the bottom name them),
-  on a pad as on the keyboard; a pad's A and B also select and go back unless you've bound them
-  to the other action.
-- Menus repeat when you hold a direction (keys, D-pad or stick).
-- **F11 or Alt+Enter** switches between fullscreen and a window anywhere in the game (F11
-  only if you haven't bound it to an action).
-- **The mouse works in every menu**: point at a row to select it, left-click to choose it,
-  right-click to go back. On chapter select, click a chapter's marker on the trail (or an arrow)
-  and then the card; in the checkpoint picker, click a room's pip or the postcard's arrows.
-  A click on a volume slider sets it there, a click in Controls starts a rebind (right-click
-  cancels it), and a click reads the next line of a cutscene. *Erase Save* only erases on a
-  click on its *Erase* prompt. The **mouse wheel** steps through chapters and checkpoints,
-  changes a volume slider or a setting like Window Size under the pointer, moves the selection
-  in other lists, and scrolls the credits (which also take a click).
-- **Hold Pause** (Esc or Start) during a cutscene to skip the rest of it. Tapping jump or dash still advances line by line.
-- **Start from any checkpoint.** Once you've reached more than one room of a chapter, choosing
-  it on the map lets you pick where to start with Left/Right: *Continue*, the start, or any
-  room you've reached (secret rooms aren't listed). The postcard shows that room, the text beside it shows
-  which of its berries and bell you still lack, and a red dot over a room's pip means something
-  there is still missing. Only runs from the chapter's start can set a Best time.
-- **Pause → Restart Chapter** (after a confirm) starts a fresh run from the chapter's first
-  room, for golden-berry attempts and speedruns. The pause screen also shows the chapter's deaths, time and berries.
-- **Options → Controls** (on the title screen or in the pause menu) rebinds every key, and Jump, Dash and Grab also take a pad button, swapping on conflicts. *Reset Defaults* resets the bindings and keeps Grab Mode and Stick Deadzone. On-screen prompts follow whichever device you used last, name keys the way your keyboard layout prints them (keys are bound by position, so on a French AZERTY keyboard the default Grab key reads W and WASD reads ZQSD), and name pad buttons the way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
-- **Options → Controls → Grab Mode: Toggle** makes one press of grab hold on until the next press, so you don't have to keep the button down while climbing. Dying lets go; moving to the next room doesn't.
-- **Options → Smooth Motion** draws movement between the game's 60 Hz steps. *Auto* (the default) turns it on when your display's refresh rate isn't a multiple of 60 Hz (144, 165, 75 Hz…) or Game Speed is below 100%, and leaves it off otherwise, since it adds up to one step (17 ms) of display delay.
-- **Options → Graphics** (Graphics Fidelity) has four steps. *High*, the default, is the game's
-  usual look. *Medium* uses a lighter glow and drops the light shafts and some particles; *Low*
-  turns off the full-screen glow and colour grading, fog and light shafts and halves the
-  particles, for weak GPUs. *Ultra* adds a wide soft glow, depth of field on distant ridges, soft
-  shadows cast by the terrain, light shafts in every chapter, finer light pools, more particles
-  and a few soft motes drifting in front. Left/Right, the wheel or a click on its meter change
-  it, and the change shows at once.
-- **Options → Reduce Flashing** dims full-screen flashes (bells, deaths, cutscenes, mask swaps) and the dash shimmer to a fifth of their strength. **Screen Shake** can be turned off separately.
-- **Pause → Assist** (each row says what it does under the panel) offers slower game speed (50–100%, which slows the whole game, controls included), infinite stamina,
-  **Air Dashes** (*Two* gives two dashes wherever a room gives one; *Infinite* never spends one;
-  rooms before Mira learns to dash stay dashless) and invincibility. Invincible, a fall into a
-  bottomless pit bounces Mira back up with her dash refilled, a dash through a curtain into a
-  wall turns her back the way she came, and a gondola that would crush her sets her down beside
-  it. **Dash Aim** stops time when you press Dash (if a dash would start) and shows an arrow:
-  hold a direction to aim it and let go of Dash to dash that way. Your progress counts the same.
-- **Unplugging a controller** (or a pad's battery dying) pauses the game, as does switching to
-  another window. The mouse cursor hides while you play and comes back when you move the mouse.
-- **Pause → Assist → Route Ghost** shows a translucent Mira running the room the way the
-  automated solver proved it can be done, using only the moves the game teaches. She loops,
-  restarts with you when you respawn, and changes nothing. She runs in a simulation of her
-  own, so her gondolas, crumbling boards, gates, mask blocks and Grin are drawn in her tint
-  wherever they differ from yours. Her berries, bells and keys are pale shapes in her colour
-  (the ones she picks up trail her), a dash gem or balloon she has used gets a ring in her
-  colour that drains until it's back for her, and where she passes through one of your blocks
-  (a wall she has broken, a gate she has opened) it's outlined in her tint. A strip at the bottom left lights up the buttons she's
-  pressing, named by your own bindings. After 10 deaths in a room the game points you to
-  her, once. Set her to **Berries** and she shows how to take every berry and bell in the
-  room while you're still missing one, then the way into a secret room that still holds
-  something, then the exit (a tab above her buttons says which).
+cost about a second. The challenge is optional, the secrets are worth it, and assists, from
+a slower game speed to a ghost that shows a proven route, are always one menu away.
 
 ## Features
 
 ### Movement that feels right
 
-<img src="docs/media/screenshot_dash.png" alt="Mira chains a dash through three green dash gems over a spike pit in Lantern Town" width="100%">
+<img src="docs/media/screenshot_dash.png" alt="Mira chains a dash through green dash gems over a spike pit in Lantern Town" width="100%">
 
 A deterministic 60 Hz simulation with coyote time, jump buffering, variable jump height,
 half-gravity at the apex, wall slides, wall jumps, stamina climbing, climb-hops and
@@ -171,25 +103,112 @@ Fully scripted cutscenes with animated, blinking, talking portraits and per-char
 voice blips. You meet Old Bellamy the bell-ringer, Tobi the anxious painter, Ringmaster
 Oddo (a ghost who never ends his show), and the Grin.
 
-### Juice everywhere
+### Four graphics steps
+
+<img src="docs/media/screenshot_graphics.png" alt="The pause menu's Options panel with Graphics set to Ultra; its help box lists what Ultra adds, over the softly blurred Lantern Town" width="100%">
+
+The world is painted pixel by pixel from the collision map, with parallax backdrops, light
+pools, a glow pass and per-chapter colour grading. **Options → Graphics** (Graphics Fidelity)
+picks how much of that is drawn, and the change shows at once:
+
+| Step | What it draws |
+|---|---|
+| **Low** | No full-screen glow or colour grading, no fog or light shafts, fewer particles and no dash ribbon. For weak GPUs. |
+| **Medium** | The grade with a lighter glow and fog, no light shafts, fewer particles than High. |
+| **High** (default) | The full look: glow, colour grading, fog, light shafts in five chapters and every particle. |
+| **Ultra** | High plus a wide soft glow, soft shadows cast by the terrain, light shafts in every chapter, depth of field on distant ridges, finer light pools, more particles, a few soft motes drifting in front, denser dash afterimages and a longer ribbon. |
+
+On the one machine it was measured on (an AMD Radeon 8060S iGPU), every step takes well under
+a millisecond of GPU time per frame; the numbers are in
+[docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md#graphics-steps-and-frame-times).
+
+### Juice and polish
 
 Squash and stretch, dash afterimages and ribbon trails, freeze frames, directional screen
 shake, a look-ahead camera, gamepad rumble, and a jester cap with two physics-simulated
-tails and jingle bells. The world is painted pixel by pixel from the collision map, with
-parallax backdrops, a glow pass, bloom and per-chapter colour grading, and at *Ultra* a wide soft
-glow, terrain shadows and depth of field.
+tails and jingle bells. Pausing softly blurs the climb behind the menu (from *Medium* up),
+toggles slide, changed values flash, and every press in a menu answers with a sound,
+backing out included.
 
 ### Front end
 
-A title screen with a campfire and a juggling Mira. Chapter select shows living
-postcards rendered from each chapter's real opening room. Results screens show berries,
-deaths, time, bells, golden runs and whether the climb set a new Best (or the Best it didn't beat). Options cover volume, fullscreen, window size, graphics fidelity, smooth motion, screen shake,
-reduced flashing, rumble, an optional speedrun timer and key rebinding, and a box beside the
-panel says what the highlighted one does (in the pause menu both open on the side of the screen
-away from Mira, so she stays in view). Pausing softly blurs the climb behind the menu, toggles
-slide, changed values flash and backing out of any menu has its own sound. The game auto-pauses when the window loses focus,
-*Continue* returns you to the last room you entered, and any room you've reached can be a
-starting checkpoint.
+<img src="docs/media/screenshot_checkpoints.png" alt="Chapter select's checkpoint picker for The Hollow Stage: a postcard of room 4 of 8, its berries all found, and a trail of room pips" width="100%">
+
+A title screen with a campfire and a juggling Mira. Chapter select shows living postcards
+rendered from each chapter's real rooms, and once you've reached more than one room of a
+chapter you can **start from any checkpoint** you've reached: the postcard shows the room and
+which of its berries and bell you still lack. Results screens show berries, deaths, time,
+bells, golden runs and whether the climb set a new Best. *Continue* returns you to the last
+room you entered.
+
+## Controls
+
+| Action | Keyboard (rebindable) | Gamepad (rebindable) |
+|---|---|---|
+| Move / aim | Arrow keys or WASD | D-pad or left stick |
+| Jump | C, Space or J | A or Y |
+| Dash (8 directions) | X, K or Shift | X or B |
+| Grab / climb | Z, V or L | Shoulders or triggers |
+| Pause | Esc, Enter or P | Start |
+| Fullscreen | F11 or Alt+Enter | |
+
+- **Menus:** Jump's keys or buttons select and Dash's go back (the hint line names them); a pad's
+  A and B also select and go back unless you've bound them to the other action. Holding a
+  direction repeats.
+- **Mouse:** works in every menu. Point to select, left-click to choose, right-click to go back,
+  and the wheel steps values, chapters and checkpoints, or scrolls the credits. A click also
+  reads the next line of a cutscene. Gameplay itself is keyboard or gamepad only.
+- **Touch** isn't supported.
+- **Prompts** follow the device you used last, name keys as your keyboard layout prints them
+  (keys are bound by position, so on AZERTY the default Grab key reads W) and name pad buttons the
+  way your controller does (A / Cross / B for jump on Xbox, PlayStation and Nintendo pads).
+- **Unplugging a controller** or switching to another window pauses the game. The mouse cursor
+  hides while you play.
+
+## How to play
+
+- **Hold jump** to jump higher. **Jump off a wall** to kick away from it.
+- **Hold grab** against a wall to cling and climb. Climbing drains stamina, which refills on the ground.
+- **Dash** once in the air in any of eight directions. Mira's cap shows when the dash is ready
+  (red), spent (blue) or doubled (pink). Landing recharges it.
+- **Hold Pause** during a cutscene to skip the rest of it; tapping jump or dash advances line by line.
+- **Pause → Restart Chapter** (after a confirm) starts a fresh run from the chapter's first room,
+  for golden-berry attempts and speedruns. Only runs from a chapter's start can set a Best time.
+
+## Settings and accessibility
+
+<img src="docs/media/screenshot_route_ghost.png" alt="Route Ghost: a translucent Mira jumps between two rock pillars on Whistling Ridge while the real Mira waits below; a strip at the bottom left lights the buttons the ghost presses" width="100%">
+
+Every Options and Assist row says what it does in a box beside the panel. In the pause menu the
+panels open on the side of the screen away from Mira, so she stays in view.
+
+**Options** (title screen and pause menu): music and sound volume, fullscreen, window size
+(*Auto* is about three quarters of the screen; the 320×180 canvas is always integer-scaled),
+**Graphics** (above), **Smooth Motion** (draws movement between the game's 60 Hz steps; *Auto*
+turns it on for displays that aren't a multiple of 60 Hz or below 100% game speed, since it adds
+up to 17 ms of display delay), screen shake, **Reduce Flashing** (dims full-screen flashes and
+the dash shimmer to a fifth), rumble, a speedrun timer and **Controls**.
+
+**Controls:** rebind every key, and Jump, Dash and Grab's pad buttons (conflicts swap).
+**Grab Mode: Toggle** makes one press of grab hold until the next. **Stick Deadzone** (10–70%,
+default 40%) comes with a live dial of where your stick is, so a drifting stick can be tuned
+out. The stick aims in eight equal 45° directions however far you push it past the deadzone.
+
+**Pause → Assist** (your progress counts the same):
+- **Game Speed** 50–100%, which slows the whole game, controls included.
+- **Infinite Stamina** and **Invincibility**. Invincible, a fall into a pit bounces Mira back up,
+  and a curtain dash into a wall or a crushing gondola can't kill her.
+- **Air Dashes:** *Two* wherever a room gives one, or *Infinite*.
+- **Dash Aim:** pressing Dash stops time and shows an arrow; hold a direction and let go to dash.
+- **Route Ghost:** a translucent Mira runs the room the way the solver proved it can be done,
+  using only the moves the game teaches. She loops, restarts when you respawn, changes nothing,
+  and a strip at the bottom left lights the buttons she presses, named by your bindings. Set her to
+  **Berries** to see how to take every berry and bell you're still missing, then the way into a
+  secret room. After 10 deaths in a room the game points you to her, once.
+
+Saves and settings are written to a temporary file and renamed, with a `.bak` of the previous
+copy. If a file is ever damaged, the game loads the backup, keeps the damaged one as `.corrupt`
+and tells you on the title screen.
 
 ## Content overview
 
@@ -200,35 +219,46 @@ starting checkpoint.
 
 ## Screenshots
 
+All captured from `main` at *Graphics: Ultra*.
+
 <table>
   <tr>
     <td><img src="docs/media/screenshot_title.png" alt="Title screen: the JESTE logo over Mount Jeste, with Mira juggling by a campfire"></td>
-    <td><img src="docs/media/screenshot_chapter_select.png" alt="Chapter select with a living postcard of Whistling Ridge and collectible stats"></td>
+    <td><img src="docs/media/screenshot_chapter_select.png" alt="Chapter select with a living postcard of The Hollow Stage and collectible stats"></td>
   </tr>
   <tr>
     <td><img src="docs/media/screenshot_cathedral.png" alt="Mirror Cathedral: Mira passes through a mirror pane between stained-glass windows"></td>
-    <td><img src="docs/media/screenshot_gondola.png" alt="Whistling Ridge: Mira rides a cable gondola across a windy gap"></td>
+    <td><img src="docs/media/screenshot_gondola.png" alt="Whistling Ridge: Mira dashes off a cable gondola over a windy gap"></td>
   </tr>
   <tr>
     <td><img src="docs/media/screenshot_undertow.png" alt="Undertow: glowing pinball bumpers in a dark cave above a spike floor"></td>
-    <td><img src="docs/media/screenshot_summit.png" alt="The Summit at 2400 m: Mira dashes out of a velvet curtain above the clouds"></td>
+    <td><img src="docs/media/screenshot_summit.png" alt="The Summit: Mira dashes out of a velvet curtain above the clouds"></td>
   </tr>
 </table>
 
 ## Play it
 
-Download **`Jeste-v0.1.0-linux-x86_64.zip`** from the
-[latest release](https://github.com/nearbycoder/Jeste/releases/latest), unzip it and run
-`./Jeste.x86_64`. It's a single 64-bit binary and needs a Vulkan-capable GPU. Saves and
-settings are stored in `~/.local/share/godot/app_userdata/Jeste/`. Each write keeps the
-previous copy as `.bak`. If a file is ever damaged (a crash or a full disk mid-write), the
-game loads the backup, keeps the damaged file as `.corrupt` and tells you on the title screen.
+**System requirements:** 64-bit Linux (x86_64) and a Vulkan-capable GPU. Developed and tested on
+CachyOS with an AMD Radeon 8060S iGPU under Wayland and Xwayland. A keyboard or gamepad to play.
 
-Windows, macOS and web builds aren't published yet. `export_presets.cfg` has presets for all
-three (Windows x86_64, a single-threaded web build, and an ad-hoc-signed, un-notarized
-universal macOS app with bundle id `com.nearbycoder.jeste`), but none of them has been
-exported or run yet: this machine has only the Linux export template. Treat them as untested
-starting points.
+**From source (the current game):** install [Godot 4.6+](https://godotengine.org/download)
+(built and tested with 4.7.2), then
+
+```sh
+git clone https://github.com/nearbycoder/Jeste.git && cd Jeste
+godot --path .                      # or open the folder in the Godot editor and press F5
+```
+
+**The v0.1.0 release (October 4):** download **`Jeste-v0.1.0-linux-x86_64.zip`** from the
+[latest release](https://github.com/nearbycoder/Jeste/releases/latest), unzip it and run
+`./Jeste.x86_64`. It has none of the features and fixes added since (see the note at the top).
+
+Saves and settings live in `~/.local/share/godot/app_userdata/Jeste/`.
+
+Windows, macOS and web builds aren't published. `export_presets.cfg` has presets for all three
+(Windows x86_64, a single-threaded web build, and an ad-hoc-signed, un-notarized universal macOS
+app with bundle id `com.nearbycoder.jeste`), but none of them has been exported or run: this
+machine has only the Linux export template. Treat them as untested starting points.
 
 ## Build from source
 
@@ -236,12 +266,8 @@ starting points.
 **4.7.2**) and Python 3. `ffmpeg` is only needed to regenerate audio or the trailer, and
 NumPy only to regenerate audio.
 
-```sh
-git clone https://github.com/nearbycoder/Jeste.git && cd Jeste
-godot --path .                      # play (or open the folder in the Godot editor and press F5)
-```
-
-**Run the verification suite.** It needs no display and takes under two minutes with cached solutions (both route sets):
+**Run the verification suite.** It needs no display and takes a few minutes with cached
+solutions (both route sets):
 
 ```sh
 python3 tests/run_tests.py                      # all chapters: lint, solve, prove, play end-to-end, menu flow, menu fuzz
@@ -278,7 +304,9 @@ godot --headless --path . --export-release "Linux" build/linux/Jeste.x86_64
 # "macOS" (build/macos/Jeste.zip, not notarized, so Gatekeeper will warn)
 ```
 
-**Rebuild the trailer, teaser, poster and screenshots.** This needs a display, because Godot's Movie Maker renders the footage:
+**Rebuild the trailer, teaser, poster and screenshots.** This needs a display, because Godot's
+Movie Maker renders the footage (offline, at *Graphics: Ultra*, so every frame is kept). Set
+`GODOT` to run Godot another way, for example on a private nested compositor:
 
 ```sh
 python3 tools/trailer/make_trailer.py               # all stages; work files go to build/trailer/
@@ -288,9 +316,9 @@ python3 tools/trailer/make_trailer.py trailer qc    # re-cut without re-recordin
 **Debug renderers.** These need a display:
 
 ```sh
-godot --path . --rendering-method mobile res://tools/overview.tscn -- 3 /tmp/ch3.png   # every room of a chapter
-godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/solutions/3_3-03_s0_collect.json /tmp/s.png
-godot --path . --rendering-method mobile res://tools/demo.tscn                         # self-playing demo reel
+godot --path . --rendering-method mobile res://tools/overview.tscn -- 3 build/ch3.png   # every room of a chapter
+godot --path . --rendering-method mobile res://tools/strip.tscn -- 3 3-03 tests/solutions/3_3-03_s0_collect.json build/s.png
+godot --path . --rendering-method mobile res://tools/demo.tscn                          # self-playing demo reel
 # the same frame at a Graphics step (0 Low .. 3 Ultra), or its frame times with "bench"
 godot --path . --fixed-fps 60 res://tools/fidelity_shot.tscn -- 1 1-03 tests/solutions/1_1-03_s0_to_1-04.json 100 3 build/ultra.png
 godot --path . --disable-vsync res://tools/fidelity_shot.tscn -- 1 1-03 tests/solutions/1_1-03_s0_to_1-04.json 1800 3 bench
@@ -314,10 +342,11 @@ scripts/ui/        title, chapter select, credits, UI kit, bitmap font renderer
 data/levels/       one ASCII level file per chapter (legend below)
 data/story/        cutscene scripts
 assets/            generated art (PNG) and audio (Ogg / WAV), see tools/
-tools/             art + audio generators, debug renderers, demo reel
+tools/             art + audio generators, debug renderers, demo reel, Graphics frame captures
 tools/trailer/     trailer pipeline: shot recorder, cards, caption plates, ffmpeg assembly
 tests/             verification suite, cached solver solutions (fastest and basic-moveset), proven routes
 docs/media/        trailer, teaser, poster and screenshots used by this README
+docs/IMPROVEMENTS.md   plans and results of every improvement round since release
 ```
 
 <details>
@@ -353,6 +382,7 @@ Room headers set `exits` (e.g. `right:1-02 top[3-8]:1-03b`), `wind`, `dashes`, `
   proves every golden run. It repeats the proofs with the basic moveset only, since the
   solver's fastest routes lean on supers and hypers the game never teaches, and scores each
   room's route for how often a 1-frame timing slip is fatal (`tools/slip_deaths.gd` shows where).
+  The basic-moveset routes are what the Route Ghost plays.
 - **Procedural art.** Characters are rigged "paper dolls": hand-drawn ASCII heads and
   torsos with procedurally posed limbs, 34 animation frames each. Terrain is painted per
   pixel from the collision map on worker threads, with bevel, ambient occlusion, material
@@ -362,9 +392,9 @@ Room headers set `exits` (e.g. `right:1-02 top[3-8]:1-03b`), `wind`, `dashes`, `
   pads, choir, organ, calliope, drums and a convolution reverb. `tools/gen_audio.py`
   composes 13 tracks on one theme as seamless 32-bar loops, loudness-normalised.
 - **Reproducible trailer.** `tools/trailer/` drives the real game through Movie Maker with
-  the proven routes, renders captions in the game's pixel font, and assembles everything
-  with ffmpeg. That covers transitions on the music grid, a ducked music bed and EBU R128
-  loudness.
+  the proven routes and scripted menu presses, renders captions in the game's pixel font, and
+  assembles everything with ffmpeg: transitions on the music grid, a ducked music bed and
+  EBU R128 loudness.
 
 ## Credits and tooling
 
@@ -379,82 +409,27 @@ Room headers set `exits` (e.g. `right:1-02 top[3-8]:1-03b`), `wind`, `dashes`, `
 
 ## Status and known issues
 
-Jeste **v0.1.0** is a complete, playable game, from the prologue through the epilogue
-and credits. It is a first release, so expect rough edges.
+Jeste is a complete, playable game, from the prologue through the epilogue and credits.
+`main` has had twelve rounds of fixes and features since the v0.1.0 release; each round's plan,
+results and limits are in [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md).
 
-- **Linux only** for now. Other platforms should export cleanly but haven't been tested.
-- **Gamepad support** (bindings, rebinding, prompts, rumble, analog-stick menu navigation,
-  the stick's eight equal directions in play, pausing when a pad disconnects) was exercised
-  with simulated input, not on a range of physical controllers. Controller families are
-  recognised by the name the pad reports, so an unusual pad may show Xbox button names. The
-  stick's deadzone can be raised for a drifting stick (*Controls → Stick Deadzone*); that and its
-  dial were checked with simulated stick positions only.
-- **Difficulty was tuned against a bot.** Every room is proven possible, now also with the
-  basic moveset alone (no supers, hypers or wall-bounces, which the game never teaches), and
-  the three rooms where small timing slips were most often fatal were eased (2-03, 6-06,
-  7-05; the trailer predates these edits). Human-feel playtesting is still light, so some rooms may feel tighter than intended.
-  Assist mode is there for that, including the Route Ghost.
-- **Fixed on `main`, not yet in a release:**
-  - *Game Speed didn't slow gameplay* in v0.1.0. The 50–90% settings only slowed animations and
-    timers; Mira moved at full speed. The game now steps its simulation at the chosen speed.
-  - *A save could be lost to a crash.* v0.1.0 rewrote the save in place on every room and berry.
-    A crash or full disk at that moment left a damaged file, which the next launch silently
-    replaced with an empty save. Saves are now written to a temporary file and renamed, with a
-    backup. This was checked by damaging files in every way a torn write can, not by pulling the
-    power, and the rename path hasn't been run on Windows or the web.
-  - *The mouse cursor stayed visible* over the game, in the middle of the screen in fullscreen.
-    It now hides while you play.
-  - *Rebinding could leave Dash stuck.* Binding the key or pad button that was Dash (X on both
-    by default) to Jump left Dash "held" after you let go, so the next level started with a dash
-    and your next press of Dash did nothing.
-  - *Prompts named the wrong keys on non-US keyboards.* Keys are bound by position, but every
-    prompt used the US-QWERTY name, so a French AZERTY player was told "Hold Z to GRAB" when the
-    key is printed W. Prompts now follow the keyboard layout. French and German were checked
-    under Wayland and X11 (Xwayland), each in a private KWin session; Windows and macOS
-    weren't. Letters the pixel font can't draw (Cyrillic, Greek…) fall back to the US name.
-  - *On a 1280×720 screen under X11 the window opened maximised.* The game's first window was
-    1280×720 before it sized itself, the whole screen, so KWin maximised it. It now starts at
-    640×360. Checked in a private KWin session, not on other window managers.
-  - *Closing the pause menu could make Mira jump or dash.* Choosing Resume with Jump, or closing
-    the menu with Dash (which the pause screen offers as Resume), still had the key down when play
-    came back, so she jumped or dashed. A held Jump as a cutscene's last line closed could too.
-    A key held when play comes back now counts only after it's let go.
-  - *On a pad, the button the menus named for Back did nothing.* The hint line names Dash's
-    button for Back and Resume (X on an Xbox pad, Square on a PlayStation one), but on a pad only
-    B went back and only A selected, whatever Jump and Dash were bound to. Now a pad's Jump and
-    Dash buttons select and go back, as the keyboard's always have.
-  - *Invincibility didn't stop every death.* Falling into a bottomless pit and dashing out of a
-    curtain into a wall still killed, and a gondola that crushed Mira left her stuck inside the
-    wall. All three are now caught (see Assist above). A rare dash along the very bottom edge of
-    a room could also carry her under the floor and past a side wall to fall for ever; that now
-    counts as a fall.
-- **Dash Aim** was checked with simulated key presses and stick moves, not played by hand with
-  a keyboard or a pad. Time stops only when a dash would start right then, and pausing drops the aim without
-  dashing.
-- **Route Ghost:** a block that is solid for you but open for her (a wall she has broken, a
-  gate she has opened, a mask block that swapped for her) is still drawn as your solid block,
-  with an outline in her tint while she is near it. Her own berries, bells and keys are pale
-  shapes in her colour (a berry she takes trails her; your own stays where it is), drawn over
-  the outline of one you found on an earlier climb until she takes it. A dash gem or balloon
-  she has used keeps looking ready for you, with a draining ring in her colour around it. None
-  of this has been playtested with a new player.
-- **Graphics:** the four steps were measured on one machine only (an AMD Radeon 8060S iGPU on
-  Linux, Vulkan), where every step takes well under a millisecond of GPU time per frame. *Low*
-  hasn't been tried on a weak GPU, and none of the steps on the untested Windows, macOS or web
-  builds. *Ultra*'s wide glow reads the screen's blurred mip levels, which the web build's
-  renderer may draw differently.
-- **Mouse:** menu hover, clicks and the wheel were checked with synthetic events (in a real
-  window too), not with a physical mouse or touchpad. Gameplay itself is keyboard or pad only.
-- **Display:** the 320×180 canvas is always integer-scaled, so screens that aren't a multiple
-  of it letterbox. *Options → Window Size* picks 2× up to the largest scale that fits, and the
-  default (Auto) sizes the window to about three quarters of the screen. Tested on one 4K
-  monitor under Wayland. On this machine's X11 (XWayland) session, game windows launched from a
-  script started minimised regardless of these settings, so X11 was not checked by eye. In a
-  private KWin session's Xwayland, F11 and Alt+Enter switched a real X11 window to fullscreen
-  and back, and the first window opened at its Auto size on 1280×720, 1366×768 and 1920×1080
-  screens.
-  *Smooth Motion* was checked by measuring where Mira is drawn on every frame at a forced
-  144 fps and at 50% Game Speed, plus captured frames from a real window. Nobody has watched
-  it on a real 144 or 165 Hz display yet, and Auto relies on the refresh rate the system reports.
+- **The v0.1.0 release is out of date.** It lacks every change since October 4, including
+  fixes for Game Speed not slowing gameplay, saves that a crash could lose, a Dash that could
+  stick after rebinding, prompts naming the wrong keys on non-US keyboards, Invincibility
+  that missed some deaths, and closing the pause menu making Mira jump. Play from source for now.
+- **Linux only.** Other platforms should export cleanly but haven't been built or tested.
+- **Tested on one machine.** The Graphics steps were measured only on an AMD Radeon 8060S iGPU
+  (Vulkan); *Low* hasn't been tried on a weak GPU, and *Ultra*'s wide glow may draw differently on
+  the web build's renderer. The window and fullscreen behaviour was checked on one 4K monitor
+  under Wayland and in private KWin sessions; Smooth Motion hasn't been watched on a real 144 or
+  165 Hz display.
+- **Simulated input only.** Gamepads (including the stick deadzone, Dash Aim and rumble) and
+  the mouse were exercised with simulated events, not on a range of physical controllers, mice or
+  touchpads. Controller families are recognised by the name the pad reports, so an unusual pad
+  may show Xbox button names. Keyboard layouts were checked for French and German on Linux only.
+- **Difficulty was tuned against a bot.** Every room is proven possible with the basic moveset
+  alone, and the three rooms where small timing slips were most often fatal were eased. Human
+  playtesting is still light, so some rooms may feel tighter than intended; Assist mode and the
+  Route Ghost are there for that.
 - **No license has been chosen yet.** Until a `LICENSE` file is added, all rights are
   reserved by the author.
