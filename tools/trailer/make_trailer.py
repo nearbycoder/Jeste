@@ -11,7 +11,9 @@ Stages
   capture      Godot's Movie Maker records every source shot at the native
                320x180 / 60 fps through tools/trailer/rec.tscn: full chapter
                runs driven by the solver-proven routes in tests/routes.json,
-               cutscenes, a staged death, menus and the title / end cards.
+               cutscenes, a staged death, menus and the title / end cards,
+               all at Options > Graphics: Ultra (Movie Maker renders offline,
+               so every frame is kept whatever the step costs).
                Music is muted in the captures, sound effects are kept.
   plates       tools/trailer/plates.tscn renders the caption plates with the
                game's pixel font and UI colours.
@@ -52,6 +54,7 @@ TRAILER = os.path.join(MEDIA, "jeste_trailer.mp4")
 FPS = 60
 W, H = 1920, 1080
 SFX_VOLUME = 0.45      # in-game sound volume for captures (default 0.8 clips when busy)
+FIDELITY = 3           # Options > Graphics for every capture: 0 Low .. 3 Ultra
 MAX_MB = 39.0
 
 
@@ -82,14 +85,21 @@ def sources():
         "story_pro": {"kind": "route", "ch": 0, "from": 0, "to": 1, "story": ["pro_arrive"], "frames": 1900},
         "story_ch3": {"kind": "route", "ch": 3, "from": 0, "to": 1, "story": ["ch3_arrive"], "frames": 400},
         "death": {"kind": "route", "ch": 1, "from": 3, "to": 4, "cut": 75, "append": "0:240", "frames": 300},
-        "assist": {"kind": "route", "ch": 4, "from": 2, "to": 3, "frames": 420, "settings": {"show_timer": True},
-                   "calls": [[70, "press:pause"], [96, "press:down"], [110, "press:down"], [124, "press:confirm"],
-                             [148, "press:left"], [166, "press:left"], [186, "press:down"], [202, "press:confirm"],
-                             [222, "press:down"], [238, "press:confirm"], [262, "press:up"], [280, "press:up"]]},
-        "select": {"kind": "scene", "scene": "res://scenes/chapter_select.tscn", "save": "progress", "frames": 420,
-                   "presses": [[90, "left"], [150, "left"], [210, "left"], [270, "left"], [330, "right"]]},
-        "controls": {"kind": "scene", "scene": "res://scenes/main.tscn", "frames": 340,
-                     "presses": [[100, "down"], [120, "confirm"]] + [[150 + 10 * i, "down"] for i in range(6)] + [[215, "confirm"]]},
+        # Mira stops; pause > Assist > Route Ghost, back, resume: the ghost runs the room.
+        "assist": {"kind": "route", "ch": 4, "from": 2, "to": 3, "cut": 20, "append": "0:900", "frames": 720,
+                   "calls": [[40, "press:pause"], [62, "press:down"], [76, "press:down"], [92, "press:confirm"]]
+                   + [[112 + 13 * i, "press:down"] for i in range(5)] + [[190, "press:confirm"], [228, "press:back"],
+                                                                          [252, "press:pause"]]},
+        # Mira stops; pause > Options > Graphics, stepped Ultra > Low > Ultra.
+        "graphics": {"kind": "route", "ch": 1, "from": 2, "to": 3, "cut": 40, "append": "0:900", "frames": 520,
+                     "calls": [[50, "press:pause"]] + [[70 + 12 * i, "press:down"] for i in range(3)]
+                     + [[110, "press:confirm"]] + [[130 + 12 * i, "press:down"] for i in range(4)]
+                     + [[200, "press:left"], [245, "press:left"], [290, "press:left"],
+                        [340, "press:right"], [385, "press:right"], [430, "press:right"]]},
+        # chapter select, then the checkpoint picker of The Hollow Stage
+        "select": {"kind": "scene", "scene": "res://scenes/chapter_select.tscn", "save": "progress", "frames": 520,
+                   "presses": [[90, "left"], [150, "left"], [215, "confirm"], [290, "right"], [350, "right"],
+                               [410, "right"]]},
         "title_screen": {"kind": "scene", "scene": "res://scenes/main.tscn", "frames": 360},
         "title_card": {"kind": "card", "mode": "title", "frames": 330},
         "end_card": {"kind": "card", "mode": "end", "frames": 450},
@@ -97,6 +107,7 @@ def sources():
     })
     for s in src.values():
         s.setdefault("settings", {})["sfx"] = SFX_VOLUME
+        s["settings"]["fidelity"] = FIDELITY
     return src
 
 
@@ -114,10 +125,24 @@ def capture(force=False):
             continue
         shutil.rmtree(d, ignore_errors=True)
         os.makedirs(d)
-        print("  capturing", name)
-        sh([GODOT, "--path", ROOT, "--rendering-method", "mobile", "--resolution", "320x180",
-            "--fixed-fps", str(FPS), "--write-movie", os.path.join(d, "f.png"),
-            "res://tools/trailer/rec.tscn", "--", spec_txt])
+        cmd = ["nice", "-n", "10", GODOT, "--path", ROOT, "--rendering-method", "mobile", "--resolution", "320x180",
+               "--fixed-fps", str(FPS), "--write-movie", os.path.join(d, "f.png"),
+               "res://tools/trailer/rec.tscn", "--", spec_txt]
+        # A capture can stall at startup on a busy machine: give each try a generous
+        # limit (a busy machine records about 4 frames a second) and retry twice.
+        for attempt in range(3):
+            print("  capturing", name, "(retry %d)" % attempt if attempt else "")
+            for f in os.listdir(d):
+                os.remove(os.path.join(d, f))
+            try:
+                p = subprocess.run(cmd, capture_output=True, text=True, timeout=120 + spec["frames"] * 0.6)
+                if p.returncode == 0:
+                    break
+                print(p.stdout[-2000:], p.stderr[-2000:])
+            except subprocess.TimeoutExpired:
+                print("  timed out")
+        else:
+            sys.exit("capture %s failed" % name)
         n = len([f for f in os.listdir(d) if f.endswith(".png")])
         if n < spec["frames"]:
             sys.exit("capture %s: only %d frames" % (name, n))
@@ -144,12 +169,12 @@ PLATE_TEXT = [
     ("twin", "CH 6 - UNDERTOW", "TWIN GEMS", "Two dashes until you touch the ground"),
     ("summit", "CH 7 - THE SUMMIT", "TWO DASHES, EVERY TRICK", "The final climb throws it all at you"),
     ("berries", "COLLECTIBLES", "61 SUNBERRIES TO HUNT", "Winged ones fly off if you dash"),
-    ("golden", "COLLECTIBLES", "GOLDEN SUNBERRIES", "Carry one through a chapter, deathless"),
     ("bells", "SECRETS", "SEVEN JESTER BELLS", "Hidden behind fake and cracked walls"),
     ("death", "PRECISION PLATFORMING", "FAIL FAST, RETRY INSTANTLY", "Every death puts you back in a second"),
-    ("assist", "PLAY YOUR WAY", "ASSIST MODE & REBINDING", "Keyboard or gamepad, at your own pace"),
-    ("select", "PROGRESSION", "NINE CHAPTERS, 69 ROOMS", "Track berries, deaths and best times"),
-    ("proven", "UNDER THE HOOD", "EVERY ROOM PROVEN BEATABLE", "A solver played all of this footage"),
+    ("assist", "PLAY YOUR WAY", "ASSIST MODE & ROUTE GHOST", "A ghost runs a proven way through"),
+    ("graphics", "OPTIONS", "FOUR GRAPHICS STEPS", "Ultra adds terrain shadows"),
+    ("select", "PROGRESSION", "NINE CHAPTERS, 69 ROOMS", "Restart from any checkpoint you reached"),
+    ("proven", "UNDER THE HOOD", "EVERY ROOM PROVEN BEATABLE", "The solver played every climb shown here"),
 ]
 BIG_TEXT = [("w_climb", "CLIMB."), ("w_dash", "DASH."), ("w_fall", "FALL."), ("w_up", "GET BACK UP.")]
 
@@ -192,13 +217,16 @@ FEATURES = [
     ("twin", 4, "tl", "pixelize", [("ch6", 1625, None)]),
     ("summit", 4, "tl", "pixelize", [("ch7", 225, None)]),
     ("berries", 4, "bl", "fade", [("ch1", 1712, 110), ("ch1", 2950, None)]),
-    ("golden", 4, "br", "fade", [("ch1", 30, None)]),
     ("bells", 4, "tl", "pixelize", [("ch1", 1340, None)]),
     ("death", 4, "tl", "fade", [("death", 36, None)]),
-    ("assist", 5, "bc", "fade", [("assist", 90, 205), ("controls", 215, None)]),
-    ("select", 4, "bc", "fade", [("select", 60, None)]),
+    ("assist", 6, "tl", "fade", [("assist", 100, 110), ("assist", 405, None)]),
+    ("graphics", 5, "tl", "fade", [("graphics", 178, None)]),
+    ("select", 5, "bc", "fade", [("select", 140, None)]),
     ("proven", 4, "tr", "fadewhite", [("ch7", 1950, None)]),
 ]
+
+# Beats whose caption waits (seconds) for a menu to close, so it doesn't cover it.
+PLATE_IN = {"assist": 1.9}
 
 # Escalation montage: two cuts per bar of "chase", a word per bar.
 MONTAGE = [
@@ -234,7 +262,7 @@ def build_edit():
         hb += halves
         e = feat0 + round(hb * HALF_BAR * FPS)
         beats.append({"id": plate, "start": s, "frames": e - s, "trans": trans, "clips": clips,
-                      "plate": plate, "anchor": anchor, "section": "features"})
+                      "plate": plate, "anchor": anchor, "section": "features", "plate_in": PLATE_IN.get(plate, 0.3)})
     t = feat0 + round(hb * HALF_BAR * FPS)
     for word, clips in MONTAGE:
         for k, (src, start) in enumerate(clips):
@@ -270,7 +298,7 @@ def caption_filters(beat, base, next_in, meta, total):
         by = m - dy if beat["anchor"][0] == "t" else H - m - body["h"]
         if beat["anchor"] == "bc":
             by = H - 24 - body["h"]      # sits over the menu's key hints rather than half-covering them
-        a_in, a_out = 0.3, secs - 0.45
+        a_in, a_out = beat.get("plate_in", 0.3), secs - 0.45
         sign = 1 if right else -1
         for part, x0, y0, delay in (("body", bx, by, 0.0), ("kick", bx + dx, by + dy, 0.12)):
             idx = next_in + len(inputs) // 8   # 8 args per plate input
@@ -520,7 +548,10 @@ SCREENSHOTS = [
     ("gondola", "ch4", 1650),
     ("undertow", "ch6", 240),
     ("summit", "ch7", 2108),
-    ("chapter_select", "select", 400),
+    ("chapter_select", "select", 200),
+    ("checkpoints", "select", 470),
+    ("route_ghost", "assist", 300),
+    ("graphics", "graphics", 470),
 ]
 
 

@@ -54,7 +54,7 @@ func _draw() -> void:
 		var k := _intro(1.7, 0.45)
 		if k > 0.0:
 			var e := ease(k, 0.3)
-			var line2 := "Open source - made with Godot 4"
+			var line2 := "Made with Godot 4.7"
 			var w := maxf(PixelText.width(URL), PixelText.width(line2)) + 24.0
 			# keep clear of Mira's juggling balls on the right
 			var cx := minf(160.0, 228.0 - w / 2.0)
