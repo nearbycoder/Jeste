@@ -387,6 +387,7 @@ async function waitFor(p, what, test, seconds) {
 	const until = Date.now() + seconds * 1000;
 	let d = {};
 	while (Date.now() < until) {
+		if (p.log.errors.length) throw new Error(`error(s) while waiting for ${what}:\n    ${p.log.errors.slice(0, 10).join('\n    ')}`);
 		d = await screen(p).catch(() => ({}));
 		if (test(d)) return d;
 		if (d.jesteScreen === 'error') throw new Error(`page shows an error: ${d.jesteError}`);
